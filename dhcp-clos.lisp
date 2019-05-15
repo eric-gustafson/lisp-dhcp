@@ -19,7 +19,7 @@
                  "Filled in by client, seconds elapsed since client started trying to boot."
                  :ACCESSOR SECS :INITARG :SECS)
            (FLAGS :DOCUMENTATION "Flags (see figure 2)." :ACCESSOR FLAGS
-            :INITARG :FLAGS)
+                  :INITARG :FLAGS)
            (CIADDR :DOCUMENTATION
                    "Client IP address; filled in by client in DHCPREQUEST if verifying previously allocated configuration parameters."
                    :ACCESSOR CIADDR :INITARG :CIADDR)
@@ -37,8 +37,5 @@
                   "Optional server host name, null terminated string."
                   :ACCESSOR SNAME :INITARG :SNAME)
            (FILE :DOCUMENTATION
-            "Boot file name, null terminated string; \"generic\" name or null in DHCPDISCOVER, fully qualified directory-path name in DHCPOFFER."
-            :ACCESSOR FILE :INITARG :FILE)
-           (OPTIONS :DOCUMENTATION
-                    "Optional parameters field.  See the options documents for a list of defined options."
-                    :ACCESSOR OPTIONS :INITARG :OPTIONS)))
+                 "Boot file name, null terminated string; \"generic\" name or null in DHCPDISCOVER, fully qualified directory-path name in DHCPOFFER."
+                 :ACCESSOR FILE :INITARG :FILE)))

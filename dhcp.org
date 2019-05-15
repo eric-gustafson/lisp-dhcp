@@ -59,7 +59,7 @@
    | chaddr  |     16 | Client hardware address.                                     | int    |
    | sname   |     64 | Optional server host name, null terminated string.           | string |
    | file    |    128 | Boot file name, null terminated string; "generic" name or null in DHCPDISCOVER, fully qualified directory-path name in DHCPOFFER. | string |
-   | options |    312 | Optional parameters field.  See the options documents for a list of defined options. |        |
+   | options |    312 | Optional parameters field.  See the options documents for a list of defined options. | rest   |
 
 * Code Gen
 
@@ -87,16 +87,43 @@
 #+RESULTS:
 [[file:dhcp-clos.lisp]]
 
+** TODO add support for different types of strings
+   - fixed
+   - pascal
+   - c
 
-
-** TODO hydration from packet
-
-#+BEGIN_SRC lisp
-  (defun octet->int-read (n)
-    "Generates code to read in an integer of n octets"
-    
-    )
+#+BEGIN_SRC lisp :var clazz=dhcp-f2 :results output verbatim :file (buff-name "-dehydrate.lisp") :var name=(buff-basename) :exports both
+  (pprint
+     `(progn
+        (defmethod ,(->symbol (serapeum:concat "read-" name "-from-stream")) ((obj ,(->symbol name)) input-stream)
+            ,@(mapcar #'(lambda(row)
+                          (trivia:match 
+                              row
+                            ((list field octets descr da-type)
+                             (let ((type (intern (string-upcase da-type) :keyword)))
+                               (cond
+                                 ((eq type :rest)
+                                  `(setf (,(->symbol field) obj) (read-sequence  input-stream)))
+                                 ;; Strings have a fixed length
+                                 ;; Maybe we should handle fixed-length, pascal, and c with different
+                                 ;; keywords?
+                                 ((eq type :string)
+                                  `(setf (,(->symbol field) obj)
+                                         (loop :for i :upto ,octets :collect (read-char input-stream))))
+                                 ((eq type :int)
+                                  `(setf (,(->symbol field) obj) (octets->num (read-octets ,octets input-stream) :endian :big)))
+                                 (t
+                                  (error "Unexpected type ~a" row))
+                                 )))))
+                      (cddr  clazz))
+            )
+          )
+        )
+     )
 #+END_SRC
+
+#+RESULTS:
+[[file:dhcp-dehydrate.lisp]]
 
 #+BEGIN_SRC lisp :var clazz=dhcp-f2 :results output verbatim :file (buff-name "-hydrate.lisp") :var name=(buff-basename) :exports both
   (pprint
@@ -109,9 +136,18 @@
           ,@(mapcar #'(lambda(row)
                         (trivia:match 
                             row
-                          ((list field octets descr type)
-                           `(write-seq (number->octets ,(->symbol field) :n octets) out)
-                           )))
+                          ((list field octets descr da-type)
+                           (let ((type (intern (string-upcase da-type) :keyword)))
+                             (cond
+                               ((eq type :rest)
+                                `(write-sequence (,(->symbol field) obj) out))
+                               ((eq type :string)
+                                `(write-sequence (,(->symbol field) obj) out))
+                               ((eq type :int)
+                                `(write-seq (number->octets (,(->symbol field) obj) :n ,octets :endian :big) out))
+                               (t
+                                (error "Unexpected type ~a" row))
+                               )))))
                     (cddr  clazz))
           )
         )
