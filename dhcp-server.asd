@@ -20,4 +20,5 @@
 	       (:file "dhcp-hydrate")
 	       (:file "dhcp-dehydrate")
                (:file "dhcp-server")
+	       (:file "parse-dhcp-options")
 	       ))

@@ -8,6 +8,7 @@
     - profile management
     - qos
 
+
 * COMMENT Setup
 ** Lisp
 #+BEGIN_SRC lisp
@@ -82,12 +83,61 @@
    Built from [[https://tools.ietf.org/html/rfc2132]]
 
 #+tblname: dhcp-options
-   | code | length | Name        | Notes                                    |
-   |      |        |             | <40>                                     |
-   |    0 |      0 | Pad Option  | Can be used to pad other options so that they are aligned to the word boundary; is not followed by length byte |
-   |  255 |      0 | end option  |                                          |
-   |    1 |      4 | subnet mask | Must be sent before the router option (option 3) if both are included |
-   |    2 |      4 | time offset |                                          |
+   | code | unit-length | number | Name                                     | Notes                                    |
+   |      |             |        | <40>                                     | <40>                                     |
+   |------+-------------+--------+------------------------------------------+------------------------------------------|
+   |    0 |           0 |      0 | Pad Option                               | Can be used to pad other options so that they are aligned to the word boundary; is not followed by length byte |
+   |  255 |           0 |      0 | end option                               |                                          |
+   |    1 |           4 |      1 | subnet mask                              | Must be sent before the router option (option 3) if both are included |
+   |    2 |           4 |      1 | time offset                              |                                          |
+   |   15 |           1 |      n | domain name                              |                                          |
+   |   53 |           1 |      1 | dhcp message type                        |                                          |
+   |   54 |           4 |      1 | server id                                |                                          |
+
+#+BEGIN_SRC lisp  :var tn=dhcp-options :results value code
+  (let ((codes (cdddr tn)))
+    `(defvar *dhcp-optons*
+               (quote ,(mapcar #'(lambda(row)
+                                    (trivia:match
+                                        row
+                                      ((list* code unit-length number name rest)
+                                       (list name code unit-length number))))
+                               codes)
+                      )
+       )
+    )
+#+END_SRC
+
+#+RESULTS:
+#+BEGIN_SRC lisp
+
+(DEFVAR *DHCP-OPTONS* '((255 0) (1 4) (2 4) (15 1) (53 1) (54 4)))
+#+END_SRC
+
+#+RESULTS:
+: *DHCP-OPTONS*
+
+
+
+** DHCP Message Types
+#+tblname: dhcp-message-types
+   | Value | Message Type |
+   |-------+--------------|
+   |     1 | DHCPDISCOVER |
+   |     2 | DHCPOFFER    |
+   |     3 | DHCPREQUEST  |
+   |     4 | DHCPDECLINE  |
+   |     5 | DHCPACK      |
+   |     6 | DHCPNAK      |
+   |     7 | DHCPRELEASE  |
+   |     8 | DHCPINFORM   |
+
+#+tblename: dhcp-server-id
+ Code   Len            Address
+   +-----+-----+-----+-----+-----+-----+
+   |  54 |  4  |  a1 |  a2 |  a3 |  a4 |
+   +-----+-----+-----+-----+-----+-----+
+
 
 3 	Router 	Multiples of 4 octets 	Available routers, should be listed in order of preference
 4 	Time server 	Multiples of 4 octets 	Available time servers to synchronise with, should be listed in order of preference
@@ -218,7 +268,18 @@
 [[file:dhcp-hydrate.lisp]]
 
 
-* Decode a dhcp request broadcast
+
+* Dev
+
+** Files (quick links)
+|-------------------------|
+| Most used files         |
+|-------------------------|
+| [[file:./dhcp-server.lisp]] |
+| [[file:./dhcp-server.asd]]  |
+
+
+** Decode a dhcp request broadcast
 
     172.24.200.232.bootpc > 172.24.200.15.bootps: BOOTP/DHCP, Request from 00:16:3e:79:c0:76 (oui Unknown), length 300
 
@@ -235,15 +296,13 @@
 #+RESULTS:
 : #<DHCP op=1,chaddr=(0 16 3E 64 EE F3 0 0 0 0 0 0 0 0 0 0)>
 
-* Decode the dhcp options
-#+BEGIN_SRC lisp
+
+** Decode the dhcp options
+#+BEGIN_SRC lisp :output value 
    (options *a*)
 #+END_SRC
 
-* Dev
-|-------------------------|
-| Most used files         |
-|-------------------------|
-| [[file:./dhcp-server.lisp]] |
-| [[file:./dhcp-server.asd]]  |
+#+RESULTS:
+| 53 | 1 | 3 | 54 | 4 | 172 | 24 | 200 | 15 | 50 | 4 | 172 | 24 | 200 | 213 | 12 | 18 | 108 | 97 | 109 | 98 | 100 | 97 | 45 | 100 | 101 | 98 | 45 | 115 | 116 | 114 | 101 | 116 | 99 | 104 | 55 | 13 | 1 | 28 | 2 | 3 | 15 | 6 | 119 | 12 | 44 | 47 | 26 | 121 | 42 | 61 | 19 | 255 | 62 | 100 | 238 | 243 | 0 | 1 | 0 | 1 | 36 | 113 | 83 | 159 | 0 | 22 | 62 | 100 | 238 | 243 | 255 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
+   
