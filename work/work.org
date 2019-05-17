@@ -1,13 +1,34 @@
 #+title: work
 
 * TODO read-from-octets
+  
+** TODO search for magic cookie from file
+
+** TODO change the name of the parser we generated to dhcp-static-header-*
+
+** TODO add a section to parse dhcp options
+
+** TODO add a method get-options
+   returns a sequence from the packet after the *magic*
 
 * TODO Add a section to deconstruct the captured packet
 
-  
-* TODO allocate IP and network info
+* TODO create a commissioning network
+  This is a virtual interface with a network allocated from *network-malloc*
+
+** TODO verfify that this shows up on RBPI
+
+** TODO up/down this network
+   (defmethod net-up ((obj netobj))
+    )
+
+   
+** TODO allocate IP and network info
+
 
 * TODO Add a section to construct a reply
+  Use the *commissioning-network* info above
+
 
 * TODO add files to command line program
 
@@ -19,6 +40,9 @@
   - pascal
   - c
 
+
+* TODO newer versions of RBPI support PXE boots
+  This is our over-the-air update.  
 
 * DONE Use cl-async?
   Figure out if we really want to do this.  Why not just use select?

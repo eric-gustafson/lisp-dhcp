@@ -14,7 +14,6 @@
    (ql:quickload :dhcp-server)
 #+END_SRC
 
-  
 #+BEGIN_SRC lisp
   (defun ->symbol (str)
     (intern (string-upcase str)))
@@ -52,28 +51,31 @@
   | [[https://tools.ietf.org/html/rfc2132][RFC 2132]]       |
 
 
-** Internal Table
+** DHCP Message
+   
+   
+#+tblname: dhcp-static-header
+   | Field   | Octets | description                              | type   | Notes                                    |
+   |         |        | <40>                                     |        | <40>                                     |
+   |---------+--------+------------------------------------------+--------+------------------------------------------|
+   | op      |      1 | Message op code / message type. 1 = BOOTREQUEST, 2 = BOOTREPLY | int    |                                          |
+   | htype   |      1 | Hardware address type, see ARP section in "Assigned Numbers" RFC; e.g., '1' = 10mb ethernet. | int    |                                          |
+   | hlen    |      1 | Hardware address length (e.g. '6' for 10mb ethernet). | int    |                                          |
+   | hops    |      1 | Client sets to zero, optionally used by relay-agents when booting via a relay-agent. | int    |                                          |
+   | xid     |      4 | Transaction ID, a random number chosen by the client, used by the client and server to associate messages and responses between a client and a server. | int    |                                          |
+   | secs    |      2 | Filled in by client, seconds elapsed since client started trying to boot. | int    |                                          |
+   | flags   |      2 | Flags (see figure 2).                    | int    |                                          |
+   | ciaddr  |      4 | Client IP address; filled in by client in DHCPREQUEST if verifying previously allocated configuration parameters. | int    |                                          |
+   | yiaddr  |      4 | 'your' (client) IP address.              | int    |                                          |
+   | siaddr  |      4 | IP address of next server to use in bootstrap; returned in DHCPOFFER, DHCPACK and DHCPNAK by server. | int    |                                          |
+   | giaddr  |      4 | Relay agent IP address, used in booting via a relay-agent. | int    |                                          |
+   | chaddr  |     16 | Client hardware address.                 | mac    | Ethernet: 6 octets (48 bits)             |
+   | sname   |     64 | Optional server host name, null terminated string. | string |                                          |
+   | file    |    128 | Boot file name, null terminated string; "generic" name or null in DHCPDISCOVER, fully qualified directory-path name in DHCPOFFER. | string | I'm seeing the cookie at different places.  Search for it |
+   | mcookie |      4 | 0x63825363                               | int    | Advance to the cookie and then parse     |
+   | options |    312 | Optional parameters field.  See the options documents for a list of defined options. | rest   |                                          |
 
-#+tblname: dhcp-f2
-   | Field   | Octets | description                                                  | type   | Notes                        |
-   |         |        | <60>                                                         |        |                              |
-   |---------+--------+--------------------------------------------------------------+--------+------------------------------|
-   | op      |      1 | Message op code / message type. 1 = BOOTREQUEST, 2 = BOOTREPLY | int    |                              |
-   | htype   |      1 | Hardware address type, see ARP section in "Assigned Numbers" RFC; e.g., '1' = 10mb ethernet. | int    |                              |
-   | hlen    |      1 | Hardware address length (e.g. '6' for 10mb ethernet).        | int    |                              |
-   | hops    |      1 | Client sets to zero, optionally used by relay-agents when booting via a relay-agent. | int    |                              |
-   | xid     |      4 | Transaction ID, a random number chosen by the client, used by the client and server to associate messages and responses between a client and a server. | int    |                              |
-   | secs    |      2 | Filled in by client, seconds elapsed since client started trying to boot. | int    |                              |
-   | flags   |      2 | Flags (see figure 2).                                        | int    |                              |
-   | ciaddr  |      4 | Client IP address; filled in by client in DHCPREQUEST if verifying previously allocated configuration parameters. | int    |                              |
-   | yiaddr  |      4 | 'your' (client) IP address.                                  | int    |                              |
-   | siaddr  |      4 | IP address of next server to use in bootstrap; returned in DHCPOFFER, DHCPACK and DHCPNAK by server. | int    |                              |
-   | giaddr  |      4 | Relay agent IP address, used in booting via a relay-agent.   | int    |                              |
-   | chaddr  |     16 | Client hardware address.                                     | mac    | Ethernet: 6 octets (48 bits) |
-   | sname   |     64 | Optional server host name, null terminated string.           | string |                              |
-   | file    |    128 | Boot file name, null terminated string; "generic" name or null in DHCPDISCOVER, fully qualified directory-path name in DHCPOFFER. | string |                              |
-   | mcookie |      4 | 0x63825363                                                   | int    |                              |
-   | options |    312 | Optional parameters field.  See the options documents for a list of defined options. | rest   |                              |
+
 
 
 ** DHCP Options
@@ -105,13 +107,14 @@
 18 	Extensions path 	Minimum of 1 octet 	
 255 	End 	0 octets 	Used to mark the end of the vendor option field 
 
+
 * Code Gen
 
 ** defclass 
   
    Create an object with slots that match the table.
 
-#+BEGIN_SRC lisp :var clazz=dhcp-f2 :results output verbatim :file (concat (file-name-base (buffer-name (current-buffer))) "-clos.lisp") :var name=(file-name-base (buffer-name (current-buffer))) :exports both
+#+BEGIN_SRC lisp :var clazz=dhcp-static-header :results output verbatim :file (concat (file-name-base (buffer-name (current-buffer))) "-clos.lisp") :var name=(file-name-base (buffer-name (current-buffer))) :exports both
   (pprint `(in-package :dhcp-server))
   (pprint
    `(defclass ,(->symbol name)
@@ -136,7 +139,7 @@
 
 ** dyhydrate
 
-#+BEGIN_SRC lisp :var clazz=dhcp-f2 :results output verbatim :file (buff-name "-dehydrate.lisp") :var name=(buff-basename) :exports both
+#+BEGIN_SRC lisp :var clazz=dhcp-static-header :results output verbatim :file (buff-name "-dehydrate.lisp") :var name=(buff-basename) :exports both
     (pprint `(in-package :dhcp-server))
   (pprint
      `(progn
@@ -149,7 +152,7 @@
                                (cond
                                  ((eq type :mac) ;; 
                                   `(setf (,(->symbol field) obj)
-                                         (loop :for i :upto ,octets :collect (read-byte input-stream))))
+                                         (loop :for i :below ,octets :collect (read-byte input-stream))))
                                  ((eq type :rest)
                                   `(setf (,(->symbol field) obj) (loop
                                                                     :for x = (read-byte  input-stream nil nil)
@@ -160,7 +163,7 @@
                                  ;; keywords?
                                  ((eq type :string)
                                   `(setf (,(->symbol field) obj)
-                                         (loop :for i :upto ,octets :collect (read-byte input-stream))))
+                                         (loop :for i :below ,octets :collect (read-byte input-stream))))
                                  ((eq type :int)
                                   `(setf (,(->symbol field) obj) (nums-and-txt:octets->num (nums-and-txt:read-octets ,octets input-stream) :endian :big)))
                                  (t
@@ -178,7 +181,7 @@
 
 
 ** hydrate
-#+BEGIN_SRC lisp :var clazz=dhcp-f2 :results output verbatim :file (buff-name "-hydrate.lisp") :var name=(buff-basename) :exports both
+#+BEGIN_SRC lisp :var clazz=dhcp-static-header :results output verbatim :file (buff-name "-hydrate.lisp") :var name=(buff-basename) :exports both
     (pprint `(in-package :dhcp-server))
   (pprint
    `(progn
@@ -222,8 +225,7 @@
 #+BEGIN_SRC lisp
   (defvar *a* nil)
   (with-open-file (binport #P"request-1.raw" :element-type '(unsigned-byte 8))
-    (let ((buff (make-array 1024 :element-type '(unsigned-byte 8)))
-          (obj (make-instance 'dhcp)))
+    (let ((obj (make-instance 'dhcp)))
       (read-dhcp-from-stream obj binport)
       (setf *a* obj)
       obj)
@@ -231,16 +233,12 @@
 #+END_SRC
 
 #+RESULTS:
-: #<DHCP op=1,chaddr=(0 16 3E 64 EE F3 0 0 0 0 0 0 0 0 0 0 0)>
+: #<DHCP op=1,chaddr=(0 16 3E 64 EE F3 0 0 0 0 0 0 0 0 0 0)>
 
+* Decode the dhcp options
 #+BEGIN_SRC lisp
-  (with-open-file (binport #P"request-1.raw" :element-type '(unsigned-byte 8))
-      (nums-and-txt:read-octets 2 binport)
-    )
+   (options *a*)
 #+END_SRC
-
-#+RESULTS:
-| 1 | 1 |
 
 * Dev
 |-------------------------|

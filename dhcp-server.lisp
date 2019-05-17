@@ -6,6 +6,7 @@
 (defvar *dhcp-dest-port* 67)
 
 (defparameter *ns* 0)
+(defparameter *dhcp-magic-cookie* '(99 130 83 99))
 
 (defun serve ()
   (if (> *ns* 0)
@@ -46,4 +47,11 @@
 	obj
       (format stream "op=~a,chaddr=~X" op chaddr))
     )
+  )
+
+(defmethod find-options ((seq list))
+  (search *dhcp-magic-cookie* seq))
+
+(defmethod has-magic-cookie ((obj dhcp))
+  (eq (mcookie *a*) (nums-and-txt:octets->num *dhcp-magic-cookie*))
   )

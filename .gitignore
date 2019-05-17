@@ -1,4 +1,4 @@
 # -*- mode: gitignore; -*-
 *~
 \#*\#
-list-dhcpd
+lisp-dhcpd

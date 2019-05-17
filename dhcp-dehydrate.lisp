@@ -36,13 +36,13 @@
            (NUMS-AND-TXT:OCTETS->NUM (NUMS-AND-TXT:READ-OCTETS 4 INPUT-STREAM)
                                      :ENDIAN :BIG))
    (SETF (CHADDR OBJ)
-           (LOOP :FOR I :UPTO 16
+           (LOOP :FOR I :BELOW 16
                  :COLLECT (READ-BYTE INPUT-STREAM)))
    (SETF (SNAME OBJ)
-           (LOOP :FOR I :UPTO 64
+           (LOOP :FOR I :BELOW 64
                  :COLLECT (READ-BYTE INPUT-STREAM)))
    (SETF (FILE OBJ)
-           (LOOP :FOR I :UPTO 128
+           (LOOP :FOR I :BELOW 128
                  :COLLECT (READ-BYTE INPUT-STREAM)))
    (SETF (MCOOKIE OBJ)
            (NUMS-AND-TXT:OCTETS->NUM (NUMS-AND-TXT:READ-OCTETS 4 INPUT-STREAM)

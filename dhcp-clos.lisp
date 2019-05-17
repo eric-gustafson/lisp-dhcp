@@ -41,7 +41,7 @@
                  "Boot file name, null terminated string; \"generic\" name or null in DHCPDISCOVER, fully qualified directory-path name in DHCPOFFER."
                  :ACCESSOR FILE :INITARG :FILE)
            (MCOOKIE :DOCUMENTATION "0x63825363" :ACCESSOR MCOOKIE :INITARG
-            :MCOOKIE)
+                    :MCOOKIE)
            (OPTIONS :DOCUMENTATION
                     "Optional parameters field.  See the options documents for a list of defined options."
                     :ACCESSOR OPTIONS :INITARG :OPTIONS)))
