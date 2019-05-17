@@ -1,9 +1,15 @@
 #+title: dhcp protocol meta code
 
 * Goals
-  To produce key resources to handle the dhcp protocol
+  - To produce key resources to handle the dhcp protocol
+  - To distribute dhcp servers into the mesh
+    - seperate networks for each node
+    - don't allow IP connectivity to other nodes
+    - profile management
+    - qos
 
-* Setup
+
+* COMMENT Setup
 ** Lisp
 #+BEGIN_SRC lisp
    (ql:quickload :alexandria)
@@ -20,6 +26,7 @@
   (defun ->keyword (str)
     (intern (string-upcase str) :keyword))
 #+END_SRC
+
 
 ** Elisp
 #+BEGIN_SRC elisp
@@ -160,12 +167,13 @@
 
 ** TODO dehydration to packet
 
-   
+  
 #+BEGIN_SRC lisp
 
 #+END_SRC
 
 * hostapd 
+
 * dhcp-discover
 ** give ip on staging network
    Low lease, very little bandwidth
@@ -184,3 +192,6 @@
   Create a new network
   dhcp-renew => give new ip/network
 
+
+* Dev
+  [[file:./dhcp-server.lisp]]

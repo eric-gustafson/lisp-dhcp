@@ -1,0 +1,38 @@
+#+title: work
+
+* TODO Receive and decode dhcp broadcast
+  To send and receive broadcast
+
+** netmask
+   Be sure that netmask is correct. in windows mask for broadcast
+    packets does not matters, but not in linux.
+
+** wildcard address
+   bind socket to INADDR_ANY
+
+** setsockopt
+   setsockopt to BROADCAST
+
+** sendto
+   call sendto with sendaddr.sin_addr.s_addr = inet_addr("your_interface_broadcast_address")
+
+   call sento several times for each interface with its broadcast ip address.
+
+** call recvfrom. any time before calling recvfrom, set up length parameter
+
+  
+* TODO allocate IP and network info
+
+* TODO Use cl-async?
+  Figure out if we really want to do this.  Why not just use select?
+  In the future, we can inhance by creating an event using the file
+  descriptor
+
+
+
+* TODO Add a section to deconstruct the captured packet
+
+* TODO Add a section to construct a reply
+
+* TODO add files to command line program
+  

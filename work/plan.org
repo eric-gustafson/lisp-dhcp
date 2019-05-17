@@ -1,0 +1,16 @@
+#+title: Medium Term Plan
+
+* Goals
+
+  To have a programmable dhcp server.
+
+* Milestones
+
+** Receive and decode a dhcp broadcast from a Xen Client
+
+** Provide DHCP and routing services for a Xen Client
+
+** Automated Xen network deployments
+   
+*** Use cases
+    - Configure a new subnet with a router and 100 clients, where each client is a new Ubuntu
