@@ -8,9 +8,33 @@
 
 ** Receive and decode a dhcp broadcast from a Xen Client
 
-** Provide DHCP and routing services for a Xen Client
+** Real DHCP and routing for RBPI
 
 ** Automated Xen network deployments
    
 *** Use cases
     - Configure a new subnet with a router and 100 clients, where each client is a new Ubuntu
+
+** Provide DHCP and routing services for a Xen Client
+
+
+
+* hostapd 
+
+* dhcp-discover
+** give ip on staging network
+   Low lease, very little bandwidth
+** security challenge
+   nmap device, get mac address, is there a profile for this device?
+
+** Create a network, apply profiles for this device
+*** IP aliasing on wlan0
+    ip a add 192.168.1.101/255.255.255.0 dev eth0
+
+
+* Staging Network
+  dhcp-request => 1 minute lease
+  nmap node => assign profile
+  Create a new network
+  dhcp-renew => give new ip/network
+

@@ -10,6 +10,14 @@
 	       #:flexi-streams
 	       #:usocket
 	       #:swank
+	       #:alexandria
+	       #:trivia
+	       #:serapeum
+	       #:nums-and-txt
 	       )
   :components ((:file "package")
-               (:file "dhcp-server")))
+	       (:file "dhcp-clos")
+	       (:file "dhcp-hydrate")
+	       (:file "dhcp-dehydrate")
+               (:file "dhcp-server")
+	       ))

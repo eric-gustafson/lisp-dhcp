@@ -21,7 +21,7 @@
 * Overview
 
   1. [[file:./dhcp.org]]
-  2. [[file:./work.org]]
+  2. [[file:./work/work.org]]
 
 
 

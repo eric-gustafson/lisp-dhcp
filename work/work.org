@@ -1,6 +1,32 @@
 #+title: work
 
-* TODO Receive and decode dhcp broadcast
+* TODO read-from-octets
+
+* TODO Add a section to deconstruct the captured packet
+
+  
+* TODO allocate IP and network info
+
+* TODO Add a section to construct a reply
+
+* TODO add files to command line program
+
+* TODO add support for different types of strings
+  When generating code from the org-babel tables, handle the following
+  strings by adding more keywords
+
+  - fixed
+  - pascal
+  - c
+
+
+* DONE Use cl-async?
+  Figure out if we really want to do this.  Why not just use select?
+  In the future, we can inhance by creating an event using the file
+  descriptor
+
+
+* DONE Receive and decode dhcp broadcast
   To send and receive broadcast
 
 ** netmask
@@ -19,20 +45,4 @@
    call sento several times for each interface with its broadcast ip address.
 
 ** call recvfrom. any time before calling recvfrom, set up length parameter
-
-  
-* TODO allocate IP and network info
-
-* TODO Use cl-async?
-  Figure out if we really want to do this.  Why not just use select?
-  In the future, we can inhance by creating an event using the file
-  descriptor
-
-
-
-* TODO Add a section to deconstruct the captured packet
-
-* TODO Add a section to construct a reply
-
-* TODO add files to command line program
   

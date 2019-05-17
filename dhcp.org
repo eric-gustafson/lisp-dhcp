@@ -8,14 +8,10 @@
     - profile management
     - qos
 
-
 * COMMENT Setup
 ** Lisp
 #+BEGIN_SRC lisp
-   (ql:quickload :alexandria)
-   (ql:quickload :trivia)
-   (ql:quickload :serapeum)
-   (ql:quickload :flexi-streams)
+   (ql:quickload :dhcp-server)
 #+END_SRC
 
   
@@ -26,6 +22,9 @@
   (defun ->keyword (str)
     (intern (string-upcase str) :keyword))
 #+END_SRC
+
+#+RESULTS:
+: ->KEYWORD
 
 
 ** Elisp
@@ -46,42 +45,81 @@
 
 * DHCP Info
 
-  Pulled from [[https://tools.ietf.org/html/rfc1531][RFC 1531]]
+** Key Resources
+ 
+  | [[https://tools.ietf.org/html/rfc1531][RFC 1531]]       |
+  | [[https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol][Wikipedia DHCP]] |
+  | [[https://tools.ietf.org/html/rfc2132][RFC 2132]]       |
+
+
+** Internal Table
 
 #+tblname: dhcp-f2
-   | Field   | Octets | description                                                  | type   |
-   |         |        | <60>                                                         |        |
-   |---------+--------+--------------------------------------------------------------+--------|
-   | op      |      1 | Message op code / message type. 1 = BOOTREQUEST, 2 = BOOTREPLY | int    |
-   | htype   |      1 | Hardware address type, see ARP section in "Assigned Numbers" RFC; e.g., '1' = 10mb ethernet. | int    |
-   | hlen    |      1 | Hardware address length (e.g. '6' for 10mb ethernet).        | int    |
-   | hops    |      1 | Client sets to zero, optionally used by relay-agents when booting via a relay-agent. | int    |
-   | xid     |      4 | Transaction ID, a random number chosen by the client, used by the client and server to associate messages and responses between a client and a server. | int    |
-   | secs    |      2 | Filled in by client, seconds elapsed since client started trying to boot. | int    |
-   | flags   |      2 | Flags (see figure 2).                                        | int    |
-   | ciaddr  |      4 | Client IP address; filled in by client in DHCPREQUEST if verifying previously allocated configuration parameters. | int    |
-   | yiaddr  |      4 | 'your' (client) IP address.                                  | int    |
-   | siaddr  |      4 | IP address of next server to use in bootstrap; returned in DHCPOFFER, DHCPACK and DHCPNAK by server. | int    |
-   | giaddr  |      4 | Relay agent IP address, used in booting via a relay-agent.   | int    |
-   | chaddr  |     16 | Client hardware address.                                     | int    |
-   | sname   |     64 | Optional server host name, null terminated string.           | string |
-   | file    |    128 | Boot file name, null terminated string; "generic" name or null in DHCPDISCOVER, fully qualified directory-path name in DHCPOFFER. | string |
-   | options |    312 | Optional parameters field.  See the options documents for a list of defined options. | rest   |
+   | Field   | Octets | description                                                  | type   | Notes                        |
+   |         |        | <60>                                                         |        |                              |
+   |---------+--------+--------------------------------------------------------------+--------+------------------------------|
+   | op      |      1 | Message op code / message type. 1 = BOOTREQUEST, 2 = BOOTREPLY | int    |                              |
+   | htype   |      1 | Hardware address type, see ARP section in "Assigned Numbers" RFC; e.g., '1' = 10mb ethernet. | int    |                              |
+   | hlen    |      1 | Hardware address length (e.g. '6' for 10mb ethernet).        | int    |                              |
+   | hops    |      1 | Client sets to zero, optionally used by relay-agents when booting via a relay-agent. | int    |                              |
+   | xid     |      4 | Transaction ID, a random number chosen by the client, used by the client and server to associate messages and responses between a client and a server. | int    |                              |
+   | secs    |      2 | Filled in by client, seconds elapsed since client started trying to boot. | int    |                              |
+   | flags   |      2 | Flags (see figure 2).                                        | int    |                              |
+   | ciaddr  |      4 | Client IP address; filled in by client in DHCPREQUEST if verifying previously allocated configuration parameters. | int    |                              |
+   | yiaddr  |      4 | 'your' (client) IP address.                                  | int    |                              |
+   | siaddr  |      4 | IP address of next server to use in bootstrap; returned in DHCPOFFER, DHCPACK and DHCPNAK by server. | int    |                              |
+   | giaddr  |      4 | Relay agent IP address, used in booting via a relay-agent.   | int    |                              |
+   | chaddr  |     16 | Client hardware address.                                     | mac    | Ethernet: 6 octets (48 bits) |
+   | sname   |     64 | Optional server host name, null terminated string.           | string |                              |
+   | file    |    128 | Boot file name, null terminated string; "generic" name or null in DHCPDISCOVER, fully qualified directory-path name in DHCPOFFER. | string |                              |
+   | mcookie |      4 | 0x63825363                                                   | int    |                              |
+   | options |    312 | Optional parameters field.  See the options documents for a list of defined options. | rest   |                              |
+
+
+** DHCP Options
+   Built from [[https://tools.ietf.org/html/rfc2132]]
+
+#+tblname: dhcp-options
+   | code | length | Name        | Notes                                    |
+   |      |        |             | <40>                                     |
+   |    0 |      0 | Pad Option  | Can be used to pad other options so that they are aligned to the word boundary; is not followed by length byte |
+   |  255 |      0 | end option  |                                          |
+   |    1 |      4 | subnet mask | Must be sent before the router option (option 3) if both are included |
+   |    2 |      4 | time offset |                                          |
+
+3 	Router 	Multiples of 4 octets 	Available routers, should be listed in order of preference
+4 	Time server 	Multiples of 4 octets 	Available time servers to synchronise with, should be listed in order of preference
+5 	Name server 	Multiples of 4 octets 	Available IEN 116 name servers, should be listed in order of preference
+6 	Domain name server 	Multiples of 4 octets 	Available DNS servers, should be listed in order of preference
+7 	Log server 	Multiples of 4 octets 	Available log servers, should be listed in order of preference.
+8 	Cookie server 	Multiples of 4 octets 	Cookie in this case means "fortune cookie" or "quote of the day", a pithy or humorous anecdote often sent as part of a logon process on large computers; it has nothing to do with cookies sent by websites.
+9 	LPR Server 	Multiples of 4 octets 	
+10 	Impress server 	Multiples of 4 octets 	
+11 	Resource location server 	Multiples of 4 octets 	
+12 	Host name 	Minimum of 1 octet 	
+13 	Boot file size 	2 octets 	Length of the boot image in 4KiB blocks
+14 	Merit dump file 	Minimum of 1 octet 	Path where crash dumps should be stored
+15 	Domain name 	Minimum of 1 octet 	
+16 	Swap server 	4 octets 	
+17 	Root path 	Minimum of 1 octet 	
+18 	Extensions path 	Minimum of 1 octet 	
+255 	End 	0 octets 	Used to mark the end of the vendor option field 
 
 * Code Gen
 
-** defclass from table
+** defclass 
   
    Create an object with slots that match the table.
 
 #+BEGIN_SRC lisp :var clazz=dhcp-f2 :results output verbatim :file (concat (file-name-base (buffer-name (current-buffer))) "-clos.lisp") :var name=(file-name-base (buffer-name (current-buffer))) :exports both
+  (pprint `(in-package :dhcp-server))
   (pprint
    `(defclass ,(->symbol name)
         ()
         ,(mapcar #'(lambda(row)
                      (trivia:match
                          row
-                       ((list field octets description type)
+                       ((list field octets description type notes)
                         (list (->symbol field)
                               :documentation description
                               :accessor (->symbol field)
@@ -94,31 +132,37 @@
 #+RESULTS:
 [[file:dhcp-clos.lisp]]
 
-** TODO add support for different types of strings
-   - fixed
-   - pascal
-   - c
+
+
+** dyhydrate
 
 #+BEGIN_SRC lisp :var clazz=dhcp-f2 :results output verbatim :file (buff-name "-dehydrate.lisp") :var name=(buff-basename) :exports both
+    (pprint `(in-package :dhcp-server))
   (pprint
      `(progn
         (defmethod ,(->symbol (serapeum:concat "read-" name "-from-stream")) ((obj ,(->symbol name)) input-stream)
             ,@(mapcar #'(lambda(row)
                           (trivia:match 
                               row
-                            ((list field octets descr da-type)
+                            ((list field octets descr da-type notes)
                              (let ((type (intern (string-upcase da-type) :keyword)))
                                (cond
+                                 ((eq type :mac) ;; 
+                                  `(setf (,(->symbol field) obj)
+                                         (loop :for i :upto ,octets :collect (read-byte input-stream))))
                                  ((eq type :rest)
-                                  `(setf (,(->symbol field) obj) (read-sequence  input-stream)))
+                                  `(setf (,(->symbol field) obj) (loop
+                                                                    :for x = (read-byte  input-stream nil nil)
+                                                                    :while x :collect x
+                                                                    )))
                                  ;; Strings have a fixed length
                                  ;; Maybe we should handle fixed-length, pascal, and c with different
                                  ;; keywords?
                                  ((eq type :string)
                                   `(setf (,(->symbol field) obj)
-                                         (loop :for i :upto ,octets :collect (read-char input-stream))))
+                                         (loop :for i :upto ,octets :collect (read-byte input-stream))))
                                  ((eq type :int)
-                                  `(setf (,(->symbol field) obj) (octets->num (read-octets ,octets input-stream) :endian :big)))
+                                  `(setf (,(->symbol field) obj) (nums-and-txt:octets->num (nums-and-txt:read-octets ,octets input-stream) :endian :big)))
                                  (t
                                   (error "Unexpected type ~a" row))
                                  )))))
@@ -132,7 +176,10 @@
 #+RESULTS:
 [[file:dhcp-dehydrate.lisp]]
 
+
+** hydrate
 #+BEGIN_SRC lisp :var clazz=dhcp-f2 :results output verbatim :file (buff-name "-hydrate.lisp") :var name=(buff-basename) :exports both
+    (pprint `(in-package :dhcp-server))
   (pprint
    `(progn
       (defmethod ,(->symbol (serapeum:concat name "-packet")) ((obj ,(->symbol name)))
@@ -143,9 +190,11 @@
           ,@(mapcar #'(lambda(row)
                         (trivia:match 
                             row
-                          ((list field octets descr da-type)
+                          ((list field octets descr da-type notes)
                            (let ((type (intern (string-upcase da-type) :keyword)))
                              (cond
+                               ((eq type :mac)
+                                `(write-sequence (,(->symbol field) obj) out))
                                ((eq type :rest)
                                 `(write-sequence (,(->symbol field) obj) out))
                                ((eq type :string)
@@ -165,33 +214,38 @@
 #+RESULTS:
 [[file:dhcp-hydrate.lisp]]
 
-** TODO dehydration to packet
 
-  
+* Decode a dhcp request broadcast
+
+    172.24.200.232.bootpc > 172.24.200.15.bootps: BOOTP/DHCP, Request from 00:16:3e:79:c0:76 (oui Unknown), length 300
+
 #+BEGIN_SRC lisp
-
+  (defvar *a* nil)
+  (with-open-file (binport #P"request-1.raw" :element-type '(unsigned-byte 8))
+    (let ((buff (make-array 1024 :element-type '(unsigned-byte 8)))
+          (obj (make-instance 'dhcp)))
+      (read-dhcp-from-stream obj binport)
+      (setf *a* obj)
+      obj)
+    )
 #+END_SRC
 
-* hostapd 
+#+RESULTS:
+: #<DHCP op=1,chaddr=(0 16 3E 64 EE F3 0 0 0 0 0 0 0 0 0 0 0)>
 
-* dhcp-discover
-** give ip on staging network
-   Low lease, very little bandwidth
-** security challenge
-   nmap device, get mac address, is there a profile for this device?
+#+BEGIN_SRC lisp
+  (with-open-file (binport #P"request-1.raw" :element-type '(unsigned-byte 8))
+      (nums-and-txt:read-octets 2 binport)
+    )
+#+END_SRC
 
-** Create a network, apply profiles for this device
-*** IP aliasing on wlan0
-    ip a add 192.168.1.101/255.255.255.0 dev eth0
-
-
-
-* Staging Network
-  dhcp-request => 1 minute lease
-  nmap node => assign profile
-  Create a new network
-  dhcp-renew => give new ip/network
-
+#+RESULTS:
+| 1 | 1 |
 
 * Dev
-  [[file:./dhcp-server.lisp]]
+|-------------------------|
+| Most used files         |
+|-------------------------|
+| [[file:./dhcp-server.lisp]] |
+| [[file:./dhcp-server.asd]]  |
+

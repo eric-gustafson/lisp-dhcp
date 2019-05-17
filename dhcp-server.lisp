@@ -37,3 +37,13 @@
 		 (usocket:socket-close socket)))))
     (run)))
 
+
+
+(defmethod print-object ((obj dhcp) stream)
+  (print-unreadable-object
+      (obj stream :type t)
+    (with-slots (op htype xid chaddr)
+	obj
+      (format stream "op=~a,chaddr=~X" op chaddr))
+    )
+  )
