@@ -2,10 +2,6 @@
 
 * TODO read-from-octets
   
-** TODO search for magic cookie from file
-
-** TODO change the name of the parser we generated to dhcp-static-header-*
-
 ** TODO add a section to parse dhcp options
 
 ** TODO add a method get-options

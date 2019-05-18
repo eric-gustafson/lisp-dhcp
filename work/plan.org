@@ -4,9 +4,10 @@
 
   To have a programmable dhcp server.
 
+
 * Milestones
 
-** Receive and decode a dhcp broadcast from a Xen Client
+** DONE Receive and decode a dhcp broadcast from a Xen Client
 
 ** Real DHCP and routing for RBPI
 
