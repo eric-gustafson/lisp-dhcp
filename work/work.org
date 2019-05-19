@@ -22,9 +22,12 @@
 #+END_SRC
 
 #+RESULTS:
-| 12 | 6 | 119 | 116 | 102 | 45 | 50 | 51 | 50 | 4 | 192 | 168 | 134 | 2 | 53 | 1 | 2 | 51 | 4 | 0 | 0 | 1 | 44 | :DOMAIN-SERVER | 8 | 8 | 8 | 8 | :SUBNET_MASK | 255 | 255 | 255 | 0 | :ROUTERS | 192 | 168 | 134 | 2 | :SERVER-ID | 192 | 168 | 134 | 2 |
+| :DOMAIN-SERVER | 8 | 8 | 8 | 8 | :SUBNET_MASK | 255 | 255 | 255 | 0 | :ROUTERS | 192 | 168 | 134 | 2 | :SERVER-ID | 192 | 168 | 134 | 2 | 12 | 6 | 119 | 116 | 102 | 45 | 50 | 51 | 50 | 4 | 192 | 168 | 134 | 2 | 53 | 1 | 2 | 51 | 4 | 0 | 0 | 1 | 44 |
+
+* TODO recreate the captured packets we have using encode function
 
 * TODO send dhcp response message back
+  This is a DHCP-OFFER
 
 * TODO move netsecurity.org document for erlang dhcp project here
   It was all there, except for the actual way to stop x-talk on the wireless lan (seperate networks for each node)

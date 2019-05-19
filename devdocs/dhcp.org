@@ -102,7 +102,14 @@
   
    Create an object with slots that match the table.
 
-#+BEGIN_SRC lisp :var clazz=dhcp-static-header :results output verbatim :file (concat (file-name-base (buffer-name (current-buffer))) "-clos.lisp") :var name=(file-name-base (buffer-name (current-buffer))) :exports both
+#+BEGIN_SRC elisp
+   (file-name-base (buffer-name (current-buffer)))
+#+END_SRC
+
+#+RESULTS:
+: dhcp
+
+#+BEGIN_SRC lisp :var clazz=dhcp-static-header :results output verbatim :file (concat "../" (file-name-base (buffer-name (current-buffer))) "-clos.lisp") :var name=(file-name-base (buffer-name (current-buffer))) :exports both
   (pprint `(in-package :dhcp-server))
   (pprint
    `(defclass ,(->symbol name)
@@ -121,13 +128,13 @@
 #+END_SRC
 
 #+RESULTS:
-[[file:dhcp-clos.lisp]]
+[[file:../dhcp-clos.lisp]]
 
 
 
 ** dyhydrate
 
-#+BEGIN_SRC lisp :var clazz=dhcp-static-header :results output verbatim :file (buff-name "-dehydrate.lisp") :var name=(buff-basename) :exports both
+#+BEGIN_SRC lisp :var clazz=dhcp-static-header :results output verbatim :file (concat "../" (buff-name "-dehydrate.lisp")) :var name=(buff-basename) :exports both
     (pprint `(in-package :dhcp-server))
   (pprint
      `(progn
@@ -166,11 +173,11 @@
 #+END_SRC
 
 #+RESULTS:
-[[file:dhcp-dehydrate.lisp]]
+[[file:../dhcp-dehydrate.lisp]]
 
 
 ** hydrate
-#+BEGIN_SRC lisp :var clazz=dhcp-static-header :results output verbatim :file (buff-name "-hydrate.lisp") :var name=(buff-basename) :exports both
+#+BEGIN_SRC lisp :var clazz=dhcp-static-header :results output verbatim :file (concat "../" (buff-name "-hydrate.lisp")) :var name=(buff-basename) :exports both
     (pprint `(in-package :dhcp-server))
   (pprint
    `(progn
@@ -204,19 +211,11 @@
 #+END_SRC
 
 #+RESULTS:
-[[file:dhcp-hydrate.lisp]]
+[[file:../dhcp-hydrate.lisp]]
 
 
 
 * Dev
-
-** Files (quick links)
-|-------------------------|
-| Most used files         |
-|-------------------------|
-| [[file:./dhcp-server.lisp]] |
-| [[file:./dhcp-server.asd]]  |
-
 
 ** Decode a dhcp request broadcast
 
