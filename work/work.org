@@ -1,13 +1,22 @@
 #+title: work
 
-* TODO read-from-octets
+* TODO change the print-object to display mac address
+  mac address should use the 'size' operator which is one of the first parameters
+  which then allows us to trim the chaddr field.
+
+* TODO bring up 2nd interface from rbpi
+  These things are currently in snot.  Should we move?
+
+* TODO lisp-lsa package
+  A lisp linux bases system administsration package focusing on wifi
+
+  Have a wifi.lisp as one of the files
+
+* TODO remote slime to rbpi repl
+  ssh proxy
+
+* TODO capture packets and start a database of dhcp interactions
   
-** TODO add a section to parse dhcp options
-
-** TODO add a method get-options
-   returns a sequence from the packet after the *magic*
-
-* TODO Add a section to deconstruct the captured packet
 
 * TODO create a commissioning network
   This is a virtual interface with a network allocated from *network-malloc*
