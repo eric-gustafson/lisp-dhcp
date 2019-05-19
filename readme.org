@@ -1,0 +1,61 @@
+#+title: dhcp server implemented in common lisp
+
+* Goals
+  A research project to explore what can be done with a programable
+  dhcp server
+
+  - To produce key resources to handle the dhcp protocol
+  - To distribute dhcp servers into the mesh
+    - seperate networks for each node
+    - don't allow IP connectivity to other nodes
+    - profile management
+    - qos
+
+** Network Security
+   Have a network default to not allowing cross talk between nodes.
+   The dhcp server automatically creates an interface at the router
+   for each device.  Routing between devices will have to be turned
+   on, and a signature must be matched, say from an active nmap scan
+   or from a passive traffic discovery.
+
+** Xen setups
+
+** Mesh networking
+   Programmatically route traffic to other nodes on network based on
+   netmask.  
+
+
+
+* Key Files
+
+** Org files
+#+name: orgfiles
+#+BEGIN_SRC sh :results output value table :exports results
+   find . -name '[^.]*.org' -print | perl -pi -e 's/(^.*$)/\[\[file:$1\]\]/g' | sort
+#+END_SRC
+
+#+RESULTS: orgfiles
+| [[file:./dhcp.org]]      |
+| [[file:./readme.org]]    |
+| [[file:./README.org]]    |
+| [[file:./work/plan.org]] |
+| [[file:./work/work.org]] |
+
+
+** Lisp source files
+#+BEGIN_SRC sh :results output value table :exports results
+  ls *.lisp | perl -pi -e 's/(^.*$)/\[\[file:$1\]\]/g' | sort
+#+END_SRC
+
+#+RESULTS:
+| [[file:dhcp-clos.lisp]]          |
+| [[file:dhcp-dehydrate.lisp]]     |
+| [[file:dhcp-hydrate.lisp]]       |
+| [[file:dhcp-server.lisp]]        |
+| [[file:package.lisp]]            |
+| [[file:parse-dhcp-options.lisp]] |
+
+
+
+* Licence
+  [[https://www.gnu.org/licenses/gpl-3.0.en.html][Licence: gpl-3.0]]

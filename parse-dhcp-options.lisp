@@ -1,6 +1,45 @@
 (in-package :dhcp-server)
 
+(defvar *dhcp-options-key-map*
+  (dict :hostname 12)
+  )
+
+
+(defun encode-option (options-doc)
+  ;; Based on flatten.
+  ;; 53 - message type
+  ;; 1     DHCPDISCOVER
+  ;; 2     DHCPOFFER
+  ;; 3     DHCPREQUEST
+  ;; 4     DHCPDECLINE
+  ;; 5     DHCPACK
+  ;; 6     DHCPNAK
+  ;; 7     DHCPRELEASE
+  ;; 8     DHCPINFORM
+  (trivia:match
+      options-doc
+    (() '())
+    (:dhcp-discover (list 53 1 1))
+    (:dhcp-offer (list 53 1 2))
+    (:dhcp-request (list 53 1 3))
+    (:dhcp-decline (list 53 1 4))
+    (:dhcp-ack (list 53 1 5))
+    (:dhcp-nak (list 53 1 6))
+    (:dhcp-release (list 53 1 7))
+    (:dhcp-inform (list 53 1 8))
+    ((list :lease-time secs)
+     (cons 51 (cons 4 (coerce (nums-and-txt:num->octets secs :length 4) 'list))))
+    ((list :requested-ip-address (list a b c d))
+     (list 50 4 a b c d))
+    ((trivia:guard str (stringp str)) (cons (length str) (map 'list #'char-code str)))
+    (:hostname (list 12))
+    ((trivia:guard a (atom a)) (list a))
+    (otherwise
+     (append (encode-option (car options-doc))
+	     (encode-option (cdr options-doc))))))
+
 (defun parse-options (seq &key debug)
+  ;; maybe rename to decde?
   (trivia:match
       seq
     (() '())

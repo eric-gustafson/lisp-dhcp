@@ -1,16 +1,44 @@
 #+title: work
 
+* TODO encode/decode dhcp options
+  Use a document sexp approach to these calculations
+
+* TODO decode dhcp request
+
+* TODO encode dhcp reply
+#+BEGIN_SRC lisp :results value
+  (encode-option `(
+                   (:domain-server (8 8 8 8))
+                   (:subnet_mask 255 255 255 0)
+                   (:routers 192 168 134 2)
+                   (:server-id  192 168 134 2)
+
+                   (:hostname "wtf-23")
+                   (:requested-ip-address (192 168 134 2))
+                   :dhcp-offer
+                   (:lease-time 300)
+                   )
+                 )
+#+END_SRC
+
+#+RESULTS:
+| 12 | 6 | 119 | 116 | 102 | 45 | 50 | 51 | 50 | 4 | 192 | 168 | 134 | 2 | 53 | 1 | 2 | 51 | 4 | 0 | 0 | 1 | 44 | :DOMAIN-SERVER | 8 | 8 | 8 | 8 | :SUBNET_MASK | 255 | 255 | 255 | 0 | :ROUTERS | 192 | 168 | 134 | 2 | :SERVER-ID | 192 | 168 | 134 | 2 |
+
+* TODO send dhcp response message back
+
+* TODO move netsecurity.org document for erlang dhcp project here
+  It was all there, except for the actual way to stop x-talk on the wireless lan (seperate networks for each node)
+
+* TODO look at erlang dhcp server I did a couple of years ago
+  <2019-05-19 Sun> Not that bad, actually.  Stuff to learn from @ the very least
+
+
+* TODO simple/dumb dhcp address allocation
+  incf for now
+
 * TODO change the print-object to display mac address
   mac address should use the 'size' operator which is one of the first parameters
   which then allows us to trim the chaddr field.
-
-* TODO bring up 2nd interface from rbpi
-  These things are currently in snot.  Should we move?
-
-* TODO lisp-lsa package
-  A lisp linux bases system administsration package focusing on wifi
-
-  Have a wifi.lisp as one of the files
 
 * TODO remote slime to rbpi repl
   ssh proxy
@@ -20,6 +48,7 @@
 
 * TODO create a commissioning network
   This is a virtual interface with a network allocated from *network-malloc*
+
 
 ** TODO verfify that this shows up on RBPI
 
@@ -46,32 +75,40 @@
   - c
 
 
-* TODO newer versions of RBPI support PXE boots
-  This is our over-the-air update.  
 
-* DONE Use cl-async?
-  Figure out if we really want to do this.  Why not just use select?
-  In the future, we can inhance by creating an event using the file
-  descriptor
+* Archive
+** DONE Use cl-async?
+   Figure out if we really want to do this.  Why not just use select?
+   In the future, we can inhance by creating an event using the file
+   descriptor
 
 
-* DONE Receive and decode dhcp broadcast
-  To send and receive broadcast
+** DONE Receive and decode dhcp broadcast
+   To send and receive broadcast
 
-** netmask
-   Be sure that netmask is correct. in windows mask for broadcast
-    packets does not matters, but not in linux.
+*** netmask
+    Be sure that netmask is correct. in windows mask for broadcast
+     packets does not matters, but not in linux.
 
-** wildcard address
-   bind socket to INADDR_ANY
+*** wildcard address
+    bind socket to INADDR_ANY
 
-** setsockopt
-   setsockopt to BROADCAST
+*** setsockopt
+    setsockopt to BROADCAST
 
-** sendto
-   call sendto with sendaddr.sin_addr.s_addr = inet_addr("your_interface_broadcast_address")
+*** sendto
+    call sendto with sendaddr.sin_addr.s_addr = inet_addr("your_interface_broadcast_address")
 
-   call sento several times for each interface with its broadcast ip address.
+    call sento several times for each interface with its broadcast ip address.
 
-** call recvfrom. any time before calling recvfrom, set up length parameter
-  
+*** call recvfrom. any time before calling recvfrom, set up length parameter
+
+
+** DONE bring up 2nd interface from rbpi
+   These things are currently in snot.  Should we move?
+
+** DONE lisp-lsa package
+   A lisp linux bases system administsration package focusing on wifi
+
+   Have a wifi.lisp as one of the files
+    

@@ -1,12 +1,5 @@
 #+title: dhcp protocol meta code
 
-* Goals
-  - To produce key resources to handle the dhcp protocol
-  - To distribute dhcp servers into the mesh
-    - seperate networks for each node
-    - don't allow IP connectivity to other nodes
-    - profile management
-    - qos
 
 
 * COMMENT Setup
@@ -240,7 +233,7 @@
 #+END_SRC
 
 #+RESULTS:
-: #<DHCP op=1,chaddr=(0 16 3E 64 EE F3 0 0 0 0 0 0 0 0 0 0)>
+: #<DHCP op=1,chaddr=(D0 77 14 47 28 F4 0 0 0 0 0 0 0 0 0 0)>
 
 
 ** Decode the dhcp options
@@ -250,10 +243,9 @@
 
 #+RESULTS:
 : dhcp-message-type discover
-: server-identifier: #(172 24 200 15) 
-: request ip address=#(172 24 200 213)
-: hostname=lambda-deb-stretch
-: parameter requests
-: rfc4174 - iSNS,n=159,len(seq)=719
+: client identifier type=1,(208 119 20 71 40 244)
+: dhcp max message size:1500
+: vendor class identifier:android-dhcp-9
+: dhcp discover requests
 
    
