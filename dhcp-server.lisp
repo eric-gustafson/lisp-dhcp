@@ -11,7 +11,8 @@
 (defun serve ()
   (if (> *ns* 0)
       nil
-      t))
+      (progn (incf *ns*)
+	     t)))
 
 (defvar *last* nil)
 

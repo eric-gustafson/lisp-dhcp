@@ -231,7 +231,7 @@
 
 #+BEGIN_SRC lisp
   (defvar *a* nil)
-  (with-open-file (binport #P"request-1.raw" :element-type '(unsigned-byte 8))
+  (with-open-file (binport #P"dhcp-captures/android-moto.raw" :element-type '(unsigned-byte 8))
     (let ((obj (make-instance 'dhcp)))
       (read-dhcp-from-stream obj binport)
       (setf *a* obj)
