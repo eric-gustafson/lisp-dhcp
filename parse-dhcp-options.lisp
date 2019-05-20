@@ -70,8 +70,8 @@
 	(list :client-hostname hn)
 	(decode-options (subseq rest n) :debug debug))))
     ((list* 50 4 a b c d rest)
-     (let ((req-ip (vector a b c d)))
-       (when debug (format t "request ip address=~a~%" req-ip))
+     (let ((req-ip (vector a b c d))) 
+      (when debug (format t "request ip address=~a~%" req-ip))
        (cons (list :requested-ip req-ip)
 	     (decode-options rest :debug debug))))
     ((list* 53 1 1 rest) ;; dhcp discover

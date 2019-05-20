@@ -208,12 +208,12 @@ that was generated with the org-babel mode.
 | 147-149 | Unassigned                               |        |                                          | [RFC3942]             |
 
 
-#+BEGIN_SRC lisp :tangle yes :var ltable=dhcp-options :filename "../dhcp-options-table.lisp"
+#+BEGIN_SRC lisp :tangle "../dhcp-options-table.lisp"  :var ltable=dhcp-options 
   (in-package :dhcp-server)
   (defparameter *dhcp-options-table* ltable)
-  (defparameter *dhcp-options-table-id* (dict))
+  (defparameter *dhcp-options-table-id* (serapeum:dict))
   (loop :for row :in *dhcp-options-table* :do
-     (setf (gethash (car row) *dhcp-options-table*) row))
+     (setf (gethash (car row) *dhcp-options-table-id*) row))
 #+END_SRC
 
 
