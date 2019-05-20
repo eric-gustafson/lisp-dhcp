@@ -1,9 +1,5 @@
 (in-package :dhcp-server)
 
-(defvar *dhcp-options-key-map*
-  (dict :hostname 12)
-  )
-
 
 (defun encode-options (options-doc)
   ;; Based on flatten.
