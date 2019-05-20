@@ -1,43 +1,44 @@
 #+title: work
 
 * TODO encode/decode dhcp options
+  [[file:../devdocs/dhcp-options.org]]
+
   Use a document sexp approach to these calculations
-
-* TODO decode dhcp request
-
-* TODO encode dhcp reply
-#+BEGIN_SRC lisp :results value
-  (encode-option `(
-                   (:domain-server (8 8 8 8))
-                   (:subnet_mask 255 255 255 0)
-                   (:routers 192 168 134 2)
-                   (:server-id  192 168 134 2)
-
-                   (:hostname "wtf-23")
-                   (:requested-ip-address (192 168 134 2))
-                   :dhcp-offer
-                   (:lease-time 300)
-                   )
-                 )
-#+END_SRC
-
-#+RESULTS:
-| :DOMAIN-SERVER | 8 | 8 | 8 | 8 | :SUBNET_MASK | 255 | 255 | 255 | 0 | :ROUTERS | 192 | 168 | 134 | 2 | :SERVER-ID | 192 | 168 | 134 | 2 | 12 | 6 | 119 | 116 | 102 | 45 | 50 | 51 | 50 | 4 | 192 | 168 | 134 | 2 | 53 | 1 | 2 | 51 | 4 | 0 | 0 | 1 | 44 |
-
-* TODO recreate the captured packets we have using encode function
 
 * TODO send dhcp response message back
   This is a DHCP-OFFER
+  
 
-* TODO move netsecurity.org document for erlang dhcp project here
-  It was all there, except for the actual way to stop x-talk on the wireless lan (seperate networks for each node)
+** TODO create a commissioning network
+   This is a virtual interface with a network allocated from *network-malloc*
+
+
+*** TODO verfify that this shows up on RBPI
+
+*** TODO up/down this network
+    (defmethod net-up ((obj netobj))
+     )
+
+    
+*** TODO allocate IP and network info
+
+
+
+** TODO simple/dumb dhcp address allocation
+   incf for now
 
 * TODO look at erlang dhcp server I did a couple of years ago
   <2019-05-19 Sun> Not that bad, actually.  Stuff to learn from @ the very least
 
+** TODO move netsecurity.org document for erlang dhcp project here
+   It was all there, except for the actual way to stop x-talk on the wireless lan (seperate networks for each node)
 
-* TODO simple/dumb dhcp address allocation
-  incf for now
+
+* TODO capture packets and start a database of dhcp interactions
+
+
+* TODO Add a section to construct a reply
+  Use the *commissioning-network* info above
 
 * TODO change the print-object to display mac address
   mac address should use the 'size' operator which is one of the first parameters
@@ -46,28 +47,6 @@
 * TODO remote slime to rbpi repl
   ssh proxy
 
-* TODO capture packets and start a database of dhcp interactions
-  
-
-* TODO create a commissioning network
-  This is a virtual interface with a network allocated from *network-malloc*
-
-
-** TODO verfify that this shows up on RBPI
-
-** TODO up/down this network
-   (defmethod net-up ((obj netobj))
-    )
-
-   
-** TODO allocate IP and network info
-
-
-* TODO Add a section to construct a reply
-  Use the *commissioning-network* info above
-
-
-* TODO add files to command line program
 
 * TODO add support for different types of strings
   When generating code from the org-babel tables, handle the following

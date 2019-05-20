@@ -236,15 +236,13 @@
 
 
 ** Decode the dhcp options
-#+BEGIN_SRC lisp :results output
-   (parse-options (options *a*) :debug t)
+#+BEGIN_SRC lisp :results output verbatim
+   (princ (decode-options (options *a*) ))
 #+END_SRC
 
 #+RESULTS:
-: dhcp-message-type discover
-: client identifier type=1,(208 119 20 71 40 244)
-: dhcp max message size:1500
-: vendor class identifier:android-dhcp-9
-: dhcp discover requests
+: ((CLIENT-IDENTIFIER (1 208 119 20 71 40 244)) (MAX-DHCP-MESSAGE-SIZE 1500)
+:  (VENDOR-CLASS (97 110 100 114 111 105 100 45 100 104 99 112 45 57))
+:  (CLIENT-PARAMS-REQUEST 1 3 6 15 26 28 51 58 59 43))
 
    
