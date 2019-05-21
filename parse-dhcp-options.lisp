@@ -106,18 +106,16 @@
        (cons (list :vendor-class payload )
 	     (decode-options (subseq rest n) :debug debug))))
 
-    ((list* 61 n rest) ;; client-identifier
-     (let* ((raw-payload (subseq rest 0 n))
-	    (payload (trivia:match
-			 raw-payload
-		       ((list* 1 class-info)
-			(map 'string #'code-char class-info))
-		       (otherwise
-			raw-payload))))
-       (when debug (format t "client-identifier ~a" raw-payload))
-       (cons
-	(list :client-identifier raw-payload)
-	(decode-options (subseq rest n) :debug debug))))
+    ((list* 61 rest) ;; client-identifier
+     (trivia:match
+	 rest
+       ((list* n type rest)
+	(let ((client-id (subseq rest 0 (- n 1))))
+	  (when debug (format t "client-identifier ~a" client-id))
+	  (cons
+	   (list :client-identifier client-id)
+	   (decode-options (subseq rest (- n 1)) :debug debug)))))
+     )
 
     ((list* 83 n rest)
      (when debug (format t "rfc4174 - iSNS,n=~a,len(seq)=~a" n (length rest)))
@@ -125,6 +123,20 @@
        (cons (cons :iSNS (subseq rest 0 n))
 	     (decode-options after :debug debug))
        ))
+    ((list* 99 n rest)
+     (let ((after (subseq rest n)))
+       (cons (list :GEO (subseq rest 0 n))
+	     (decode-options after :debug debug))))
+    ((list* 119 n rest)
+     (let ((after (subseq rest n)))
+       (cons (list :domain-search
+		   (subseq rest 0 n))
+	     (decode-options after :debug debug))))
+    ((list* 112 n rest)
+     (let ((after (subseq rest n)))
+       (cons (list :netinfo-address
+		   (subseq rest 0 n))
+	     (decode-options after :debug debug))))
     (otherwise
      (error "Unable to handle request: ~a" seq))
     )

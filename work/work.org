@@ -5,6 +5,12 @@
 
   Use a document sexp approach to these calculations
 
+* TODO lisp org helper functions
+** TODO generate clos object from table header
+** TODO we then publish these back/forth
+   This would be better than the lists we are using now
+
+
 * TODO send dhcp response message back
   This is a DHCP-OFFER
   
