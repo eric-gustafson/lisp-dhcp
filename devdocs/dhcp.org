@@ -106,71 +106,6 @@
 #+RESULTS:
 : dhcp
 
-#+BEGIN_SRC lisp :var clazz=dhcp-static-header :results output verbatim :file (concat "../" (file-name-base (buffer-name (current-buffer))) "-clos.lisp") :var name=(file-name-base (buffer-name (current-buffer))) :exports both
-  (pprint `(in-package :dhcp-server))
-  (pprint
-   `(defclass ,(->symbol name)
-        ()
-        ,(mapcar #'(lambda(row)
-                     (trivia:match
-                         row
-                       ((list field octets description type notes)
-                        (list (->symbol field)
-                              :documentation description
-                              :accessor (->symbol field)
-                              :initarg (->keyword field)))))
-                 (cddr clazz))
-      )
-   )
-#+END_SRC
-
-#+RESULTS:
-[[file:../dhcp-clos.lisp]]
-
-
-** dyhydrate
-
-#+BEGIN_SRC lisp :var clazz=dhcp-static-header :results output verbatim :file (concat "../" (buff-name "-dehydrate.lisp")) :var name=(buff-basename) :exports both
-    (pprint `(in-package :dhcp-server))
-  (pprint
-     `(progn
-        (defmethod ,(->symbol (serapeum:concat "read-" name "-from-stream")) ((obj ,(->symbol name)) input-stream)
-          ,@(mapcar #'(lambda(row)
-                        (trivia:match 
-                            row
-                          ((list field octets descr da-type notes)
-                           (let ((type (intern (string-upcase da-type) :keyword)))
-                             (cond
-                               ((eq type :mac) ;; 
-                                `(setf (,(->symbol field) obj)
-                                       (loop :for i :below ,octets :collect (read-byte input-stream))))
-                               ((eq type :rest)
-                                `(setf (,(->symbol field) obj) (loop
-                                                                  :for x = (read-byte  input-stream nil nil)
-                                                                  :while x :collect x
-                                                                  )))
-
-                               ;; Strings have a fixed length
-                               ;; Maybe we should handle fixed-length, pascal, and c with different
-                               ;; keywords?
-                               ((eq type :string)
-                                `(setf (,(->symbol field) obj)
-                                       (loop :for i :below ,octets :collect (read-byte input-stream))))
-                               ((eq type :int)
-                                `(setf (,(->symbol field) obj) (nums-and-txt:octets->num (nums-and-txt:read-octets ,octets input-stream) :endian :big)))
-                               (t
-                                (error "Unexpected type ~a" row))
-                               )))))
-                    (cddr  clazz))
-          )
-        )
-     )
-    )
-#+END_SRC
-
-#+RESULTS:
-[[file:../dhcp-dehydrate.lisp]]
-
 
 
 ** Publish dhcp-protocol to global variable
@@ -204,46 +139,6 @@
      )
     )
 #+END_SRC
-
-#+RESULTS:
-
-
-** hydrate
-#+BEGIN_SRC lisp :var clazz=dhcp-static-header :results output verbatim :file (concat "../" (buff-name "-hydrate.lisp")) :var name=(buff-basename) :exports both
-    (pprint `(in-package :dhcp-server))
-  (pprint
-   `(progn
-      (defmethod ,(->symbol (serapeum:concat name "-packet")) ((obj ,(->symbol name)))
-        ,#+nil(flexi-streams:with-output-to-sequence (out :element-type '(unsigned-byte 8))
-          (write-byte )
-          )
-        (with-open-file (out #P"/tmp/a" :direction :output :element-type '(unsigned-byte 8) :if-does-not-exist :create :if-exists :overwrite)
-          ,@(mapcar #'(lambda(row)
-                        (trivia:match 
-                            row
-                          ((list field octets descr da-type notes)
-                           (let ((type (intern (string-upcase da-type) :keyword)))
-                             (cond
-                               ((eq type :mac)
-                                `(write-sequence (,(->symbol field) obj) out))
-                               ((eq type :rest)
-                                `(write-sequence (,(->symbol field) obj) out))
-                               ((eq type :string)
-                                `(write-sequence (,(->symbol field) obj) out))
-                               ((eq type :int)
-                                `(write-sequence (number->octets (,(->symbol field) obj) :n ,octets :endian :big) out))
-                               (t
-                                (error "Unexpected type ~a" row))
-                               )))))
-                    (cddr  clazz))
-          )
-        )
-      )
-   )
-#+END_SRC
-
-#+RESULTS:
-[[file:../dhcp-hydrate.lisp]]
 
 
 

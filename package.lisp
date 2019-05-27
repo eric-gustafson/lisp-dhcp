@@ -1,4 +1,7 @@
 ;;;; package.lisp
 
 (defpackage #:dhcp-server
-  (:use #:cl))
+  (:use #:cl)
+  (:export
+   :dhcp)
+  )
