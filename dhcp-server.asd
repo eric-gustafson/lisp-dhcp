@@ -16,6 +16,7 @@
 	       #:nums-and-txt
 	       )
   :components ((:file "package")
+	       (:file "dhcp-bootp-fields")
 	       (:file "dhcp-options-table")
 	       (:file "dhcp-clos")
 	       (:file "dhcp-hydrate")

@@ -237,3 +237,11 @@ that was generated with the org-babel mode.
 #+RESULTS:
 | id | name | length | description | rfc |
 
+
+
+* TODO Add hex column for code
+* TODO links to the encode/decode funtions from table
+* TODO Encode/Decode generated from single declaration?
+  Why can't we?  
+  
+  

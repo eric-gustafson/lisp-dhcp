@@ -36,11 +36,10 @@
 			     (usocket:socket-receive socket buff 1024)
 			   (format t "Got one~%")
 			   (setf *last* (copy-seq buff))
+			   
 			   ))
 		 (usocket:socket-close socket)))))
     (run)))
-
-
 
 (defmethod print-object ((obj dhcp) stream)
   (print-unreadable-object
@@ -57,3 +56,48 @@
 (defmethod has-magic-cookie ((obj dhcp))
   (eq (mcookie *a*) (nums-and-txt:octets->num *dhcp-magic-cookie*))
   )
+
+(defmacro dhcp-bootp-base-fields-code-gen ()
+  ;; todo: make this work
+  ;; todo: add one that creaes from sequence
+  (let* ((name 'dhcp)
+	 (fname (intern (string-upcase (format nil  "make-~a-from-stream" name)))))
+    `(progn
+       (defmethod ,fname ((obj ,name) input-stream)
+	 ,@(mapcar #'(lambda(row)
+		     (trivia:match 
+			 row
+		       ((list field octets _ da-type _)
+			(let ((type (intern (string-upcase da-type) :keyword)))
+			  (cond
+			    ((eq type :mac) ;; 
+			     `(setf (,(->symbol field) obj)
+				    (loop :for i :below ,octets :collect (read-byte input-stream))))
+			    ((eq type :rest)
+			     `(setf (,(->symbol field) obj) (loop
+							       :for x = (read-byte  input-stream nil nil)
+							       :while x :collect x
+							       )))
+			   
+			    ;; Strings have a fixed length
+			    ;; Maybe we should handle fixed-length, pascal, and c with different
+			    ;; keywords?
+			    ((eq type :string)
+			     `(setf (,(->symbol field) obj)
+				    (loop :for i :below ,octets :collect (read-byte input-stream))))
+			    ((eq type :int)
+			     `(setf (,(->symbol field) obj) (nums-and-txt:octets->num (nums-and-txt:read-octets ,octets input-stream) :endian :big)))
+			    (t
+			     (error "Unexpected type ~a" row))
+			    )))))
+		   *dhcp-bootp-base-fields*
+		 )
+	 )
+       )
+    )
+  )
+
+
+(dhcp-bootp-base-fields-code-gen)
+
+

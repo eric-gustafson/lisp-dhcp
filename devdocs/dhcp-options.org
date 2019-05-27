@@ -9,7 +9,7 @@
   
   We use a sexp-document to handle programming the dhcp messages.
   
-#+BEGIN_SRC lisp :results value
+#+BEGIN_SRC lisp :results value list
   (encode-options `(
                    (:subnet 255 255 255 0)
                    (:server-id  192 168 134 2)
@@ -25,8 +25,70 @@
 #+END_SRC
 
 #+RESULTS:
-| 1 | 4 | 255 | 255 | 255 | 0 | 54 | 4 | 192 | 168 | 134 | 2 | 6 | 8 | 8 | 8 | 8 | 8 | 4 | 4 | 4 | 4 | 12 | 6 | 119 | 116 | 102 | 45 | 50 | 51 | 3 | 4 | 192 | 168 | 134 | 2 | 50 | 4 | 192 | 168 | 134 | 2 | 53 | 1 | 2 | 51 | 4 | 0 | 0 | 1 | 44 |
+- 1
+- 4
+- 255
+- 255
+- 255
+- 0
+- 54
+- 4
+- 192
+- 168
+- 134
+- 2
+- 6
+- 8
+- 8
+- 8
+- 8
+- 8
+- 4
+- 4
+- 4
+- 4
+- 12
+- 6
+- 119
+- 116
+- 102
+- 45
+- 50
+- 51
+- 3
+- 4
+- 192
+- 168
+- 134
+- 2
+- 50
+- 4
+- 192
+- 168
+- 134
+- 2
+- 53
+- 1
+- 2
+- 51
+- 4
+- 0
+- 0
+- 1
+- 44
 
+* TODO Make a protocol module
+   (defproto x
+     (proto-matcher (:int16 len) (:int32 code) (:string name (- length (sizeof code))))
+     ...)
+
+
+   ;; creates  a function that returns nil or 3 values 
+   ;; need to handle byte order issues
+   ;; 
+
+** TODO subnet
+    match (:int
 
 * TODO decode dhcp request
 
@@ -34,4 +96,80 @@
 
 * TODO recreate the captured packets we have using encode function
 
+
+
+#+BEGIN_SRC lisp :results value list
+  (encode-options `(
+                   (:subnet 255 255 255 0)
+                   )
+                 )
+#+END_SRC
+
+#+RESULTS:
+- 1
+- 4
+- 255
+- 255
+- 255
+- 0
+
+
+* Goal
+** transform computation to encode and decode the subnet command above
+
+  | id | Name           | encoded-keyword | lisp type                 | length | encoding rule | decode       |             | Description                          |
+  |----+----------------+-----------------+---------------------------+--------+---------------+--------------+-------------+--------------------------------------|
+  |  1 | Subnet Mask    | :subnet-mask    | (seq int ...)             | 4      | (:int8u 4)    | (subseq 0 4) | [RFC2132]   | Subnet Mask Value                    |
+  |  3 | Router         | :router         | (list (seq int ...) ...)) | N/4    | (n (int8u 4)) |              | [RFC2132]   | Router addresses                     |
+  | 12 | Hostname       | :hostname       | string                    | N      | pstring       |              | [RFC2132]   | Hostname string                      |
+  | 13 | Boot File Size | :boot-file-size | num                       | 2      | (int8u 2)     |              | x1[RFC2132] | Size of boot file in 512 byte chunks |
+
+
+*** :pstring 
+**** decode
+#+BEGIN_SRC lisp
+  #'(lambda(out-buff-port)
+      (let ((n (elt seq 0)))
+        (write-sequence (subseq seq 1 (+ 1 n)) out-buff-port)
+        (subseq (+ 1 n))))
+          
+#+END_SRC
+
+**** encode
+#+BEGIN_SRC lisp
+  (defun write-pascal-string (out-buff-port str)
+     (write-int16u (length str) out-buff-port :net)
+
+#+END_SRC
+
+
+*** (:int8u 4)
+#+BEGIN_SRC lisp
+  #'(lambda(out-buff-port)
+      (let ((n (elt seq 0)))
+        (write-sequence (subseq seq 1 (+ 1 n)) out-buff-port)
+        (subseq (+ 1 n))))
+#+END_SRC
+     
+
+* Router
+
+
+* Subnet Mask
+
+#+name: subnet-encode
+#+BEGIN_SRC lisp
+  (defun encode-subnet-mask (value qObj)
+    (serapeum:enq 1 qObj)
+    (serapeum:do-each (item (subseq value 0 4))
+      (serapeum:enq item qObj)))
+#+END_SRC
+
+#+name: subnet-decode 
+#+BEGIN_SRC lisp
+  (defun decode-subnet-mask (seq)
+    )
+#+END_SRC
+     
+   
 
