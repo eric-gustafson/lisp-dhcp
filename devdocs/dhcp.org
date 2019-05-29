@@ -1,24 +1,5 @@
 #+title: dhcp protocol meta code
 
-
-
-* COMMENT Setup
-
-** Elisp
-#+BEGIN_SRC elisp
-    (defun buff-basename ()
-      (file-name-base (buffer-name (current-buffer)))
-      )
-    (defun buff-name (str)
-      "use the basename of this buffer to generate a name for a
-    compent that is generated, thus related to this buffer"
-      (concat (file-name-base (buffer-name (current-buffer))) str)
-      )
-#+END_SRC
-
-#+RESULTS:
-: buff-name
-
    
 * DHCP Info
 
@@ -61,27 +42,6 @@
    | options |    312 | Optional parameters field.  See the options documents for a list of defined options. | rest   |                                          |
 
 
-#+name: dhcp-bootp-base-fields
-#+BEGIN_SRC lisp
- 
-#+END_SRC
-
-** DHCP Options
-
-   Built from [[https://tools.ietf.org/html/rfc2132]]
-   [[file:./parse-dhcp-options.lisp]]
-
-   What should we return?  Hash table, keyed on code?  An object ...
-   
-#+tblname: dhcp-options
-   | code | unit-length | number | Name                                     | Notes                                    |
-   |      |             |        | <40>                                     | <40>                                     |
-   |------+-------------+--------+------------------------------------------+------------------------------------------|
-   |    1 |           4 |      1 | subnet mask                              | Must be sent before the router option (option 3) if both are included |
-   |    2 |           4 |      1 | time offset                              |                                          |
-   |   15 |           1 |      n | domain name                              |                                          |
-
-
 ** DHCP Message Types
 #+tblname: dhcp-message-types
    | Value | Message Type |
@@ -94,19 +54,6 @@
    |     6 | DHCPNAK      |
    |     7 | DHCPRELEASE  |
    |     8 | DHCPINFORM   |
-
-** defclass 
-  
-   Create an object with slots that match the table.
-
-#+BEGIN_SRC elisp
-   (file-name-base (buffer-name (current-buffer)))
-#+END_SRC
-
-#+RESULTS:
-: dhcp
-
-
 
 ** Publish dhcp-protocol to global variable
    Execute this code block to publish the dhcp-static.  Take not of the 'eval-when' This ensures that the global variable
@@ -139,8 +86,6 @@
      )
     )
 #+END_SRC
-
-
 
 * Dev
 
@@ -179,4 +124,23 @@
 
 #+RESULTS:
 : 6D
+
+
+
+* COMMENT Setup
+
+** Elisp
+#+BEGIN_SRC elisp
+    (defun buff-basename ()
+      (file-name-base (buffer-name (current-buffer)))
+      )
+    (defun buff-name (str)
+      "use the basename of this buffer to generate a name for a
+    compent that is generated, thus related to this buffer"
+      (concat (file-name-base (buffer-name (current-buffer))) str)
+      )
+#+END_SRC
+
+#+RESULTS:
+: buff-name
 
