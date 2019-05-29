@@ -25,49 +25,7 @@
      )
   )
 
-(defmacro dhcp-bootp-base-fields-code-gen ()
-  ;; todo: make this work
-  ;; todo: add one that creaes from sequence
-  (let* ((name 'dhcp)
-	 (fname (intern (string-upcase (format nil  "make-~a-from-stream" name)))))
-    (labels ((st-row->instantiate-from-stream (st-row)
-	       (trivia:match 
-		   st-row
-		 ((list field octets _ da-type _)
-		  (let ((type (intern (string-upcase da-type) :keyword)))
-		    (cond
-		      ((eq type :mac) ;; 
-		       `(setf (,(->symbol field) obj)
-			      (loop :for i :below ,octets :collect (read-byte input-stream))))
-		      ((eq type :rest)
-		       `(setf (,(->symbol field) obj) (loop
-							 :for x = (read-byte  input-stream nil nil)
-							 :while x :collect x
-							 )))
-			   
-		      ;; Strings have a fixed length
-		      ;; Maybe we should handle fixed-length, pascal, and c with different
-		      ;; keywords?
-		      ((eq type :string)
-		       `(setf (,(->symbol field) obj)
-			      (loop :for i :below ,octets :collect (read-byte input-stream))))
-		      ((eq type :int)
-		       `(setf (,(->symbol field) obj) (nums-and-txt:octets->num (nums-and-txt:read-octets ,octets input-stream) :endian :big)))
-		      (t
-		       (error "Unexpected type ~a" row))
-		      )))
-		 )))
-      `(progn
-	 (defmethod ,fname ((obj ,name) input-stream)
-	   ,@(mapcar #'st-row->instantiate-from-stream	 *dhcp-bootp-base-fields*))
-	 )
-      )
-    )
-  )
-
-;;;;;;;;;;;;;;;;;;;;  dehydrate  ;;;;;;;;;;;;;;;;;;;;
-
-(defmacro dehydrate-code (name )
+(defmacro gen-deserialize-code (name )
   ;; generate a dehydrate command given the symbol table
   (labels ((dehydrate-operation (st-row)
 	     (trivia:match 
@@ -96,16 +54,14 @@
 		     (error "Unexpected type ~a" st-row))
 		    ))))))
      `(progn
-        (defmethod ,(intern (string-upcase (format nil "read-~a-from-stream" name))) ((obj ,(->symbol name)) input-stream)
+        (defmethod ,(intern (string-upcase (format nil "read-~a-from-stream" name))) ((obj ,(->symbol name)) (input-stream  stream))
           ,@(mapcar #'dehydrate-operation  *dhcp-bootp-base-fields*))
 	)
         )
   )
 
-
-
-(defmacro hydrate-code (name)
-  `(defmethod ,(intern (string-upcase (format nil "~a-packet" name))) ((obj ,name))
+(defmacro gen-serialize-code (name)
+  `(defmethod ,(intern (string-upcase (format nil "stream-serialize" name))) ((obj ,name)  (out stream))
      ,@(mapcar #'(lambda(row)
 		   (trivia:match 
 		       row
@@ -119,7 +75,7 @@
 			  ((eq type :string)
 			   `(write-sequence (,(->symbol field) obj) out))
 			  ((eq type :int)
-			   `(write-sequence (number->octets (,(->symbol field) obj) :n ,octets :endian :big) out))
+			   `(write-sequence (nums-and-txt:num->octets (,(->symbol field) obj) :length ,octets :endian :big) out))
 			  (t
 			   (error "Unexpected type ~a" row))
 			  )))))
@@ -129,9 +85,12 @@
 
 
 (clos-code dhcp)
+
 (dhcp-bootp-base-fields-code-gen)
-(dehydrate-code dhcp)
-(hydrate-code dhcp)
+
+(gen-serialize-code dhcp)
+
+(gen-deserialize-code dhcp)
 
 ;;                              code generation                               ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
