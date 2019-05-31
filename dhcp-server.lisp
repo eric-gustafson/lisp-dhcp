@@ -188,7 +188,8 @@
 		    (loop while (serve) do
 			 (multiple-value-bind (buff size client receive-port)
 			     (usocket:socket-receive socket buff 1024)
-			   (decode-network-dhcp-packet! dhcpObj buff)
+			   (flexi-streams:with-input-from-sequence (bin buff)
+			     (decode-network-dhcp-packet! dhcpObj bin))
 			   (let* ((m (handle-dhcp-message dhcpObj))
 				  (buff (flexi-streams:with-output-to-sequence (opp)
 					  (stream-serialize m opp))))
