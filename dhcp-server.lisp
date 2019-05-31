@@ -6,7 +6,7 @@
 (defvar *dhcp-dest-port* 67)
 (defvar *dhcp-client-port* 68)
 
-(defparameter *ns* 0)
+(defparameter *ns* 1)
 (defparameter *dhcp-magic-cookie* '(99 130 83 99))
 
 (defmacro clos-code (name)
@@ -104,10 +104,15 @@
 
 
 (defun serve ()
-  (if (> *ns* 0)
-      nil
-      (progn (incf *ns*)
-	     t)))
+  (cond
+    ((numberp *ns*)
+     (cond
+       ((> *ns* 0)
+	(decf *ns*)
+	t)
+       (t nil)))
+    (t
+     t)))
 
 (defvar *last* nil)
 

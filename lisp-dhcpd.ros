@@ -19,7 +19,7 @@ exec ros -Q -- $0 "$@"
   (swank:create-server :dont-close t :port 4006)
   ;;(dhcp-server::create-dhcpd-handler)
   (loop
-     (sleep 1)
+     (sleep 60)
      )
   )
 ;;; vim: set ft=lisp lisp:
