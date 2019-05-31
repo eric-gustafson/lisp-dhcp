@@ -33,12 +33,12 @@
     
   (defclass meta-dhcp-option ()
     (
-     (match-code :documentation "The pattern match code to parse the thing"
-		 :accessor match-code
-		 :initarg :match-code)
-     (binary-extract-code :documentation "read octets and create a document/object"
-			  :accessor binary-extract-code
-			  :initarg :binary-extract-code)
+     (serialize-code :documentation "The pattern match code to parse the thing"
+		 :accessor serialize-code
+		 :initarg :serialize-code)
+     (deserialize-code :documentation "read octets and create a document/object"
+			  :accessor deserialize-code
+			  :initarg :deserialize-code)
      (name :accessor name :initarg :name)
      (id :accessor id :initarg :id)
      (symb :accessor symb :initarg :symb)
@@ -54,24 +54,60 @@
       (list ,num 4 a b c d)
       )
     )
+  (defun ip-deserialize (clause-name)
+    `((list* 1 4 a b c d rest)
+      (cons (list ,clause-name a b c d)
+	    (decode-options rest))
+      ))
   (defparameter *dhcp-options-objs*
     (list
+     (make-instance 'meta-dhcp-option
+		    :name "lease-time"
+		    :id 51
+		    :symb :lease-time
+		    :serialize-code  '((list :lease-time secs)
+				       (cons 51 (cons 4 (coerce (nums-and-txt:num->octets secs :length 4) 'list))))
+		    :deserialize-code '((list* 51 4 n0 n1 n2 n3 rest)
+					   (cons (list :lease-time (nums-and-txt:octets->num (list n0 n1 n2 n3)))
+					    (decode-options rest)))
+		    )
+     (make-instance 'meta-dhcp-option
+		    :name "dns servers"
+		    :id 6
+		    :symb :dns-servers
+		    :serialize-code `((list* :dns-servers rest)
+				      (let ((octets (alexandria:flatten rest)))
+					(cons 6 (cons (length octets) octets))))
+		    :deserialize-code `((list* 6 n rest)					
+					(cons (cons :dns-servers
+						    #+nil(subseq rest 0 n)
+						    (loop :for p :on rest :by #'cddddr
+						       :collect (serapeum:take 4 p))
+						    )
+					      (decode-options (subseq rest n))))
+		    )
+		    
      (make-instance 'meta-dhcp-option
 		    :name "subnet"
 		    :id 1
 		    :symb :subnet
-		    :match-code (ip-match :subnet 1)
-		    :binary-extract-code '((list* 1 4 a b c d rest)
-					   (cons (list :subnet a b c d)
-					    (decode-options rest)))
+		    :serialize-code (ip-match :subnet 1)
+		    :deserialize-code (ip-deserialize :subnet)
+		    )
+     (make-instance 'meta-dhcp-option
+		    :name "dhcp-server"
+		    :id 54
+		    :symb :dhcp-server
+		    :serialize-code (ip-match :dhcp-server 1)
+		    :deserialize-code (ip-deserialize :dhcp-server)
 		    )
      (make-instance 'meta-dhcp-option
 		    :name "routers"
 		    :id 3
 		    :symb :routers
-		    :match-code `((list* :routers rest)
+		    :serialize-code `((list* :routers rest)
 				  (apply #'append  (cons (list 3 (* 4 (length rest))) rest)))
-		    :binary-extract-code `((list* 3 len rest)
+		    :deserialize-code `((list* 3 len rest)
 					   (cons (list :routers (subseq rest 0 len))
 						 (decode-options (subseq rest len))))
 		    )
@@ -87,7 +123,7 @@
 		(trivia:match
 		    options-doc
 		  (() '())
-		  ,@(mapcar #'match-code *dhcp-options-objs*)
+		  ,@(mapcar #'serialize-code *dhcp-options-objs*)
 		  ((list* :domain-server rest)
 		   ;; n must be a multiple of 4
 		   ;; rest is n number of addesses
@@ -99,8 +135,7 @@
 		  ((list :broadcast octets)
 		   (append (list 28 4) octets))    
     
-		  ((list :lease-time secs)
-		   (cons 51 (cons 4 (coerce (nums-and-txt:num->octets secs :length 4) 'list))))
+		  
 
 		  ((list :server-id a b c d)
 		   (list 54 4 a b c d))
@@ -129,7 +164,7 @@
 		  (trivia:match
 		      seq
 		    (() '())
-		    ,@(mapcar #'binary-extract-code *dhcp-options-objs*)
+		    ,@(mapcar #'deserialize-code *dhcp-options-objs*)
 		    ((list* 0 rest)
 		     ;; This is the Pad option
 		     (decode-options rest))
@@ -151,7 +186,7 @@
 		     (setf (mtype dhcp-options-obj) type)
 		     (decode-options rest)
 		     )
-		    ((list* 54 4 a b c d rest)
+		    #+nil((list* 54 4 a b c d rest)
 		     ;; This is the 'id', or the IP address of the dhcp server.
 		     (let ((server (vector a b c d)))
 		       (when debug (format t "server-identifier: ~a ~%" server))

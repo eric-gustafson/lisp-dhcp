@@ -147,7 +147,7 @@
 					  (:routers ,(this-ip))
 					  (:lease-time 120)
 					  (:dhcp-server ,@(this-ip))
-					  (:dns-server (8 8 8 8) (4 4 4 4)))
+					  (:dns-servers (8 8 8 8) (4 4 4 4)))
 					)))
     (setf (options replyMsg) (encode-dhcp-options replyMsgOptions))
     replyMsg))

@@ -116,13 +116,23 @@
 
 ** Decode the dhcp options
 #+BEGIN_SRC lisp :results output verbatim
-  (let* ((ipA (handle-dhcp-message *a*)))
-    (print (decode-dhcp-options (options ipA)))
-     ;(print (options ipA))
+  (let* ((ipA (handle-dhcp-message *a*))
+         (x (decode-dhcp-options (options ipA))))
+    (print x)
+    (print (options ipA))
+    (print (encode-dhcp-options x))
     )
     
 
 #+END_SRC
+
+#+RESULTS:
+: 
+: #<DHCP-OPTIONS mtype=2,restof=((SUBNET FF FF FF 0) (ROUTERS (C0 A8 1 1))
+:                                (LEASE-TIME 78) (SUBNET C0 A8 1 1)
+:                                (DNS-SERVERS (8 8 8 8) (4 4 4 4)))> 
+: (53 1 2 1 4 255 255 255 0 3 4 192 168 1 1 51 4 0 0 0 120 1 4 192 168 1 1 6 8 8
+:  8 8 8 4 4 4 4) 
 
 
 : (53 1 2 1 4 255 255 255 0 3 4 192 168 1 1 51 4 0 0 0 120 :DHCP-SERVER 192 168 1
