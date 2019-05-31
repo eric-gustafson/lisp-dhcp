@@ -4,6 +4,7 @@
 
 
 (defvar *dhcp-dest-port* 67)
+(defvar *dhcp-client-port* 68)
 
 (defparameter *ns* 0)
 (defparameter *dhcp-magic-cookie* '(99 130 83 99))
@@ -54,7 +55,7 @@
 		     (error "Unexpected type ~a" st-row))
 		    ))))))
      `(progn
-        (defmethod ,(intern (string-upcase (format nil "read-~a-from-stream" name))) ((obj ,(->symbol name)) (input-stream  stream))
+        (defmethod stream-deserialize ((obj ,(->symbol name)) (input-stream  stream))
           ,@(mapcar #'dehydrate-operation  *dhcp-bootp-base-fields*))
 	)
         )
@@ -86,11 +87,16 @@
 
 (clos-code dhcp)
 
-(dhcp-bootp-base-fields-code-gen)
+;;(dhcp-bootp-base-fields-code-gen)
 
 (gen-serialize-code dhcp)
 
 (gen-deserialize-code dhcp)
+
+(defmethod decode-network-dhcp-packet! ((dhcpObj dhcp) (buff sequence))
+  (flexi-streams:with-input-from-sequence (inport buff)
+    (stream-deserialize dhcpObj inport))
+  dhcpObj)
 
 ;;                              code generation                               ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -110,10 +116,64 @@
     (write-sequence buff bout))
   )
 
+(defun this-ip ()
+  (list 192 168 1 1)
+  )
 
+(defmethod get-address ((reqMsg dhcp))
+  "return an dhcp packet to be broadcast that provides an IP address"
+  (let ((replyMsg (make-instance 'dhcp
+				 :op 2
+				 :htype (htype reqMsg)				    
+				 :hlen (hlen reqMsg)
+				 :hops (hops reqMsg)
+				 :xid (xid reqMsg)
+				 :secs (secs reqMsg)
+				 :flags (flags reqMsg)
+				 :yiaddr (this-ip)
+				 :siaddr (this-ip)
+				 :giaddr (giaddr reqMsg)
+				 :chaddr (chaddr reqMsg)
+				 :ciaddr (ciaddr reqMsg)
+				 :mcookie (mcookie reqMsg)
+				 :file (file reqMsg)
+				 :sname (sname reqMsg)
+				 ))
+	(replyMsgOptions (make-instance 'dhcp-options
+					:mtype 2
+					:restof
+					`(
+					  (:subnet 255 255 255 0)
+					  (:routers ,(this-ip))
+					  (:lease-time 120)
+					  (:dhcp-server ,@(this-ip))
+					  (:dns-server (8 8 8 8) (4 4 4 4)))
+					)))
+    (setf (options replyMsg) (encode-dhcp-options replyMsgOptions))
+    replyMsg))
+
+(defmethod handle-dhcp-message ((obj dhcp))
+  (let* ((options (decode-dhcp-options (options obj)))
+	 (sig
+	  (list (op obj)
+		(htype obj)
+		(mtype options))))
+  (trivia:match
+      sig
+    ((list 1 1 1) ;; dhcp discover
+     ;; create a dhcp offer message
+     (get-address obj)
+     )
+    (otherwise
+     (error "handle-network-message - Unimplemented functionality ~a" sig))
+    )
+  )
+  )
+  
 (defun create-dhcpd-handler ()
   (labels ((run ()
-	     (let* ((buff (make-array 1024 :element-type '(unsigned-byte 8)))
+	     (let* ((dhcpObj (make-instance 'dhcp))
+		    (buff (make-array 1024 :element-type '(unsigned-byte 8)))
 		    (socket (usocket:socket-connect nil
 						    nil
 						    :protocol :datagram
@@ -123,10 +183,17 @@
 		    (loop while (serve) do
 			 (multiple-value-bind (buff size client receive-port)
 			     (usocket:socket-receive socket buff 1024)
-			   (format t "Got one~%")
-			   (setf *last* (copy-seq buff))
-			   
-			   ))
+			   (decode-network-dhcp-packet! dhcpObj buff)
+			   (let* ((m (handle-dhcp-message dhcpObj))
+				  (buff (flexi-streams:with-output-to-sequence (opp)
+					  (stream-serialize m opp))))
+			     (usocket:socket-send socket buff (length buff)
+						  :port *dhcp-client-port*
+						  :host  #(255 255 255 0))
+			     )
+			   )
+			 (setf *last* (copy-seq buff))
+			 )
 		 (usocket:socket-close socket)))))
     (run)))
 

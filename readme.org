@@ -1,13 +1,5 @@
 #+title: dhcp server implemented in common lisp
 
-* TODO create the CLOS object from a macro in lisp
-  We are currently doing this in dhcp.org.  It's going to be alot
-  better if we table walk this in lisp.  We can use macros seeded from
-  global variables.
-
-* TODO make a CLOS object from sequence.
-  Return's a CLOS object, and a subseq of the rest of the buffer
-
 * Goals
   A research project to explore what can be done with a programable
   dhcp server
