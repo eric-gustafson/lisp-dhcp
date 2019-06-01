@@ -222,17 +222,19 @@
 	     (let* ((dhcpObj (make-instance 'dhcp))
 		    (buff (make-array 1024 :element-type '(unsigned-byte 8)))
 		    (rsocket (usocket:socket-connect nil
-						    nil
+						     nil
 						    :protocol :datagram
 						    :element-type 'char
+						    ;;ocal-host "172.200.1.1"
 						    :local-port *dhcp-server-port*))
-		    (ssocket (usocket:socket-connect nil
-						    nil
+		    #+nil(ssocket (usocket:socket-connect "255.255.255.255" ;;nil
+						    *dhcp-client-port*
 						    :protocol :datagram
 						    :element-type 'char
-						    :local-port *dhcp-client-port*))
+						    ;;:local-port *dhcp-client-port*
+						    ))
 		    )
-	       (setf (usocket:socket-option ssocket :broadcast) t)
+	       (setf (usocket:socket-option rsocket :broadcast) t)
 	       (unwind-protect
 		    (loop while (serve) do
 			 (multiple-value-bind (buff size client receive-port)
@@ -243,14 +245,15 @@
 			   (let* ((m (handle-dhcp-message dhcpObj))
 				  (buff (response->buff m)))
 			     (format t "sending response~%")
-			     (let ((nbw (usocket:socket-send ssocket buff nil ;;(length buff)
+			     (let ((nbw (usocket:socket-send rsocket buff nil ;;(length buff)
 							     :port *dhcp-client-port*
 							     :host  #(255 255 255 255))))
 			       (format t "number of bytes sent:~a~%" nbw))
 			     )
+			   (force-output *standard-output*)
 			   )
 			 )
-		 (usocket:socket-close ssocket)
+		 ;;(usocket:socket-close ssocket)
 		 (usocket:socket-close rsocket)
 		 ))))
     (run)))
