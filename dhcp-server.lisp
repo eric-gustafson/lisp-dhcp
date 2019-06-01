@@ -93,7 +93,7 @@
 
 (gen-deserialize-code dhcp)
 
-(defmethod decode-network-dhcp-packet! ((dhcpObj dhcp) (buff sequence))
+(defmethod deserialize-into-dhcp-from-buff! ((dhcpObj dhcp) (buff sequence))
   (flexi-streams:with-input-from-sequence (inport buff)
     (stream-deserialize dhcpObj inport))
   dhcpObj)
@@ -122,7 +122,7 @@
   )
 
 (defun this-ip ()
-  (list 192 168 1 1)
+  (list 172 200 1  1)
   )
 
 (defmethod get-address ((reqMsg dhcp))
@@ -211,7 +211,11 @@
       )
     )
   )
-  
+
+(defmethod response->buff ((obj dhcp))
+  (flexi-streams:with-output-to-sequence (opp :element-type '(unsigned-byte 8))
+    (stream-serialize obj opp)))
+
 (defun create-dhcpd-handler ()
   (labels ((run ()
 	     (let* ((dhcpObj (make-instance 'dhcp))
@@ -225,16 +229,17 @@
 		    (loop while (serve) do
 			 (multiple-value-bind (buff size client receive-port)
 			     (usocket:socket-receive socket buff 1024)
-			   (setf *last* (copy-seq buff))
-			   (decode-network-dhcp-packet! dhcpObj buff)
+			   (setf (usocket:socket-option socket :broadcast) t)
 			   (format t "got request~%")
+			   (setf *last* (copy-seq buff))
+			   (deserialize-into-dhcp-from-buff! dhcpObj buff)
 			   (let* ((m (handle-dhcp-message dhcpObj))
-				  (buff (flexi-streams:with-output-to-sequence (opp :element-type '(unsigned-byte 8))
-					  (stream-serialize m opp))))
+				  (buff (response->buff m)))
 			     (format t "sending response~%")
-			     (usocket:socket-send socket buff (length buff)
-						  :port *dhcp-client-port*
-						  :host  #(255 255 255 255))
+			     (let ((nbw (usocket:socket-send socket buff nil ;;(length buff)
+							     :port *dhcp-client-port*
+							     :host  #(255 255 255 255))))
+			       (format t "number of bytes sent:~a~%" nbw))
 			     )
 			   )
 			 )
