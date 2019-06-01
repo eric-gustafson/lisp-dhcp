@@ -3,7 +3,7 @@
 (in-package #:dhcp-server)
 
 
-(defvar *dhcp-dest-port* 67)
+(defvar *dhcp-server-port* 67)
 (defvar *dhcp-client-port* 68)
 
 (defparameter *ns* 1)
@@ -104,15 +104,16 @@
 
 
 (defun serve ()
-  (cond
-    ((numberp *ns*)
-     (cond
-       ((> *ns* 0)
-	(decf *ns*)
-	t)
-       (t nil)))
-    (t
-     t)))
+  t)
+  ;; (cond
+  ;;   ((numberp *ns*)
+  ;;    (cond
+  ;;      ((> *ns* 0)
+  ;; 	(decf *ns*)
+  ;; 	t)
+  ;;      (t nil)))
+  ;;   (t
+  ;;    t)))
 
 (defvar *last* nil)
 
@@ -220,30 +221,38 @@
   (labels ((run ()
 	     (let* ((dhcpObj (make-instance 'dhcp))
 		    (buff (make-array 1024 :element-type '(unsigned-byte 8)))
-		    (socket (usocket:socket-connect nil
+		    (rsocket (usocket:socket-connect nil
 						    nil
 						    :protocol :datagram
 						    :element-type 'char
-						    :local-port *dhcp-dest-port*)))
+						    :local-port *dhcp-server-port*))
+		    (ssocket (usocket:socket-connect nil
+						    nil
+						    :protocol :datagram
+						    :element-type 'char
+						    :local-port *dhcp-client-port*))
+		    )
+	       (setf (usocket:socket-option ssocket :broadcast) t)
 	       (unwind-protect
 		    (loop while (serve) do
 			 (multiple-value-bind (buff size client receive-port)
-			     (usocket:socket-receive socket buff 1024)
-			   (setf (usocket:socket-option socket :broadcast) t)
+			     (usocket:socket-receive rsocket buff 1024)
 			   (format t "got request~%")
 			   (setf *last* (copy-seq buff))
 			   (deserialize-into-dhcp-from-buff! dhcpObj buff)
 			   (let* ((m (handle-dhcp-message dhcpObj))
 				  (buff (response->buff m)))
 			     (format t "sending response~%")
-			     (let ((nbw (usocket:socket-send socket buff nil ;;(length buff)
+			     (let ((nbw (usocket:socket-send ssocket buff nil ;;(length buff)
 							     :port *dhcp-client-port*
 							     :host  #(255 255 255 255))))
 			       (format t "number of bytes sent:~a~%" nbw))
 			     )
 			   )
 			 )
-		 (usocket:socket-close socket)))))
+		 (usocket:socket-close ssocket)
+		 (usocket:socket-close rsocket)
+		 ))))
     (run)))
 
 (defmethod print-object ((obj dhcp) stream)
