@@ -147,7 +147,7 @@
 : 77
 
 #+BEGIN_SRC lisp :output list
-  (flexi-streams:with-output-to-sequence (dummy)
+  (flexi-streams:with-output-to-sequence (dummy :element-type '(unsigned-byte 8))
     (stream-serialize *a* dummy))
 #+END_SRC
 

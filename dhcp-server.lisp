@@ -135,8 +135,8 @@
 				 :xid (xid reqMsg)
 				 :secs (secs reqMsg)
 				 :flags (flags reqMsg)
-				 :yiaddr (this-ip)
-				 :siaddr (this-ip)
+				 :yiaddr (nums-and-txt:octets->num (this-ip) :endian :net)
+				 :siaddr (nums-and-txt:octets->num (this-ip) :endian :net)
 				 :giaddr (giaddr reqMsg)
 				 :chaddr (chaddr reqMsg)
 				 :ciaddr (ciaddr reqMsg)
@@ -157,22 +157,59 @@
     (setf (options replyMsg) (encode-dhcp-options replyMsgOptions))
     replyMsg))
 
+(defmethod get-ack ((reqMsg dhcp))
+  "return an dhcp packet to be broadcast that provides an IP address"
+  (let ((replyMsg (make-instance 'dhcp
+				 :op 2
+				 :htype (htype reqMsg)				    
+				 :hlen (hlen reqMsg)
+				 :hops (hops reqMsg)
+				 :xid (xid reqMsg)
+				 :secs (secs reqMsg)
+				 :flags (flags reqMsg)
+				 :yiaddr (nums-and-txt:octets->num (this-ip) :endian :net)
+				 :siaddr (nums-and-txt:octets->num (this-ip) :endian :net)
+				 :giaddr (giaddr reqMsg)
+				 :chaddr (chaddr reqMsg)
+				 :ciaddr (ciaddr reqMsg)
+				 :mcookie (mcookie reqMsg)
+				 :file (file reqMsg)
+				 :sname (sname reqMsg)
+				 ))
+	(replyMsgOptions (make-instance 'dhcp-options
+					:mtype 5
+					:restof
+					`(
+					  (:subnet 255 255 255 0)
+					  (:routers ,(this-ip))
+					  (:lease-time 120)
+					  (:dhcp-server ,@(this-ip))
+					  (:dns-servers (8 8 8 8) (4 4 4 4)))
+					)))
+    (setf (options replyMsg) (encode-dhcp-options replyMsgOptions))
+    replyMsg))
+
 (defmethod handle-dhcp-message ((obj dhcp))
   (let* ((options (decode-dhcp-options (options obj)))
 	 (sig
 	  (list (op obj)
 		(htype obj)
 		(mtype options))))
-  (trivia:match
-      sig
-    ((list 1 1 1) ;; dhcp discover
-     ;; create a dhcp offer message
-     (get-address obj)
-     )
-    (otherwise
-     (error "handle-network-message - Unimplemented functionality ~a" sig))
+    (trivia:match
+	sig
+      ((list 1 1 1) ;; dhcp discover
+       ;; create a dhcp offer message
+       (get-address obj)
+       )
+      ((list 1 1 3)
+       (format t "dhcp request received~%")
+       ;; Send the ack
+       (get-ack obj)
+       )
+      (otherwise
+       (error "handle-network-message - Unimplemented functionality ~a" sig))
+      )
     )
-  )
   )
   
 (defun create-dhcpd-handler ()
@@ -188,17 +225,18 @@
 		    (loop while (serve) do
 			 (multiple-value-bind (buff size client receive-port)
 			     (usocket:socket-receive socket buff 1024)
-			   (flexi-streams:with-input-from-sequence (bin buff)
-			     (decode-network-dhcp-packet! dhcpObj bin))
+			   (setf *last* (copy-seq buff))
+			   (decode-network-dhcp-packet! dhcpObj buff)
+			   (format t "got request~%")
 			   (let* ((m (handle-dhcp-message dhcpObj))
-				  (buff (flexi-streams:with-output-to-sequence (opp)
+				  (buff (flexi-streams:with-output-to-sequence (opp :element-type '(unsigned-byte 8))
 					  (stream-serialize m opp))))
+			     (format t "sending response~%")
 			     (usocket:socket-send socket buff (length buff)
 						  :port *dhcp-client-port*
-						  :host  #(255 255 255 0))
+						  :host  #(255 255 255 255))
 			     )
 			   )
-			 (setf *last* (copy-seq buff))
 			 )
 		 (usocket:socket-close socket)))))
     (run)))
