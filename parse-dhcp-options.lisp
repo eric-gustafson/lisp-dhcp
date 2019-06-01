@@ -54,8 +54,8 @@
       (list ,num 4 a b c d)
       )
     )
-  (defun ip-deserialize (clause-name)
-    `((list* 1 4 a b c d rest)
+  (defun ip-deserialize (id clause-name)
+    `((list* ,id 4 a b c d rest)
       (cons (list ,clause-name a b c d)
 	    (decode-options rest))
       ))
@@ -92,25 +92,39 @@
 		    :id 1
 		    :symb :subnet
 		    :serialize-code (ip-match :subnet 1)
-		    :deserialize-code (ip-deserialize :subnet)
+		    :deserialize-code (ip-deserialize 1 :subnet)
 		    )
      (make-instance 'meta-dhcp-option
 		    :name "dhcp-server"
 		    :id 54
 		    :symb :dhcp-server
-		    :serialize-code (ip-match :dhcp-server 1)
-		    :deserialize-code (ip-deserialize :dhcp-server)
+		    :serialize-code (ip-match :dhcp-server 54)
+		    :deserialize-code (ip-deserialize 54 :dhcp-server)
 		    )
      (make-instance 'meta-dhcp-option
 		    :name "routers"
 		    :id 3
 		    :symb :routers
 		    :serialize-code `((list* :routers rest)
-				  (apply #'append  (cons (list 3 (* 4 (length rest))) rest)))
+				      (apply #'append  (cons (list 3 (* 4 (length rest))) rest)))
 		    :deserialize-code `((list* 3 len rest)
 					   (cons (list :routers (subseq rest 0 len))
 						 (decode-options (subseq rest len))))
 		    )
+
+     (make-instance 'meta-dhcp-option
+		    :name "max dhcp pdu"
+		    :id 57
+		    :symb :max-dhcp-message-size
+		    :serialize-code  `((list :max-dhcp-message-size num)
+				       (list* 57 2 (nums-and-txt:num->octets num 2)))
+		    :deserialize-code `((list* 57 2 l1 l2 rest) ;; max size
+					(let ((num (nums-and-txt:octets->num (list l1 l2))))
+					  (when debug (format t "dhcp max message size:~a~%" num))
+					  (cons (list :max-dhcp-message-size num)
+						(decode-options rest))))
+		    )
+     
      )
     )
   )
@@ -198,11 +212,7 @@
 			       :for e in rest 
 			       :collect e)))
 		       (cons (cons :client-params-request code-list) (decode-options (subseq rest n))))
-		     )
-		    ((list* 57 2 l1 l2 rest) ;; max size
-		     (let ((num (nums-and-txt:octets->num (list l1 l2))))
-		       (when debug (format t "dhcp max message size:~a~%" num))
-		       (cons (list :max-dhcp-message-size num) (decode-options rest))))
+		     )		    
 
 		    ((list* 60 n rest) ;; vendor class
 		     (let ((payload (subseq rest 0 n)))
