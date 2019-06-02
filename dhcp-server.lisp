@@ -18,6 +18,7 @@
 
 (defclass dhcp-address ()
   (
+   (mac :accessor mac :initarg :mac)
    (ipnum :accessor ipnum :initarg :ipnum)
    (tla :accessor tla :initarg :tla :initform (get-universal-time))
    (lease-time :accessor lease-time :initarg :lease-time :initform  300)
@@ -180,9 +181,6 @@
      :summing 8))
 
 
-
-
-
 (defmethod print-object ((obj cidr-net) stream)
   (print-unreadable-object
       (obj stream :type t)
@@ -234,8 +232,10 @@
     (loop :for ip :from f :upto l :do
        (unless
 	   (find ip *dhcp-allocated-table* :key #'ipnum)
-	 (push (make-instance 'dhcp-address :ipnum ip :tla (get-universal-time)) *dhcp-allocated-table*)
-	 (return-from dhcp-allocate-ip ip)))
+	 (let ((addrObj (make-instance 'dhcp-address :ipnum ip :tla (get-universal-time))))
+	   (push addrObj *dhcp-allocated-table*)
+	   (return-from dhcp-allocate-ip addrObj)))
+       )
     )
   )
 
@@ -245,7 +245,8 @@
 
 (defmethod get-address ((reqMsg dhcp))
   "return an dhcp packet to be broadcast that provides an IP address"
-  (let ((replyMsg (make-instance 'dhcp
+  (let ((new-addr (dhcp-allocate-ip *this-net*))
+	(replyMsg (make-instance 'dhcp
 				 :op 2
 				 :htype (htype reqMsg)				    
 				 :hlen (hlen reqMsg)
@@ -253,7 +254,7 @@
 				 :xid (xid reqMsg)
 				 :secs (secs reqMsg)
 				 :flags (flags reqMsg)
-				 :yiaddr (nums-and-txt:num->octets (dhcp-allocate-ip *this-net*)  :endian :net)
+				 :yiaddr (nums-and-txt:num->octets (ipnum new-addr)  :endian :net)
 				 :siaddr (nums-and-txt:octets->num (this-ip) :endian :net)
 				 :giaddr (giaddr reqMsg)
 				 :chaddr (chaddr reqMsg)
