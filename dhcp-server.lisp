@@ -6,6 +6,25 @@
 (defvar *dhcp-server-port* 67)
 (defvar *dhcp-client-port* 68)
 
+(defclass cidr-net ()
+  ;; A network defined using cidr notation
+  ;;
+  (
+   (ipnum :accessor ipnum :initarg :ipnum)
+   (cidr :accessor cidr :initarg :cidr)
+   (mask :accessor mask :initarg :mask)
+   )
+  )
+
+(defclass dhcp-address ()
+  (
+   (ipnum :accessor ipnum :initarg :ipnum)
+   (tla :accessor tla :initarg :tla :initform (get-universal-time))
+   (lease-time :accessor lease-time :initarg :lease-time :initform  300)
+   )
+  )
+
+
 (defparameter *ns* 1)
 (defparameter *dhcp-magic-cookie* '(99 130 83 99))
 
@@ -133,7 +152,6 @@
 (defun this-ip ()
   (list 172 200 1  1)
   )
-
 (defvar *this-net*
   (make-instance 'cidr-net
 		 :cidr 24
@@ -161,23 +179,9 @@
      :while (> o 0)
      :summing 8))
 
-(defclass cidr-net ()
-  ;; A network defined using cidr notation
-  ;;
-  (
-   (ipnum :accessor ipnum :initarg :ipnum)
-   (cidr :accessor cidr :initarg :cidr)
-   (mask :accessor mask :initarg :mask)
-   )
-  )
 
-(defclass dhcp-address ()
-  (
-   (ipnum :accessor ipnum :initarg :ipnum)
-   (tla :accessor tla :initarg :tla :initform (get-universal-time))
-   (lease-time :accessor lease-time :initarg :lease-time :initform  300)
-   )
-  )
+
+
 
 (defmethod print-object ((obj cidr-net) stream)
   (print-unreadable-object
