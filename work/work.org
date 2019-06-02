@@ -1,46 +1,91 @@
 #+title: work
 
-* TODO encode/decode dhcp options
-  [[file:../devdocs/dhcp-options.org]]
 
-  Use a document sexp approach to these calculations
+* TODO dhcp network based ip allocation code
+** hashtable 
+   ip => obj
+*** List all ips in a net
 
-* TODO lisp org helper functions
-** TODO generate clos object from table header
-** TODO we then publish these back/forth
-   This would be better than the lists we are using now
+#+BEGIN_SRC lisp :results value
+  (let ((net (make-instance 'cidr-net
+                            :cidr 24
+                            :ipnum (nums-and-txt:octets->num #(172 18 200 0))
+                            :mask (nums-and-txt:octets->num #(255 255 255 0)))))
+    (list
+     (total-ips net)
+     (nums-and-txt:num->octets (first-ip net))
+     (nums-and-txt:num->octets (last-ip net))))
+       
+
+       
+#+END_SRC
+
+#+RESULTS:
+| 254 | (172 18 200 1) | (172 18 200 254) |
+
+*** get-next ip
+    Check the allocated list 
 
 
-* TODO send dhcp response message back
-  This is a DHCP-OFFER
+
+* TODO hard code network
+
+* TODO I'm giving out the router address as the ip address
+
+* TODO have everything come up from a boot
+
+* TODO get routing working
+
+* TODO 
+
+* TODO Have the program install everything to run as a daemon
   
 
-** TODO create a commissioning network
-   This is a virtual interface with a network allocated from *network-malloc*
+* TODO create a commissioning network
+  This is a virtual interface with a network allocated from *network-malloc*
 
 
-*** TODO verfify that this shows up on RBPI
+** TODO verfify that this shows up on RBPI
 
-*** TODO up/down this network
-    (defmethod net-up ((obj netobj))
-     )
+** TODO up/down this network
+   (defmethod net-up ((obj netobj))
+    )
 
-    
-*** TODO allocate IP and network info
+   
+** TODO allocate IP and network info
 
 
 
 ** TODO simple/dumb dhcp address allocation
    incf for now
 
-* TODO look at erlang dhcp server I did a couple of years ago
-  <2019-05-19 Sun> Not that bad, actually.  Stuff to learn from @ the very least
 
-** TODO move netsecurity.org document for erlang dhcp project here
-   It was all there, except for the actual way to stop x-talk on the wireless lan (seperate networks for each node)
+* TODO Receive and decode dhcp broadcast
+  To send and receive broadcast
+
+** netmask
+   Be sure that netmask is correct. in windows mask for broadcast
+    packets does not matters, but not in linux.
+
+** wildcard address
+   bind socket to INADDR_ANY
+
+** setsockopt
+   setsockopt to BROADCAST
+
+** sendto
+   call sendto with sendaddr.sin_addr.s_addr = inet_addr("your_interface_broadcast_address")
+
+   call sento several times for each interface with its broadcast ip address.
+
+** call recvfrom. any time before calling recvfrom, set up length parameter
 
 
-* TODO capture packets and start a database of dhcp interactions
+
+
+* TODO move netsecurity.org document for erlang dhcp project here
+  It was all there, except for the actual way to stop x-talk on the wireless lan (seperate networks for each node)
+
 
 
 * TODO Add a section to construct a reply
@@ -50,53 +95,3 @@
   mac address should use the 'size' operator which is one of the first parameters
   which then allows us to trim the chaddr field.
 
-* TODO remote slime to rbpi repl
-  ssh proxy
-
-
-* TODO add support for different types of strings
-  When generating code from the org-babel tables, handle the following
-  strings by adding more keywords
-
-  - fixed
-  - pascal
-  - c
-
-
-
-* Archive
-** DONE Use cl-async?
-   Figure out if we really want to do this.  Why not just use select?
-   In the future, we can inhance by creating an event using the file
-   descriptor
-
-
-** DONE Receive and decode dhcp broadcast
-   To send and receive broadcast
-
-*** netmask
-    Be sure that netmask is correct. in windows mask for broadcast
-     packets does not matters, but not in linux.
-
-*** wildcard address
-    bind socket to INADDR_ANY
-
-*** setsockopt
-    setsockopt to BROADCAST
-
-*** sendto
-    call sendto with sendaddr.sin_addr.s_addr = inet_addr("your_interface_broadcast_address")
-
-    call sento several times for each interface with its broadcast ip address.
-
-*** call recvfrom. any time before calling recvfrom, set up length parameter
-
-
-** DONE bring up 2nd interface from rbpi
-   These things are currently in snot.  Should we move?
-
-** DONE lisp-lsa package
-   A lisp linux bases system administsration package focusing on wifi
-
-   Have a wifi.lisp as one of the files
-    

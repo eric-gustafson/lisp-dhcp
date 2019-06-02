@@ -122,8 +122,121 @@
     (write-sequence buff bout))
   )
 
+(defun network-addr? (obj)
+  (and (or (vectorp obj) (listp obj))
+       (eq 5 (length obj)))
+  )
+
+(defun this-net ()
+  (list 172 200 0 0 24))
+
 (defun this-ip ()
   (list 172 200 1  1)
+  )
+
+(defvar *this-net*
+  (make-instance 'cidr-net
+		 :cidr 24
+		 :ipnum (nums-and-txt:octets->num #(172 200 0 0))
+		 :mask (nums-and-txt:octets->num #(255 255 255 0)))
+  ) 
+
+
+(defun cidr-mask (bits)
+  "returns a netmask for the number of bits"
+  )
+
+(defun ip-cidrn (bits)
+  "return the number of lower order 0ed bits"
+  (loop :for i from 0
+     :while (and
+	     (> bits 0)
+	     (= (logand bits 1) 0))
+     :counting i
+     :do (setf bits (ash bits -1)))
+  )
+
+(defun ip-cidrn-octets (num)
+  (loop :for o :across (nums-and-txt:num->octets num :endian :net)
+     :while (> o 0)
+     :summing 8))
+
+(defclass cidr-net ()
+  ;; A network defined using cidr notation
+  ;;
+  (
+   (ipnum :accessor ipnum :initarg :ipnum)
+   (cidr :accessor cidr :initarg :cidr)
+   (mask :accessor mask :initarg :mask)
+   )
+  )
+
+(defclass dhcp-address ()
+  (
+   (ipnum :accessor ipnum :initarg :ipnum)
+   (tla :accessor tla :initarg :tla :initform (get-universal-time))
+   (lease-time :accessor lease-time :initarg :lease-time :initform  300)
+   )
+  )
+
+(defmethod print-object ((obj cidr-net) stream)
+  (print-unreadable-object
+      (obj stream :type t)
+    (with-slots (cidr ipnum)
+	obj
+      (format stream "~a/~a" (nums-and-txt:num->octets ipnum) cidr)
+      ))
+  )
+
+(defmethod cidr-in? ((obj cidr-net) (ip number))
+  (with-slots (mask ipnum)
+      obj
+    (eq (logand mask ipnum) (logand mask ip))
+    )
+  )
+
+(defmethod cidr-in? ((obj cidr-net) (ip-addr list))
+  (cidr-in? obj (octets->num ip-addr)))
+
+(defmethod cidr-in? ((obj cidr-net) (ip-addr vector))
+  (cidr-in? obj (octets->num ip-addr)))
+
+
+(defmethod first-ip ((obj cidr-net))
+  "return the first IP address in this net"
+  (with-slots (ipnum)
+      obj
+    (+ ipnum 1)))
+
+(defun invert-bits2 (n)
+  (if (> n 0)
+      (logxor (1- (expt 2 (integer-length #xffffffff))) n)
+      0))
+
+(defmethod last-ip ((obj cidr-net))
+  "Return the last IP address of this net"
+  (with-slots (ipnum mask)
+      obj
+    (- (+ ipnum (invert-bits2 mask)) 1)))
+
+(defmethod total-ips ((obj cidr-net))
+  (1+ (- (last-ip obj) (first-ip obj))))
+
+(defparameter *dhcp-allocated-table* '())
+
+(defun dhcp-allocate-ip (net)
+  (let ((f (first-ip net))
+	(l (last-ip net)))
+    (loop :for ip :from f :upto l :do
+       (unless
+	   (find ip *dhcp-allocated-table* :key #'ipnum)
+	 (push (make-instance 'dhcp-address :ipnum ip :tla (get-universal-time)) *dhcp-allocated-table*)
+	 (return-from dhcp-allocate-ip ip)))
+    )
+  )
+
+(defun deallocate-ip (ip)
+  (setf *dhcp-allocated-table* (delete ip *dhcp-allocated-table* :key #'ipnum :test #'equalp))
   )
 
 (defmethod get-address ((reqMsg dhcp))
@@ -136,7 +249,7 @@
 				 :xid (xid reqMsg)
 				 :secs (secs reqMsg)
 				 :flags (flags reqMsg)
-				 :yiaddr (nums-and-txt:octets->num (this-ip) :endian :net)
+				 :yiaddr (nums-and-txt:num->octets (dhcp-allocate-ip *this-net*)  :endian :net)
 				 :siaddr (nums-and-txt:octets->num (this-ip) :endian :net)
 				 :giaddr (giaddr reqMsg)
 				 :chaddr (chaddr reqMsg)
@@ -273,4 +386,5 @@
 (defmethod has-magic-cookie ((obj dhcp))
   (eq (mcookie *a*) (nums-and-txt:octets->num *dhcp-magic-cookie*))
   )
+
 

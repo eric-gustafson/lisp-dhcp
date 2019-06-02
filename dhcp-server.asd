@@ -13,6 +13,7 @@
 	       #:alexandria
 	       #:trivia
 	       #:serapeum
+	       #:inferior-shell
 	       #:nums-and-txt
 	       )
   :components ((:file "package")
