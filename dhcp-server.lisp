@@ -151,7 +151,7 @@
   (list 172 200 0 0 24))
 
 (defun this-ip ()
-  (list 172 200 1  1)
+  (list 172 200 0  1)
   )
 (defvar *this-net*
   (make-instance 'cidr-net
@@ -224,23 +224,34 @@
 (defmethod total-ips ((obj cidr-net))
   (1+ (- (last-ip obj) (first-ip obj))))
 
-(defparameter *dhcp-allocated-table* '())
+(defparameter *dhcp-allocated-table* (list
+				      (make-instance 'dhcp-address
+						     :ipnum (first-ip *this-net*)
+						     :lease-time nil))
+  )
+						     
+
+(defun get-allocation-table (net)
+  *dhcp-allocated-table*)
+
 
 (defun dhcp-allocate-ip (net)
   (let ((f (first-ip net))
 	(l (last-ip net)))
     (loop :for ip :from f :upto l :do
        (unless
-	   (find ip *dhcp-allocated-table* :key #'ipnum)
+	   (find ip (get-allocation-table net)  :key #'ipnum)
 	 (let ((addrObj (make-instance 'dhcp-address :ipnum ip :tla (get-universal-time))))
-	   (push addrObj *dhcp-allocated-table*)
+	   (push addrObj (get-allocation-table net))
 	   (return-from dhcp-allocate-ip addrObj)))
        )
     )
   )
 
-(defun deallocate-ip (ip)
-  (setf *dhcp-allocated-table* (delete ip *dhcp-allocated-table* :key #'ipnum :test #'equalp))
+(defun deallocate-ip (net ip)
+  (let ((allocation-table (get-allocation-table net)))
+    (setf allocation-table (delete ip allocation-table :key #'ipnum :test #'equalp))
+    )
   )
 
 (defmethod get-address ((reqMsg dhcp))

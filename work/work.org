@@ -2,41 +2,12 @@
 
 
 * TODO dhcp network based ip allocation code
-** hashtable 
-   ip => obj
-*** List all ips in a net
-
-#+BEGIN_SRC lisp :results value
-  (let ((net (make-instance 'cidr-net
-                            :cidr 24
-                            :ipnum (nums-and-txt:octets->num #(172 18 200 0))
-                            :mask (nums-and-txt:octets->num #(255 255 255 0)))))
-    (list
-     (total-ips net)
-     (nums-and-txt:num->octets (first-ip net))
-     (nums-and-txt:num->octets (last-ip net))))
-       
-
-       
-#+END_SRC
-
-#+RESULTS:
-| 254 | (172 18 200 1) | (172 18 200 254) |
-
-*** get-next ip
-    Check the allocated list 
-
-
-
-* TODO hard code network
 
 * TODO I'm giving out the router address as the ip address
 
 * TODO have everything come up from a boot
 
 * TODO get routing working
-
-* TODO 
 
 * TODO Have the program install everything to run as a daemon
   
