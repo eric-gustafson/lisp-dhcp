@@ -245,34 +245,34 @@
 
 (defmethod get-address ((reqMsg dhcp))
   "return an dhcp packet to be broadcast that provides an IP address"
-  (let ((new-addr (dhcp-allocate-ip *this-net*))
-	(replyMsg (make-instance 'dhcp
-				 :op 2
-				 :htype (htype reqMsg)				    
-				 :hlen (hlen reqMsg)
-				 :hops (hops reqMsg)
-				 :xid (xid reqMsg)
-				 :secs (secs reqMsg)
-				 :flags (flags reqMsg)
-				 :yiaddr (nums-and-txt:num->octets (ipnum new-addr)  :endian :net)
-				 :siaddr (nums-and-txt:octets->num (this-ip) :endian :net)
-				 :giaddr (giaddr reqMsg)
-				 :chaddr (chaddr reqMsg)
-				 :ciaddr (ciaddr reqMsg)
-				 :mcookie (mcookie reqMsg)
-				 :file (file reqMsg)
-				 :sname (sname reqMsg)
-				 ))
-	(replyMsgOptions (make-instance 'dhcp-options
-					:mtype 2
-					:restof
-					`(
-					  (:subnet 255 255 255 0)
-					  (:routers ,(this-ip))
-					  (:lease-time 120)
-					  (:dhcp-server ,@(this-ip))
-					  (:dns-servers (8 8 8 8) (4 4 4 4)))
-					)))
+  (let* ((new-addr (dhcp-allocate-ip *this-net*))
+	 (replyMsg (make-instance 'dhcp
+				  :op 2
+				  :htype (htype reqMsg)				    
+				  :hlen (hlen reqMsg)
+				  :hops (hops reqMsg)
+				  :xid (xid reqMsg)
+				  :secs (secs reqMsg)
+				  :flags (flags reqMsg)
+				  :yiaddr (ipnum new-addr)
+				  :siaddr (nums-and-txt:octets->num (this-ip) :endian :net)
+				  :giaddr (giaddr reqMsg)
+				  :chaddr (chaddr reqMsg)
+				  :ciaddr (ciaddr reqMsg)
+				  :mcookie (mcookie reqMsg)
+				  :file (file reqMsg)
+				  :sname (sname reqMsg)
+				  ))
+	 (replyMsgOptions (make-instance 'dhcp-options
+					 :mtype 2
+					 :restof
+					 `(
+					   (:subnet 255 255 255 0)
+					   (:routers ,(this-ip))
+					   (:lease-time 120)
+					   (:dhcp-server ,@(this-ip))
+					   (:dns-servers (8 8 8 8) (4 4 4 4)))
+					 )))
     (setf (options replyMsg) (encode-dhcp-options replyMsgOptions))
     replyMsg))
 
