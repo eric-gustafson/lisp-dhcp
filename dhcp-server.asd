@@ -10,6 +10,7 @@
 	       #:flexi-streams
 	       #:usocket
 	       #:swank
+	       #:lparallel   
 	       #:alexandria
 	       #:cl-ppcre
 	       #:trivia

@@ -1,5 +1,11 @@
 #+title: work
 
+* TODO network watchdog
+  if after 15m, there is no network connectivity -- reboot
+
+* TODO give the same address out for mac hit
+
+
 * TODO get routing working
 
 #+BEGIN_SRC sh

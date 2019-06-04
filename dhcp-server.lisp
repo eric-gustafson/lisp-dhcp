@@ -1,7 +1,5 @@
 ;;;; dhcp-server.lisp
-
 (in-package #:dhcp-server)
-
 
 (defvar *dhcp-server-port* 67)
 (defvar *dhcp-client-port* 68)
@@ -70,7 +68,6 @@
 						       :for x = (read-byte  input-stream nil nil)
 						       :while x :collect x
 						       )))
-
 		    ;; Strings have a fixed length
 		    ;; Maybe we should handle fixed-length, pascal, and c with different
 		    ;; keywords?
@@ -125,6 +122,11 @@
   (flexi-streams:with-input-from-sequence (inport buff)
     (stream-deserialize dhcpObj inport))
   dhcpObj)
+
+(defmethod mac ((dhcpObj dhcp))
+  (let ((ln (hlen dhcpObj))
+	)
+    (subseq (chaddr dhcpObj) 0 len)))
 
 ;;                              code generation                               ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -192,7 +194,6 @@
      :while (> o 0)
      :summing 8))
 
-
 (defmethod print-object ((obj cidr-net) stream)
   (print-unreadable-object
       (obj stream :type t)
@@ -247,16 +248,22 @@
   (find ip *dhcp-allocated-table*  :key #'ipnum))
 						     
 
-(defun dhcp-allocate-ip (net)
-  (let ((f (first-ip net))
-	(l (last-ip net)))
-    (loop :for ip :from f :upto l :do
-       (unless (ip-allocated? net ip)
-	 (let ((addrObj (make-instance 'dhcp-address :ipnum ip :tla (get-universal-time))))
-	   (push addrObj *dhcp-allocated-table*)
-	   (return-from dhcp-allocate-ip addrObj)))
-       )
-    )
+(defun dhcp-search-allocated-by-mac (mac)
+  (find mac *dhcp-allocated-table* :key #'mac :test #'equal)
+  )
+
+(defun dhcp-allocate-ip (reqMsg net)
+  (or (dhcp-search-allocated-by-mac (mac reqMsg))
+      (let ((f (first-ip net))
+	    (l (last-ip net)))
+	(loop :for ip :from f :upto l :do
+	   (unless (ip-allocated? net ip)
+	     (let ((addrObj (make-instance 'dhcp-address :ipnum ip :tla (get-universal-time))))
+	       (push addrObj *dhcp-allocated-table*)
+	       (return-from dhcp-allocate-ip addrObj)))
+	   )
+	)
+      )
   )
 
 (defun deallocate-ip (net ip)
@@ -298,7 +305,7 @@
 
 (defmethod get-ack ((reqMsg dhcp))
   "return an dhcp packet to be broadcast that provides an IP address"
-  (let* ((new-ip (dhcp-allocate-ip *this-net*))
+  (let* ((new-ip (dhcp-allocate-ip reqMsg *this-net*))
 	 (replyMsg (make-instance 'dhcp
 				 :op 2
 				 :htype (htype reqMsg)				    
@@ -547,7 +554,17 @@
 	 collect (ppcre::split "\\s+" l))))
   )
 
+(defun network-watchdog ()
+  (let ((channel (lparallel:make-channel)))
+    ;;(submit-task channel '+ 3 4)
+    (future
+     (loop
+	(lparallel:try-receive-result channel :timeout (* 1 600))
+	)))
+  )
+
 (defun setup-prototype ()
+  (setf lparallel:*kernel* (lparallel:make-kernel 4))
   (let ((r (make-instance 'remote-router-if
 			  :ipaddr "192.168.11.1"
 			  :un "root"
@@ -561,7 +578,12 @@
     (add-route r)
     ;; bring the local interface up
     ;; setup the ip address of the local interface
-    
     ))
 
-
+(defun apply-configuration ()
+  ;; macchager --mac oldmac+1
+  (inferior-shell:run/lines "ifdown --force wlan0 && ifdown --force ap0")
+  (inferior-shell:run/lines "wpa_cli reconfigure")
+  ;;(inferior-shell:run/lines "systemctl restart dnsmasq")
+  ;;(inferior-shell:run/lines "systemctl restart hostapd") 
+  )
