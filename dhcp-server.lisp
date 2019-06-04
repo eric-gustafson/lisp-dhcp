@@ -158,9 +158,16 @@
 (defparameter *this-net*
   (make-instance 'cidr-net
 		 :cidr 24
-		 :ipnum (numex:octets->num #(192 168 11 0))
+		 :ipnum (numex:octets->num #(192 168 12 0))
 		 :mask (numex:octets->num #(255 255 255 0)))
   ) 
+
+(defparameter *pnet* ;; parent's network
+  (make-instance 'cidr-net
+		 :cidr 24
+		 :ipnum (numex:octets->num #(192 168 11 0))
+		 :mask (numex:octets->num #(255 255 255 0)))
+  )
 
 (defun this-ip ()
   (first-ip *this-net*)
