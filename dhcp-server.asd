@@ -11,10 +11,12 @@
 	       #:usocket
 	       #:swank
 	       #:alexandria
+	       #:cl-ppcre
 	       #:trivia
 	       #:serapeum
 	       #:inferior-shell
-	       #:nums-and-txt
+	       #:numex
+	       #:trivial-ssh
 	       )
   :components ((:file "package")
 	       (:file "dhcp-bootp-fields")

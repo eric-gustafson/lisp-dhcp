@@ -66,9 +66,9 @@
 		    :id 51
 		    :symb :lease-time
 		    :serialize-code  '((list :lease-time secs)
-				       (cons 51 (cons 4 (coerce (nums-and-txt:num->octets secs :length 4) 'list))))
+				       (cons 51 (cons 4 (coerce (numex:num->octets secs :length 4) 'list))))
 		    :deserialize-code '((list* 51 4 n0 n1 n2 n3 rest)
-					   (cons (list :lease-time (nums-and-txt:octets->num (list n0 n1 n2 n3)))
+					   (cons (list :lease-time (numex:octets->num (list n0 n1 n2 n3)))
 					    (decode-options rest)))
 		    )
      (make-instance 'meta-dhcp-option
@@ -117,9 +117,9 @@
 		    :id 57
 		    :symb :max-dhcp-message-size
 		    :serialize-code  `((list :max-dhcp-message-size num)
-				       (list* 57 2 (nums-and-txt:num->octets num 2)))
+				       (list* 57 2 (numex:num->octets num 2)))
 		    :deserialize-code `((list* 57 2 l1 l2 rest) ;; max size
-					(let ((num (nums-and-txt:octets->num (list l1 l2))))
+					(let ((num (numex:octets->num (list l1 l2))))
 					  (when debug (format t "dhcp max message size:~a~%" num))
 					  (cons (list :max-dhcp-message-size num)
 						(decode-options rest))))

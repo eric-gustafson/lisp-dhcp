@@ -18,13 +18,21 @@
 
 (defclass dhcp-address ()
   (
-   (mac :accessor mac :initarg :mac)
-   (ipnum :accessor ipnum :initarg :ipnum)
+   (mac :accessor mac :initarg :mac :initform "")
+   (ipnum :accessor ipnum :initarg :ipnum :initform 0)
    (tla :accessor tla :initarg :tla :initform (get-universal-time))
    (lease-time :accessor lease-time :initarg :lease-time :initform  300)
    )
   )
 
+(defmethod print-object ((obj dhcp-address) stream)
+  (print-unreadable-object
+      (obj stream :type t)
+    (with-slots
+	  (mac ipnum tla lease-time)
+	(format stream "~a,~a,~a~a" mac ipnum tla lease-time))
+    )
+  )
 
 (defparameter *ns* 1)
 (defparameter *dhcp-magic-cookie* '(99 130 83 99))
@@ -70,7 +78,7 @@
 		     `(setf (,(->symbol field) obj)
 			    (loop :for i :below ,octets :collect (read-byte input-stream))))
 		    ((eq type :int)
-		     `(setf (,(->symbol field) obj) (nums-and-txt:octets->num (nums-and-txt:read-octets ,octets input-stream) :endian :big)))
+		     `(setf (,(->symbol field) obj) (numex:octets->num (numex:read-octets ,octets input-stream) :endian :big)))
 		    (t
 		     (error "Unexpected type ~a" st-row))
 		    ))))))
@@ -96,7 +104,7 @@
 			  ((eq type :string)
 			   `(write-sequence (,(->symbol field) obj) out))
 			  ((eq type :int)
-			   `(write-sequence (nums-and-txt:num->octets (,(->symbol field) obj) :length ,octets :endian :big) out))
+			   `(write-sequence (numex:num->octets (,(->symbol field) obj) :length ,octets :endian :big) out))
 			  (t
 			   (error "Unexpected type ~a" row))
 			  )))))
@@ -152,12 +160,13 @@
 
 (defun this-ip ()
   (list 172 200 0  1)
-  )
+  
+)
 (defvar *this-net*
   (make-instance 'cidr-net
 		 :cidr 24
-		 :ipnum (nums-and-txt:octets->num #(172 200 0 0))
-		 :mask (nums-and-txt:octets->num #(255 255 255 0)))
+		 :ipnum (numex:octets->num #(172 200 0 0))
+		 :mask (numex:octets->num #(255 255 255 0)))
   ) 
 
 
@@ -176,7 +185,7 @@
   )
 
 (defun ip-cidrn-octets (num)
-  (loop :for o :across (nums-and-txt:num->octets num :endian :net)
+  (loop :for o :across (numex:num->octets num :endian :net)
      :while (> o 0)
      :summing 8))
 
@@ -186,7 +195,7 @@
       (obj stream :type t)
     (with-slots (cidr ipnum)
 	obj
-      (format stream "~a/~a" (nums-and-txt:num->octets ipnum) cidr)
+      (format stream "~a/~a" (numex:num->octets ipnum) cidr)
       ))
   )
 
@@ -266,7 +275,7 @@
 				  :secs (secs reqMsg)
 				  :flags (flags reqMsg)
 				  :yiaddr (ipnum new-addr)
-				  :siaddr (nums-and-txt:octets->num (this-ip) :endian :net)
+				  :siaddr (numex:octets->num (this-ip) :endian :net)
 				  :giaddr (giaddr reqMsg)
 				  :chaddr (chaddr reqMsg)
 				  :ciaddr (ciaddr reqMsg)
@@ -297,8 +306,8 @@
 				 :xid (xid reqMsg)
 				 :secs (secs reqMsg)
 				 :flags (flags reqMsg)
-				 :yiaddr (nums-and-txt:octets->num (this-ip) :endian :net)
-				 :siaddr (nums-and-txt:octets->num (this-ip) :endian :net)
+				 :yiaddr (numex:octets->num (this-ip) :endian :net)
+				 :siaddr (numex:octets->num (this-ip) :endian :net)
 				 :giaddr (giaddr reqMsg)
 				 :chaddr (chaddr reqMsg)
 				 :ciaddr (ciaddr reqMsg)
@@ -400,7 +409,87 @@
   (search *dhcp-magic-cookie* seq))
 
 (defmethod has-magic-cookie ((obj dhcp))
-  (eq (mcookie *a*) (nums-and-txt:octets->num *dhcp-magic-cookie*))
+  (eq (mcookie *a*) (numex:octets->num *dhcp-magic-cookie*))
+  )
+
+(defparameter *router-table* '())
+
+(defun make-router-if-id ()
+  (trivia:match
+      (mapcar #'id *router-table*)
+    (() 1)
+    ((trivia:guard l (listp l))
+     (1+ (apply #'max L)))))
+
+(eval-when (:COMPILE-TOPLEVEL :LOAD-TOPLEVEL :EXECUTE)
+  ;; Using eval-when to Publish for macro compile using trivia:match
+  (defclass router-if ()
+    (
+     (id :accessor id :initform (make-router-if-id) :initarg :id :documentation "An id as an easy way to access")
+     (iface :accessor iface :initarg :iface  :documentation "Iface")
+     (dest :accessor dest :initarg :dest  :documentation "Destination")
+     (gw :accessor gw :initarg :gw  :documentation "Gateway")
+     (flags :accessor flags :initarg :flags  :documentation "Flags")
+     (refcnt :accessor refcnt :initarg :refcnt  :documentation "RefCnt")
+     (use :accessor use :initarg :use  :documentation "Use")
+     (metric :accessor metric :initarg :metric  :documentation "Metric")
+     (mask :accessor mask :initarg :mask  :documentation "Mask")
+     (mtu :accessor mtu :initarg :mtu  :documentation "MTU")
+     (window :accessor window :initarg :window  :documentation "Window")
+     (irtt :accessor irtt :initarg :irtt  :documentation "IRTT")
+     (tlm :accessor tlm :initarg :tlm :initform (get-universal-time))
+     )
+    )
+  )
+
+(defmethod print-object ((obj router-if) out)
+  ;; 12/17/17 -- removing this.  no more frame-slot
+  (print-unreadable-object (obj out :type t)
+    (format out "[~a :id ~a :dest ~a :gw ~a :mask ~a :tlm ~a]"
+	    (iface obj) (id obj) (dest obj) (gw obj) (mask obj)
+	    (- (get-universal-time) (tlm obj))
+	    )
+    )
   )
 
 
+(defun get-route (piface pdest pmask pgw)
+  (find-if (trivia:lambda-match
+	     ((router-if iface dest mask gw)
+	      (and (equal iface piface)
+		   (equalp mask pmask)
+		   (equalp dest pdest)
+		   (equalp gw pgw))))
+	   *router-table*))
+
+(defun get-routes ()
+  (let ((results (ssh:with-connection
+		     (conn "192.168.11.1" (ssh:pass "root" "locutusofborg"))
+		   (ssh:with-command
+		       (conn iostream "cat /proc/net/route")
+		     (loop
+			for l = (read-line iostream nil)
+			while l
+			collect (ppcre::split "\\s+" l))))))
+    (cons
+     (car results)
+     (mapcar
+      (trivia:lambda-match
+	((list iface dest gate flags refcnt use metric mask mtu window irtt)
+	 (make-instance 'router-if
+			:iface iface
+			:dest (numex:string->octet-list dest)
+			:gw (numex:string->octet-list gate)
+			:flags flags
+			:refcnt refcnt
+			:use use
+			:metric metric
+			:mask (numex:string->octet-list mask)
+			:mtu mtu
+			:window window
+			:irtt irtt
+			:tlm (get-universal-time))
+	 ))
+      (cdr results))
+     ))
+  )
