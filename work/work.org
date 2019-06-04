@@ -10,13 +10,31 @@
 ** TODO Have the program install everything to run as a daemon
 ** TODO add the interface
 
+#+BEGIN_SRC sh
+   apt-get install -y lib-ssh2-1-dev
+#+END_SRC
+
    Get the interface
 
-#+BEGIN_SRC 
+#+BEGIN_SRC sh
    ip link set dev wlx9cefd5fdd60e up
 #+END_SRC
 
-   
+#+RESULTS:
+#+BEGIN_SRC sh :results output 
+   ip link
+#+END_SRC   
+
+#+RESULTS:
+: 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+:     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+: 2: enxb827eb659c11: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+:     link/ether b8:27:eb:65:9c:11 brd ff:ff:ff:ff:ff:ff
+: 3: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP mode DORMANT group default qlen 1000
+:     link/ether b8:27:eb:30:c9:44 brd ff:ff:ff:ff:ff:ff
+: 4: wlx9cefd5fdd60e: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN mode DEFAULT group default qlen 1000
+:     link/ether 9c:ef:d5:fd:d6:0e brd ff:ff:ff:ff:ff:ff
+
 
 * TODO create a commissioning network
   This is a virtual interface with a network allocated from *network-malloc*
