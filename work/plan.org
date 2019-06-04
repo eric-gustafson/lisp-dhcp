@@ -34,8 +34,6 @@
 *** IP aliasing on wlan0
 
 
-
-
 * Staging Network
   dhcp-request => 1 minute lease
   nmap node => assign profile
