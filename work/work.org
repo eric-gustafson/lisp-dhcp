@@ -18,6 +18,8 @@
    apt-get install -y lib-ssh2-1-dev
 #+END_SRC
 
+#+RESULTS:
+
    Get the interface
 
 #+BEGIN_SRC sh
