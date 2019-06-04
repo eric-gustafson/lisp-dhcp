@@ -361,10 +361,10 @@
 		    (buff (make-array 1024 :element-type '(unsigned-byte 8)))
 		    (rsocket (usocket:socket-connect nil
 						     nil
-						    :protocol :datagram
-						    :element-type 'char
-						    :local-host "172.200.1.1"
-						    :local-port *dhcp-server-port*))
+						     :protocol :datagram
+						     :element-type 'char
+						     :local-host (numex:addr->dotted (this-ip))
+						     :local-port *dhcp-server-port*))
 		    #+nil(ssocket (usocket:socket-connect "255.255.255.255" ;;nil
 						    *dhcp-client-port*
 						    :protocol :datagram
@@ -445,9 +445,6 @@
 	      )
      )
     )
-
-  
-
   )
 
 (defclass remote-router-if (router-if)
