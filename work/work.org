@@ -8,11 +8,20 @@
 
 #+RESULTS:
 
+
 * TODO dhcp network based ip allocation code
 
 
 * TODO have everything come up from a boot
+  hostapd brings the interface up.  Bringing the interface up before
+  running that hostapd put things into a state that I couldn't recover
+  from without a reboot. (I think I have a little scriplet here somewhere
+  that would recover ...)
+
+  The thing is, we need a fork/exec init kind of thing to run from here.
+  
 ** TODO Have the program install everything to run as a daemon
+
 ** TODO add the interface
 
 #+BEGIN_SRC sh
@@ -24,7 +33,7 @@
    Get the interface
 
 #+BEGIN_SRC sh
-   ip link set dev wlx9cefd5fdd60e up
+   #ip link set dev wlx9cefd5fdd60e up
 #+END_SRC
 
 #+RESULTS:

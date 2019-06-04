@@ -170,8 +170,8 @@
   )
 
 (defun this-ip ()
-  (first-ip *this-net*)
-)
+  (coerce (numex:num->octets (first-ip *this-net*) :endian :net) 'list)
+  )
 
 (defun cidr-mask (bits)
   "returns a netmask for the number of bits"
@@ -275,7 +275,7 @@
 				  :secs (secs reqMsg)
 				  :flags (flags reqMsg)
 				  :yiaddr (ipnum new-addr)
-				  :siaddr (numex:octets->num (this-ip) :endian :net)
+				  :siaddr  (numex:octets->num (this-ip) :endian :net)
 				  :giaddr (giaddr reqMsg)
 				  :chaddr (chaddr reqMsg)
 				  :ciaddr (ciaddr reqMsg)
@@ -298,7 +298,8 @@
 
 (defmethod get-ack ((reqMsg dhcp))
   "return an dhcp packet to be broadcast that provides an IP address"
-  (let ((replyMsg (make-instance 'dhcp
+  (let* ((new-ip (dhcp-allocate-ip *this-net*))
+	 (replyMsg (make-instance 'dhcp
 				 :op 2
 				 :htype (htype reqMsg)				    
 				 :hlen (hlen reqMsg)
@@ -306,7 +307,8 @@
 				 :xid (xid reqMsg)
 				 :secs (secs reqMsg)
 				 :flags (flags reqMsg)
-				 :yiaddr (numex:octets->num (this-ip) :endian :net)
+				 :yiaddr (numex:octets->num (numex:num->octets
+							     (ipnum new-ip) :endian :net) :endian :net)
 				 :siaddr (numex:octets->num (this-ip) :endian :net)
 				 :giaddr (giaddr reqMsg)
 				 :chaddr (chaddr reqMsg)
@@ -315,7 +317,7 @@
 				 :file (file reqMsg)
 				 :sname (sname reqMsg)
 				 ))
-	(replyMsgOptions (make-instance 'dhcp-options
+	 (replyMsgOptions (make-instance 'dhcp-options
 					:mtype 5
 					:restof
 					`(
@@ -324,7 +326,8 @@
 					  (:lease-time 120)
 					  (:dhcp-server ,@(this-ip))
 					  (:dns-servers (8 8 8 8) (4 4 4 4)))
-					)))
+					))
+	 )
     (setf (options replyMsg) (encode-dhcp-options replyMsgOptions))
     replyMsg))
 
@@ -338,7 +341,10 @@
 	sig
       ((list 1 1 1) ;; dhcp discover
        ;; create a dhcp offer message
-       (get-address obj)
+       (format t "dhcp discover received~%")       
+       (let ((offer (get-address obj)))
+	 (format t "returning dhcp offer~%")
+	 offer)
        )
       ((list 1 1 3)
        (format t "dhcp request received~%")
@@ -363,7 +369,7 @@
 						     nil
 						     :protocol :datagram
 						     :element-type 'char
-						     :local-host (numex:addr->dotted (this-ip))
+						     ;;:local-host (numex:addr->dotted (this-ip))
 						     :local-port *dhcp-server-port*))
 		    #+nil(ssocket (usocket:socket-connect "255.255.255.255" ;;nil
 						    *dhcp-client-port*
@@ -383,9 +389,13 @@
 			   (let* ((m (handle-dhcp-message dhcpObj))
 				  (buff (response->buff m)))
 			     (format t "sending response~%")
-			     (let ((nbw (usocket:socket-send rsocket buff nil ;;(length buff)
-							     :port *dhcp-client-port*
-							     :host  #(172 200 1 255))))
+			     (setf (usocket:socket-option rsocket :broadcast) t)			     
+			     (let ((nbw (usocket:socket-send
+					 rsocket buff (length buff)
+					 :port *dhcp-client-port*
+					 :host #(192 168 12 255)
+					 ;;:host  (coerce (this-ip) 'vector)
+					 )))
 			       (format t "number of bytes sent:~a~%" nbw))
 			     )
 			   (force-output *standard-output*)
