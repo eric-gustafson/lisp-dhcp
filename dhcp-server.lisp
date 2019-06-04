@@ -241,30 +241,27 @@
 						     :ipnum (first-ip *this-net*)
 						     :lease-time nil))
   )
+
+(defun ip-allocated? (net ip)
+  (declare (ignore net))
+  (find ip *dhcp-allocated-table*  :key #'ipnum))
 						     
-
-(defun get-allocation-table (net)
-  *dhcp-allocated-table*)
-
 
 (defun dhcp-allocate-ip (net)
   (let ((f (first-ip net))
 	(l (last-ip net)))
     (loop :for ip :from f :upto l :do
-       (unless
-	   (find ip (get-allocation-table net)  :key #'ipnum)
+       (unless (ip-allocated? net ip)
 	 (let ((addrObj (make-instance 'dhcp-address :ipnum ip :tla (get-universal-time))))
-	   (push addrObj (get-allocation-table net))
+	   (push addrObj *dhcp-allocated-table*)
 	   (return-from dhcp-allocate-ip addrObj)))
        )
     )
   )
 
 (defun deallocate-ip (net ip)
-  (let ((allocation-table (get-allocation-table net)))
-    (setf allocation-table (delete ip allocation-table :key #'ipnum :test #'equalp))
-    )
-  )
+    (setf *dhcp-allocated-table* (delete ip *dhcp-allocated-table* :key #'ipnum :test #'equalp)))
+
 
 (defmethod get-address ((reqMsg dhcp))
   "return an dhcp packet to be broadcast that provides an IP address"
