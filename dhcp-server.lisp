@@ -434,9 +434,25 @@
      (window :accessor window :initarg :window  :documentation "Window")
      (irtt :accessor irtt :initarg :irtt  :documentation "IRTT")
      (tlm :accessor tlm :initarg :tlm :initform (get-universal-time))
+     (host-id :accessor host-id :initarg :host-id :initform nil
+	      :documentation "Every host we manage will be marked with
+     a uuid.  We will tie mac addresses and interfaces together using
+     this host id)"
+	      )
      )
     )
+
+  
+
   )
+
+(defclass remote-router-if (router-if)
+    (
+     (ipaddr :accessor ipaddr :initform nil :initarg :ipaddr)
+     (un :accessor un :initform nil :initarg :un)
+     (pw :accessor pw :initform nil :initarg :pw)
+     )
+    )
 
 (defmethod print-object ((obj router-if) out)
   ;; 12/17/17 -- removing this.  no more frame-slot
@@ -501,15 +517,37 @@
 	 collect (ppcre::split "\\s+" l))))
   )
 
+(defmethod route-add-cmd ((rte router-if))
+  (format nil "route add -net ~a gw ~a netmask ~a dev ~a"
+			       (numex:addr->dotted (dest rte))
+			       (numex:addr->dotted (gw rte))
+			       (numex:addr->dotted (mask rte))
+			       (iface rte))
+  )
+
 (defmethod add-route ((rte router-if))
   (ssh:with-connection
       (conn "192.168.11.1" (ssh:pass "root" "locutusofborg"))
     (ssh:with-command
-	(conn iostream (format nil "route add -net ~a gw ~a netmask ~a dev ~a" (dest rte) (gw rte) (mask rte) (iface rte)))
+	(conn iostream (route-add-cmd rte))
       (loop
 	 for l = (read-line iostream nil)
 	 while l
 	 collect (ppcre::split "\\s+" l))))
   )
+
+(defun setup-prototype ()
+  (let ((r (make-instance 'remote-router-if
+			  :ipaddr "192.168.11.1"
+			  :un "root"
+			  :pw "locutusofborg"
+			  :dest #(192 168 12 0)
+			  :gw #(192 168 11 125)
+			  :mask #(255 255 255 0)
+			  :iface "br0"
+			  )
+	  ))
+    (add-route r)
+    ))
 
 
