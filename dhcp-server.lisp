@@ -155,20 +155,16 @@
        (eq 5 (length obj)))
   )
 
-(defun this-net ()
-  (list 172 200 0 0 24))
-
-(defun this-ip ()
-  (list 172 200 0  1)
-  
-)
-(defvar *this-net*
+(defparameter *this-net*
   (make-instance 'cidr-net
 		 :cidr 24
-		 :ipnum (numex:octets->num #(172 200 0 0))
+		 :ipnum (numex:octets->num #(192 168 11 0))
 		 :mask (numex:octets->num #(255 255 255 0)))
   ) 
 
+(defun this-ip ()
+  (first-ip *this-net*)
+)
 
 (defun cidr-mask (bits)
   "returns a netmask for the number of bits"
@@ -493,3 +489,27 @@
       (cdr results))
      ))
   )
+
+(defmethod remove-route ((rte router-if))
+  (ssh:with-connection
+      (conn "192.168.11.1" (ssh:pass "root" "locutusofborg"))
+    (ssh:with-command
+	(conn iostream (format nil "route del -net ~a gw ~a netmask ~a dev ~a" (dest rte) (gw rte) (mask rte) (iface rte)))
+      (loop
+	 for l = (read-line iostream nil)
+	 while l
+	 collect (ppcre::split "\\s+" l))))
+  )
+
+(defmethod add-route ((rte router-if))
+  (ssh:with-connection
+      (conn "192.168.11.1" (ssh:pass "root" "locutusofborg"))
+    (ssh:with-command
+	(conn iostream (format nil "route add -net ~a gw ~a netmask ~a dev ~a" (dest rte) (gw rte) (mask rte) (iface rte)))
+      (loop
+	 for l = (read-line iostream nil)
+	 while l
+	 collect (ppcre::split "\\s+" l))))
+  )
+
+

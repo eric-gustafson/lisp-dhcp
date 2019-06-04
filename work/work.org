@@ -1,16 +1,22 @@
 #+title: work
 
+* TODO get routing working
+
 
 * TODO dhcp network based ip allocation code
 
-* TODO I'm giving out the router address as the ip address
 
 * TODO have everything come up from a boot
+** TODO Have the program install everything to run as a daemon
+** TODO add the interface
 
-* TODO get routing working
+   Get the interface
 
-* TODO Have the program install everything to run as a daemon
-  
+#+BEGIN_SRC 
+   ip link set dev wlx9cefd5fdd60e up
+#+END_SRC
+
+   
 
 * TODO create a commissioning network
   This is a virtual interface with a network allocated from *network-malloc*
