@@ -2,6 +2,10 @@
 
 * TODO get routing working
 
+#+BEGIN_SRC sh
+    ip a add 192.168.12.1/255.255.255.0 dev wlx9cefd5fdd60e
+
+#+END_SRC
 
 * TODO dhcp network based ip allocation code
 

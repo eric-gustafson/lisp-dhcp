@@ -363,7 +363,7 @@
 						     nil
 						    :protocol :datagram
 						    :element-type 'char
-						    ;;ocal-host "172.200.1.1"
+						    :local-host "172.200.1.1"
 						    :local-port *dhcp-server-port*))
 		    #+nil(ssocket (usocket:socket-connect "255.255.255.255" ;;nil
 						    *dhcp-client-port*
@@ -552,6 +552,9 @@
 			  )
 	  ))
     (add-route r)
+    ;; bring the local interface up
+    ;; setup the ip address of the local interface
+    
     ))
 
 
