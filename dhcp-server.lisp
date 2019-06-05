@@ -124,8 +124,7 @@
   dhcpObj)
 
 (defmethod mac ((dhcpObj dhcp))
-  (let ((ln (hlen dhcpObj))
-	)
+  (let ((len (hlen dhcpObj)))
     (subseq (chaddr dhcpObj) 0 len)))
 
 ;;                              code generation                               ;;
@@ -249,7 +248,10 @@
 						     
 
 (defun dhcp-search-allocated-by-mac (mac)
-  (find mac *dhcp-allocated-table* :key #'mac :test #'equal)
+  (let ((x (find mac *dhcp-allocated-table* :key #'mac :test #'equalp)))
+    (when x
+      (setf (tla x) (get-universal-time)))
+    )
   )
 
 (defun dhcp-allocate-ip (reqMsg net)
@@ -587,3 +589,5 @@
   ;;(inferior-shell:run/lines "systemctl restart dnsmasq")
   ;;(inferior-shell:run/lines "systemctl restart hostapd") 
   )
+
+(inferior-shell:run "ls")
