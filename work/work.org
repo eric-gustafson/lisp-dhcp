@@ -1,14 +1,5 @@
 #+title: work
 
-* DONE give the same address out for mac hit
-
-* DONE dhcp network based ip allocation code
-
-#+BEGIN_SRC lisp
-  (inferior-shell:fork)
-   
-#+END_SRC
-
 * TODO get routing working
 
 #+BEGIN_SRC sh
@@ -112,4 +103,8 @@
 * TODO change the print-object to display mac address
   mac address should use the 'size' operator which is one of the first parameters
   which then allows us to trim the chaddr field.
+
+* DONE dhcp network based ip allocation code
+
+* DONE give the same address out for mac hit
 

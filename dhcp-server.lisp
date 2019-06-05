@@ -565,8 +565,18 @@
 	)))
   )
 
+(defun hostapd ()
+  (let ((channel (lparallel:make-channel)))
+    (future
+      (inferior-shell:run/interactive "/usr/sbin/hostapd -d /etc/hostapd/hostapd.conf")
+      )
+    )
+  )
+
 (defun setup-prototype ()
   (setf lparallel:*kernel* (lparallel:make-kernel 4))
+  (network-watchdog)
+  (hostapd)
   (let ((r (make-instance 'remote-router-if
 			  :ipaddr "192.168.11.1"
 			  :un "root"
