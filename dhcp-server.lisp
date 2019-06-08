@@ -598,7 +598,7 @@
   (trivia:match
       (get-ip-of-this-hosts-lan-card)
     ((list wlan _ (list ip _))
-     (let ((r (make-instance 'remote-router-if
+      (let ((r (make-instance 'remote-router-if
 			     :ipaddr ip
 			     :un "root"
 			     :pw "locutusofborg"
