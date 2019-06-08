@@ -568,12 +568,13 @@
   )
 
 (defvar *hostapd-proc-obj* '())
-(defun hostapd ()
-  (lparallel:future
-    (setf *hostapd-proc-obj*
-	  (uiop:launch-program "/usr/sbin/hostapd -d /etc/hostapd/hostapd.conf"
-			       :output :string :error-output :string))
-    )
+(defun hostapd (iface)
+  ;; Geneate and save hostapd file
+  (with-open-file (hfile #P"/etc/hostapd/hostapd.conf" :if-exists :overwrite :if-does-not-exist :create)
+    (hostapd iface))
+  (setf *hostapd-proc-obj*
+	(uiop:launch-program "/usr/sbin/hostapd -d /etc/hostapd/hostapd.conf"
+			     :output :interactive :error-output :interactive))
   )
 
 (defun hostapd-down ()
@@ -618,9 +619,11 @@
   )
 
 (defun setup-prototype ()
-  (setf lparallel:*kernel* (lparallel:make-kernel 4))
-  (network-watchdog)
-  (hostapd)
+  ;;(setf lparallel:*kernel* (lparallel:make-kernel 4))
+  ;;(network-watchdog)
+  (let* ((lc (get-ip-of-this-hosts-lan-card))
+	 (hostapd (car lc)))
+    (configure-parent-router))
   )
 
 (defun apply-configuration ()
