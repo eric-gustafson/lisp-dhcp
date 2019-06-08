@@ -110,6 +110,9 @@
     )
 #+END_SRC
 
+#+RESULTS:
+: #<DHCP op=1,chaddr=(D0 77 14 47 28 F4 0 0 0 0 0 0 0 0 0 0)>
+
 
 #+BEGIN_SRC lisp
   (defvar *a* nil)

@@ -10,6 +10,7 @@
 	       #:flexi-streams
 	       #:usocket
 	       #:swank
+	       #:uiop
 	       #:lparallel   
 	       #:alexandria
 	       #:cl-ppcre
@@ -17,6 +18,7 @@
 	       #:serapeum
 	       #:inferior-shell
 	       #:numex
+	       #:lsa
 	       #:trivial-ssh
 	       )
   :components ((:file "package")

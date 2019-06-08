@@ -1,5 +1,52 @@
 #+title: work
 
+* TODO Today
+** configure-parent-router
+   #1 use case
+*** TODO get wireless (name . ip) list
+**** TODO configure down stream router w/ info
+***** TODO
+#+BEGIN_SRC lisp
+  (lsa:iwconfig-interface-list)
+#+END_SRC
+
+#+RESULTS:
+| wlo1 |
+
+#+BEGIN_SRC lisp
+  (lsa:ip-link)
+#+END_SRC
+
+#+RESULTS:
+| lo   | <LOOPBACK,UP,LOWER_UP>            | mtu | 65536 | qdisc | noqueue | state | UNKNOWN | mode | DEFAULT | group | default | qlen | 1000 |
+| wlo1 | <BROADCAST,MULTICAST,UP,LOWER_UP> | mtu |  1500 | qdisc | mq      | state | UP      | mode | DORMANT | group | default | qlen | 1000 |
+
+
+#+BEGIN_SRC lisp :results value
+  (lsa:ip-addr)
+#+END_SRC
+
+#+RESULTS:
+| lo   |      127.0.0.1 |
+| wlo1 | 192.168.11.255 |
+
+** TODO setup two laptops downstairs
+** TODO bring this up on laptop
+*** TODO try using submodules 
+*** TODO 2nd laptop joins g3
+    traceroute, find out why we are not routing
+
+* RBPI
+** Port to ccl-bin
+** Port to ecl
+
+* TODO Laptop
+** TODO turn network watchdog off and on
+** TODO syslog
+** TODO dhcp client
+   Do we maybe want to get rid of network manager?
+
+
 * TODO get routing working
 
 #+BEGIN_SRC sh
@@ -42,12 +89,8 @@
 #+RESULTS:
 : 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
 :     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-: 2: enxb827eb659c11: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
-:     link/ether b8:27:eb:65:9c:11 brd ff:ff:ff:ff:ff:ff
-: 3: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP mode DORMANT group default qlen 1000
-:     link/ether b8:27:eb:30:c9:44 brd ff:ff:ff:ff:ff:ff
-: 4: wlx9cefd5fdd60e: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN mode DEFAULT group default qlen 1000
-:     link/ether 9c:ef:d5:fd:d6:0e brd ff:ff:ff:ff:ff:ff
+: 2: wlo1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DORMANT group default qlen 1000
+:     link/ether 48:45:20:ef:5b:e6 brd ff:ff:ff:ff:ff:ff
 
 
 * TODO create a commissioning network

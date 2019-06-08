@@ -526,11 +526,13 @@
      ))
   )
 
+
+
 (defmethod remove-route ((rte router-if))
   (ssh:with-connection
       (conn "192.168.11.1" (ssh:pass "root" "locutusofborg"))
     (ssh:with-command
-	(conn iostream (format nil "route del -net ~a gw ~a netmask ~a dev ~a" (dest rte) (gw rte) (mask rte) (iface rte)))
+	(conn iostream (format nil "route del -net ~a gw ~a netmask ~a dev ~a" (numex:addr->dotted (dest rte)) (numex:addr->dotted (gw rte)) (numex:addr->dotted (mask rte)) (iface rte)))
       (loop
 	 for l = (read-line iostream nil)
 	 while l
@@ -565,32 +567,61 @@
 	)))
   )
 
+(defvar *hostapd-proc-obj* '())
 (defun hostapd ()
-  (let ((channel (lparallel:make-channel)))
-    (future
-      (inferior-shell:run/interactive "/usr/sbin/hostapd -d /etc/hostapd/hostapd.conf")
-      )
+  (lparallel:future
+    (setf *hostapd-proc-obj*
+	  (uiop:launch-program "/usr/sbin/hostapd -d /etc/hostapd/hostapd.conf"
+			       :output :string :error-output :string))
     )
+  )
+
+(defun hostapd-down ()
+  (when *hostapd-proc-obj*
+    (uiop:terminate-process *hostapd-proc-obj* :urgent t)
+    (uiop:wait-process *hostapd-proc-obj*)
+    (setf *hostapd-proc-obj* nil)
+    )
+  )
+
+(defun get-ip-of-this-hosts-lan-card ()
+  (trivia:match
+      (lsa:iwconfig-interface-list)
+    ((list* wlan _)
+     (find wlan (lsa:ip-addr) :key #'first :test #'equal))
+    )
+  )
+
+(defun configure-parent-router ()
+  ;; This is a primary use case.  Get this working and we can go
+  ;; to the next level of testing/developing.
+  (trivia:match
+      (get-ip-of-this-hosts-lan-card)
+    ((list wlan _ (list ip _))
+     (let ((r (make-instance 'remote-router-if
+			     :ipaddr ip
+			     :un "root"
+			     :pw "locutusofborg"
+			     :dest #(192 168 12 0)
+			     :gw #(192 168 11 125)
+			     :mask #(255 255 255 0)
+			     ;; this is the interface on the router,
+			     ;; not this host
+			     :iface "br0" 
+			     )
+	     ))
+       (add-route r)
+       )
+     )
+    )  
+  
   )
 
 (defun setup-prototype ()
   (setf lparallel:*kernel* (lparallel:make-kernel 4))
   (network-watchdog)
   (hostapd)
-  (let ((r (make-instance 'remote-router-if
-			  :ipaddr "192.168.11.1"
-			  :un "root"
-			  :pw "locutusofborg"
-			  :dest #(192 168 12 0)
-			  :gw #(192 168 11 125)
-			  :mask #(255 255 255 0)
-			  :iface "br0"
-			  )
-	  ))
-    (add-route r)
-    ;; bring the local interface up
-    ;; setup the ip address of the local interface
-    ))
+  )
 
 (defun apply-configuration ()
   ;; macchager --mac oldmac+1
@@ -600,4 +631,3 @@
   ;;(inferior-shell:run/lines "systemctl restart hostapd") 
   )
 
-(inferior-shell:run "ls")
