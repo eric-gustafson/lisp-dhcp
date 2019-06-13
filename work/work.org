@@ -1,6 +1,15 @@
 #+title: work
 
 * TODO Today
+** return objects for host info kinds of things
+** remote and local should map to same basic object model
+
+* TODO host-info
+** interface-lists
+** ip-address
+
+
+
 ** configure-parent-router
    #1 use case
 *** TODO get wireless (name . ip) list
@@ -30,11 +39,15 @@
 | lo   |      127.0.0.1 |
 | wlo1 | 192.168.11.255 |
 
+
 ** TODO setup two laptops downstairs
+
 ** TODO bring this up on laptop
 *** TODO try using submodules 
 *** TODO 2nd laptop joins g3
     traceroute, find out why we are not routing
+
+
 
 * RBPI
 ** Port to ccl-bin
@@ -50,7 +63,7 @@
 * TODO get routing working
 
 #+BEGIN_SRC sh
-    ip a add 192.168.12.1/255.255.255.0 dev wlx9cefd5fdd60e
+    gksu ip a add 192.168.12.1/255.255.255.0 dev wlx9cefd5fdd60e
 #+END_SRC
 
 #+RESULTS:

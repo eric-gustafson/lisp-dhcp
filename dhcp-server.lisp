@@ -4,6 +4,10 @@
 (defvar *dhcp-server-port* 67)
 (defvar *dhcp-client-port* 68)
 
+
+
+
+
 (defclass cidr-net ()
   ;; A network defined using cidr notation
   ;;
@@ -202,7 +206,7 @@
       ))
   )
 
-(defmethod cidr-in? ((obj cidr-net) (ip number))
+(defmethod cidr-in? ((obj cidr-net) (ip integer))
   (with-slots (mask ipnum)
       obj
     (eq (logand mask ipnum) (logand mask ip))
@@ -210,12 +214,29 @@
   )
 
 (defmethod cidr-in? ((obj cidr-net) (ip-addr list))
-  (cidr-in? obj (octets->num ip-addr)))
+  (cidr-in? obj (numex:octets->num ip-addr)))
 
 (defmethod cidr-in? ((obj cidr-net) (ip-addr vector))
-  (cidr-in? obj (octets->num ip-addr)))
+  (cidr-in? obj (numex:octets->num ip-addr)))
+
+(defmethod cidr-in? ((obj cidr-net) (ip-addr string))
+  (cidr-in? obj (numex:dotted->num ip-addr)))
 
 
+(defmethod ip=? (a b)
+  (cond
+    ((stringp a)
+     (ip=? (numex:dotted->vector a) b))
+    ((stringp b)
+     (ip=? a (numex:dotted->vector b)))
+    ((and (vectorp a) (vectorp b))
+     (equalp a b))
+    ((listp a)
+     (ip=? (coerce a 'vector) b))
+    ((listp b)
+     (ip=? a (coerce b 'vector)))
+    (t nil)))
+  
 (defmethod first-ip ((obj cidr-net))
   "return the first IP address in this net"
   (with-slots (ipnum)
@@ -527,7 +548,6 @@
   )
 
 
-
 (defmethod remove-route ((rte router-if))
   (ssh:with-connection
       (conn "192.168.11.1" (ssh:pass "root" "locutusofborg"))
@@ -570,10 +590,16 @@
 (defvar *hostapd-proc-obj* '())
 (defun hostapd (iface)
   ;; Geneate and save hostapd file
-  (with-open-file (hfile #P"/etc/hostapd/hostapd.conf" :if-exists :overwrite :if-does-not-exist :create)
-    (hostapd iface))
+  (with-open-file (hfile #P"/tmp/hostapd.conf"
+			 :direction :output
+			 :if-exists :overwrite
+			 :if-does-not-exist :create
+			 ;;:element-type 'character ;'(unsigned-byte 8)
+			 :external-format :utf-8
+			 )
+    (princ (lsa:hostapd iface) hfile))
   (setf *hostapd-proc-obj*
-	(uiop:launch-program "/usr/sbin/hostapd -d /etc/hostapd/hostapd.conf"
+	(uiop:launch-program "/usr/sbin/hostapd -d /tmp/hostapd.conf"
 			     :output :interactive :error-output :interactive))
   )
 
@@ -585,36 +611,59 @@
     )
   )
 
+(defun not-local-host-ip-addr-objs ()
+  (serapeum:filter
+   #'(lambda(obj)
+       (trivia:match
+	   obj
+	 ((lsa:ip-addr :addr addr)
+	  (not (ip=? addr #(127 0 0 1))))))
+   (lsa::ip-addr-objs))
+  )
+  
 (defun get-ip-of-this-hosts-lan-card ()
   (trivia:match
-      (lsa:iwconfig-interface-list)
-    ((list* wlan _)
-     (find wlan (lsa:ip-addr) :key #'first :test #'equal))
+      (not-local-host-ip-addr-objs)
+    ((cons first rest)
+     first)
     )
+  )
+
+(defun get-wifi-gateway-candidates ()
+  "filter out localhost and ip address of the network we are bringing up"
+  (serapeum:filter
+   (trivia:lambda-match
+     ((list _ _ (list ip _))
+      (not (or (ip=?  ip #(127 0 0 1))
+	       (cidr-in? *this-net* ip)))))
+   (lsa:ip-addr)
+   )
   )
 
 (defun configure-parent-router ()
   ;; This is a primary use case.  Get this working and we can go
   ;; to the next level of testing/developing.
-  (trivia:match
-      (get-ip-of-this-hosts-lan-card)
-    ((list wlan _ (list ip _))
-      (let ((r (make-instance 'remote-router-if
-			     :ipaddr ip
-			     :un "root"
-			     :pw "locutusofborg"
-			     :dest #(192 168 12 0)
-			     :gw #(192 168 11 125)
-			     :mask #(255 255 255 0)
-			     ;; this is the interface on the router,
-			     ;; not this host
-			     :iface "br0" 
-			     )
-	     ))
-       (add-route r)
-       )
-     )
-    )  
+  (let* ((neo (get-ip-of-this-hosts-lan-card))
+	 (this-addr (numex:dotted->vector (lsa:addr neo)))
+	 (mesh-parent (trivia:cmatch
+			  this-addr
+			((vector a b c d)
+			 (vector a b c 1))))
+	 (r (make-instance 'remote-router-if
+			   :ipaddr mesh-parent
+			   :un "root"
+			   :pw "locutusofborg"
+			   :dest #(192 168 12 0)
+			   :gw this-addr ;; #(192 168 11 125)
+			   :mask #(255 255 255 0)
+			   ;; this is the interface on the router,
+			   ;; not this host
+			   :iface "br0" 
+			   )
+	   ))
+    (add-route r)
+    )
+  )  
   
   )
 
