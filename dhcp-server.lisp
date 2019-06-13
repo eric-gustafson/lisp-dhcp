@@ -4,10 +4,6 @@
 (defvar *dhcp-server-port* 67)
 (defvar *dhcp-client-port* 68)
 
-
-
-
-
 (defclass cidr-net ()
   ;; A network defined using cidr notation
   ;;
@@ -665,7 +661,6 @@
     )
   )  
   
-  )
 
 (defun setup-prototype ()
   ;;(setf lparallel:*kernel* (lparallel:make-kernel 4))
