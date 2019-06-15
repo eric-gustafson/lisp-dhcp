@@ -218,6 +218,52 @@
 (defmethod cidr-in? ((obj cidr-net) (ip-addr string))
   (cidr-in? obj (numex:dotted->num ip-addr)))
 
+(defmethod get-cidr ((obj string))
+  "extract cidr notation from string, or nil if there isn't any"
+  (ppcre:register-groups-bind (ip cidr)
+      (numex:*ip-cidr-scanner* obj)
+    (and ip cidr
+	 (parse-integer cidr))
+    )
+  )
+
+(defmethod get-net-using-cidr ((obj string))
+  (ppcre:register-groups-bind (ip cidr)
+      (numex:*ip-cidr-scanner* obj)
+    (serapeum:and-let* ((numbits (and ip cidr
+				      (parse-integer cidr)))
+			(addrnum (numex:dotted->num ip))
+			(mask (numex:make-cidr-mask numbits)))
+      (numex:num->octets (logand mask addrnum)))
+    ))
+  
+(defmethod get-addr-num ((obj string))
+  "extract the ip address out of string"
+  (numex:dotted->num obj)
+  )
+
+;; Isn't this what cidr-in really is?
+(defmethod net=? ((a string) (b string))
+  ;;
+  (let ((a-ncbits (get-cidr a))
+	(b-ncbits (get-cidr b))
+	(aan (numex:dotted->num a))
+	(ban (numex:dotted->num b))
+	)
+    (cond
+      ((and (integerp a-ncbits) (integerp b-ncbits))
+       (when (eq a-ncbits b-ncbits)
+	 (let ((mask (numex:make-cidr-mask a-ncbits)))
+	   ;; same cidr block
+	   (= (logand mask aan)
+	      (logand mask ban)))))
+      ((or a-ncbits b-ncbits) ;; Use the cidr from either one of the parameters
+       (let ((mask (numex:make-cidr-mask (or a-ncbits b-ncbits))))
+	 (= (logand mask aan)
+	    (logand mask ban))))
+      )
+    )
+  )
 
 (defmethod ip=? (a b)
   (cond
@@ -263,7 +309,6 @@
   (declare (ignore net))
   (find ip *dhcp-allocated-table*  :key #'ipnum))
 						     
-
 (defun dhcp-search-allocated-by-mac (mac)
   (let ((x (find mac *dhcp-allocated-table* :key #'mac :test #'equalp)))
     (when x
@@ -625,26 +670,34 @@
     )
   )
 
+(defun connected-ip ()
+  (get-ip-of-this-hosts-lan-card))
+
 (defun get-wifi-gateway-candidates ()
   "filter out localhost and ip address of the network we are bringing up"
   (serapeum:filter
    (trivia:lambda-match
-     ((list _ _ (list ip _))
-      (not (or (ip=?  ip #(127 0 0 1))
-	       (cidr-in? *this-net* ip)))))
-   (lsa:ip-addr)
+     ((lsa:ip-addr :addr ip)
+      (net=? "192.168.12.0/24" ip)
+      ))
+   (lsa:ip-addr-objs)
    )
   )
+
+(defun calc-next-hop-ip (ip)
+  (trivia:cmatch
+      ip
+    ((vector a b c d)
+     (vector a b c 1))))
+
 
 (defun configure-parent-router ()
   ;; This is a primary use case.  Get this working and we can go
   ;; to the next level of testing/developing.
   (let* ((neo (get-ip-of-this-hosts-lan-card))
 	 (this-addr (numex:dotted->vector (lsa:addr neo)))
-	 (mesh-parent (trivia:cmatch
-			  this-addr
-			((vector a b c d)
-			 (vector a b c 1))))
+	 (mesh-parent (calc-next-hop-ip this-addr))
+	 ;;(mesh-net (get-net-using-cidr mesh-parent))
 	 (r (make-instance 'remote-router-if
 			   :ipaddr mesh-parent
 			   :un "root"
@@ -657,17 +710,25 @@
 			   :iface "br0" 
 			   )
 	   ))
+    (loop :for re in (cdr (get-routes)) :do
+       (if (equal '(192 168 12 0) (dest re))
+	   (remove-route re)))
     (add-route r)
     )
   )  
-  
 
+
+(defun setup-hostapd ()
+  (serapeum:and-let* ((x (car (get-wifi-gateway-candidates))))
+    (lsa:hostapd (name x)))
+  )
+    
+  
 (defun setup-prototype ()
   ;;(setf lparallel:*kernel* (lparallel:make-kernel 4))
   ;;(network-watchdog)
-  (let* ((lc (get-ip-of-this-hosts-lan-card))
-	 (hostapd (car lc)))
-    (configure-parent-router))
+  (configure-parent-router)
+  
   )
 
 (defun apply-configuration ()

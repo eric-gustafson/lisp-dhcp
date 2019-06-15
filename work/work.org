@@ -8,8 +8,6 @@
 ** interface-lists
 ** ip-address
 
-
-
 ** configure-parent-router
    #1 use case
 *** TODO get wireless (name . ip) list
@@ -93,19 +91,20 @@
    Get the interface
 
 #+BEGIN_SRC sh
-   #ip link set dev wlx9cefd5fdd60e up
+   pkexec ip link set dev wlx9cefd5fdd60e up
 #+END_SRC
 
-#+RESULTS:
-#+BEGIN_SRC sh :results output 
+#+BEGIN_SRC sh :results raw
    ip link
-#+END_SRC   
+#+END_SRC  
 
 #+RESULTS:
-: 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
-:     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-: 2: wlo1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DORMANT group default qlen 1000
-:     link/ether 48:45:20:ef:5b:e6 brd ff:ff:ff:ff:ff:ff
+|            1: | lo:               | <LOOPBACK,UP,LOWER_UP>              | mtu               | 65536 | qdisc | noqueue | state | UNKNOWN | mode | DEFAULT | group | default | qlen | 1000 |
+| link/loopback | 00:00:00:00:00:00 | brd                                 | 00:00:00:00:00:00 |       |       |         |       |         |      |         |       |         |      |      |
+|            2: | wlo1:             | <BROADCAST,MULTICAST,UP,LOWER_UP>   | mtu               |  1500 | qdisc | mq      | state | UP      | mode | DORMANT | group | default | qlen | 1000 |
+|    link/ether | 48:45:20:ef:5b:e6 | brd                                 | ff:ff:ff:ff:ff:ff |       |       |         |       |         |      |         |       |         |      |      |
+|            4: | wlx9cefd5fdd60e:  | <NO-CARRIER,BROADCAST,MULTICAST,UP> | mtu               |  1500 | qdisc | mq      | state | DOWN    | mode | DEFAULT | group | default | qlen | 1000 |
+|    link/ether | 9c:ef:d5:fd:d6:0e | brd                                 | ff:ff:ff:ff:ff:ff |       |       |         |       |         |      |         |       |         |      |      |
 
 
 * TODO create a commissioning network
