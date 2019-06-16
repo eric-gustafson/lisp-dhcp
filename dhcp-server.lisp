@@ -16,10 +16,10 @@
 
 (defclass dhcp-address ()
   (
-   (mac :accessor mac :initarg :mac :initform "")
-   (ipnum :accessor ipnum :initarg :ipnum :initform 0)
-   (tla :accessor tla :initarg :tla :initform (get-universal-time))
-   (lease-time :accessor lease-time :initarg :lease-time :initform  300)
+   (mac		:accessor mac :initarg :mac :initform "")
+   (ipnum	:accessor ipnum :initarg :ipnum :initform 0)
+   (tla		:accessor tla :initarg :tla :initform (get-universal-time))
+   (lease-time	:accessor lease-time :initarg :lease-time :initform  300)
    )
   )
 
@@ -28,6 +28,7 @@
       (obj stream :type t)
     (with-slots
 	  (mac ipnum tla lease-time mac)
+	obj
 	(format stream "~a,~a,~a~a" mac ipnum tla lease-time))
     )
   )
@@ -459,7 +460,7 @@
 			   (deserialize-into-dhcp-from-buff! dhcpObj buff)
 			   (let* ((m (handle-dhcp-message dhcpObj))
 				  (buff (response->buff m)))
-			     (format t "sending response~%")
+			     (format t "sending response:~a~%" (yiaddr dhcpObj))
 			     (setf (usocket:socket-option rsocket :broadcast) t)			     
 			     (let ((nbw (usocket:socket-send
 					 rsocket buff (length buff)
