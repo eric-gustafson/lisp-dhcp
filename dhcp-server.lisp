@@ -27,7 +27,7 @@
   (print-unreadable-object
       (obj stream :type t)
     (with-slots
-	  (mac ipnum tla lease-time)
+	  (mac ipnum tla lease-time mac)
 	(format stream "~a,~a,~a~a" mac ipnum tla lease-time))
     )
   )
@@ -336,7 +336,7 @@
 
 (defmethod get-address ((reqMsg dhcp))
   "return an dhcp packet to be broadcast that provides an IP address"
-  (let* ((new-addr (dhcp-allocate-ip *this-net*))
+  (let* ((new-addr (dhcp-allocate-ip reqMsg *this-net*))
 	 (replyMsg (make-instance 'dhcp
 				  :op 2
 				  :htype (htype reqMsg)				    
@@ -360,7 +360,7 @@
 					 `(
 					   (:subnet 255 255 255 0)
 					   (:routers ,(this-ip))
-					   (:lease-time 120)
+					   (:lease-time ,(* 3600 2))
 					   (:dhcp-server ,@(this-ip))
 					   (:dns-servers (8 8 8 8) (4 4 4 4)))
 					 )))
@@ -394,7 +394,7 @@
 					`(
 					  (:subnet 255 255 255 0)
 					  (:routers ,(this-ip))
-					  (:lease-time 120)
+					  (:lease-time ,(* 3600 2))
 					  (:dhcp-server ,@(this-ip))
 					  (:dns-servers (8 8 8 8) (4 4 4 4)))
 					))
@@ -677,10 +677,11 @@
   "filter out localhost and ip address of the network we are bringing up"
   (serapeum:filter
    (trivia:lambda-match
-     ((lsa:ip-addr :addr ip)
-      (net=? "192.168.12.0/24" ip)
+     ((lsa:link :state sstate :name name)
+      (and (ppcre:scan "wlx.*" name)
+	   (string-equal (string-upcase sstate) "DOWN"))
       ))
-   (lsa:ip-addr-objs)
+   (lsa:ip-link-objs)
    )
   )
 
@@ -720,7 +721,7 @@
 
 (defun setup-hostapd ()
   (serapeum:and-let* ((x (car (get-wifi-gateway-candidates))))
-    (lsa:hostapd (name x)))
+    (hostapd (lsa:name x)))
   )
     
   
