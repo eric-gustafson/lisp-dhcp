@@ -16,7 +16,7 @@
 
 (defclass dhcp-address ()
   (
-   (mac		:accessor mac :initarg :mac :initform "")
+   (mac		:accessor mac :initarg :mac :initform #())
    (ipnum	:accessor ipnum :initarg :ipnum :initform 0)
    (tla		:accessor tla :initarg :tla :initform (get-universal-time))
    (lease-time	:accessor lease-time :initarg :lease-time :initform  300)
@@ -313,7 +313,8 @@
 (defun dhcp-search-allocated-by-mac (mac)
   (let ((x (find mac *dhcp-allocated-table* :key #'mac :test #'equalp)))
     (when x
-      (setf (tla x) (get-universal-time)))
+      (setf (tla x) (get-universal-time))
+      x)
     )
   )
 
@@ -323,7 +324,11 @@
 	    (l (last-ip net)))
 	(loop :for ip :from f :upto l :do
 	   (unless (ip-allocated? net ip)
-	     (let ((addrObj (make-instance 'dhcp-address :ipnum ip :tla (get-universal-time))))
+	     (let ((addrObj (make-instance 'dhcp-address
+					   :ipnum ip
+					   :tla (get-universal-time)
+					   :mac (mac reqMsg)
+					   )))
 	       (push addrObj *dhcp-allocated-table*)
 	       (return-from dhcp-allocate-ip addrObj)))
 	   )
@@ -346,7 +351,7 @@
 				  :xid (xid reqMsg)
 				  :secs (secs reqMsg)
 				  :flags (flags reqMsg)
-				  :yiaddr (ipnum new-addr)
+				  :yiaddr (numex:octets->num (numex:num->octets (ipnum new-addr) :endian :net))
 				  :siaddr  (numex:octets->num (this-ip) :endian :net)
 				  :giaddr (giaddr reqMsg)
 				  :chaddr (chaddr reqMsg)
@@ -361,15 +366,17 @@
 					 `(
 					   (:subnet 255 255 255 0)
 					   (:routers ,(this-ip))
-					   (:lease-time ,(* 3600 2))
+					   (:lease-time 1800)
 					   (:dhcp-server ,@(this-ip))
 					   (:dns-servers (8 8 8 8) (4 4 4 4)))
 					 )))
     (setf (options replyMsg) (encode-dhcp-options replyMsgOptions))
+    (format t "get-address: ~a~%" (numex:num->octets (yiaddr replyMsg)))
     replyMsg))
 
 (defmethod get-ack ((reqMsg dhcp))
   "return an dhcp packet to be broadcast that provides an IP address"
+  (format t "get-ack: ~a~%" (numex:num->octets (yiaddr reqMsg)))
   (let* ((new-ip (dhcp-allocate-ip reqMsg *this-net*))
 	 (replyMsg (make-instance 'dhcp
 				 :op 2
@@ -379,7 +386,7 @@
 				 :xid (xid reqMsg)
 				 :secs (secs reqMsg)
 				 :flags (flags reqMsg)
-				 :yiaddr (numex:octets->num (numex:num->octets
+				 :yiaddr (yiaddr reqMsg) #+nil(numex:octets->num (numex:num->octets
 							     (ipnum new-ip) :endian :net) :endian :net)
 				 :siaddr (numex:octets->num (this-ip) :endian :net)
 				 :giaddr (giaddr reqMsg)
@@ -460,7 +467,7 @@
 			   (deserialize-into-dhcp-from-buff! dhcpObj buff)
 			   (let* ((m (handle-dhcp-message dhcpObj))
 				  (buff (response->buff m)))
-			     (format t "sending response:~a~%" (yiaddr dhcpObj))
+			     (format t "sending response:~a~%" (numex:num->octets (yiaddr m)))
 			     (setf (usocket:socket-option rsocket :broadcast) t)			     
 			     (let ((nbw (usocket:socket-send
 					 rsocket buff (length buff)
