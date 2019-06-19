@@ -160,14 +160,14 @@
 (defparameter *this-net*
   (make-instance 'cidr-net
 		 :cidr 24
-		 :ipnum (numex:octets->num #(192 168 12 0))
+		 :ipnum (numex:octets->num #(10 0 12 0))
 		 :mask (numex:octets->num #(255 255 255 0)))
   ) 
 
 (defparameter *pnet* ;; parent's network
   (make-instance 'cidr-net
 		 :cidr 24
-		 :ipnum (numex:octets->num #(192 168 11 0))
+		 :ipnum (numex:octets->num #(10 0 1 0))
 		 :mask (numex:octets->num #(255 255 255 0)))
   )
 
@@ -351,7 +351,7 @@
 				  :xid (xid reqMsg)
 				  :secs (secs reqMsg)
 				  :flags (flags reqMsg)
-				  :yiaddr (numex:octets->num (numex:num->octets (ipnum new-addr) :endian :net))
+				  :yiaddr (numex:octets->num #(10 0 12 3) :endian :net) ;;    ;;(numex:octets->num (numex:num->octets (ipnum new-addr) :endian :net))
 				  :siaddr  (numex:octets->num (this-ip) :endian :net)
 				  :giaddr (giaddr reqMsg)
 				  :chaddr (chaddr reqMsg)
@@ -386,8 +386,10 @@
 				 :xid (xid reqMsg)
 				 :secs (secs reqMsg)
 				 :flags (flags reqMsg)
-				 :yiaddr (yiaddr reqMsg) #+nil(numex:octets->num (numex:num->octets
-							     (ipnum new-ip) :endian :net) :endian :net)
+				 :yiaddr (numex:octets->num #(10 0 12 3) :endian :net)
+				 ;; They send 0.0.0.0 back ...
+				 ;;(yiaddr reqMsg) #+nil(numex:octets->num (numex:num->octets
+				 ;;(ipnum new-ip) :endian :net) :endian :net)
 				 :siaddr (numex:octets->num (this-ip) :endian :net)
 				 :giaddr (giaddr reqMsg)
 				 :chaddr (chaddr reqMsg)
@@ -472,7 +474,7 @@
 			     (let ((nbw (usocket:socket-send
 					 rsocket buff (length buff)
 					 :port *dhcp-client-port*
-					 :host #(192 168 12 255)
+					 :host #(10 0 12 255)
 					 ;;:host  (coerce (this-ip) 'vector)
 					 )))
 			       (format t "number of bytes sent:~a~%" nbw))
@@ -566,7 +568,7 @@
 
 (defun get-routes ()
   (let ((results (ssh:with-connection
-		     (conn "192.168.11.1" (ssh:pass "root" "locutusofborg"))
+		     (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
 		   (ssh:with-command
 		       (conn iostream "cat /proc/net/route")
 		     (loop
@@ -599,7 +601,7 @@
 
 (defmethod remove-route ((rte router-if))
   (ssh:with-connection
-      (conn "192.168.11.1" (ssh:pass "root" "locutusofborg"))
+      (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
     (ssh:with-command
 	(conn iostream (format nil "route del -net ~a gw ~a netmask ~a dev ~a" (numex:addr->dotted (dest rte)) (numex:addr->dotted (gw rte)) (numex:addr->dotted (mask rte)) (iface rte)))
       (loop
@@ -618,7 +620,7 @@
 
 (defmethod add-route ((rte router-if))
   (ssh:with-connection
-      (conn "192.168.11.1" (ssh:pass "root" "locutusofborg"))
+      (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
     (ssh:with-command
 	(conn iostream (route-add-cmd rte))
       (loop
@@ -711,7 +713,7 @@
 			   :ipaddr mesh-parent
 			   :un "root"
 			   :pw "locutusofborg"
-			   :dest #(192 168 12 0)
+			   :dest #(10 0 12 0)
 			   :gw this-addr ;; #(192 168 11 125)
 			   :mask #(255 255 255 0)
 			   ;; this is the interface on the router,
@@ -720,7 +722,7 @@
 			   )
 	   ))
     (loop :for re in (cdr (get-routes)) :do
-       (if (equal '(192 168 12 0) (dest re))
+       (if (equal '(10 0 12 0) (dest re))
 	   (remove-route re)))
     (add-route r)
     )
