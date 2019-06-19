@@ -24,12 +24,14 @@
   )
 
 (defmethod print-object ((obj dhcp-address) stream)
-  (print-unreadable-object
-      (obj stream :type t)
-    (with-slots
-	  (mac ipnum tla lease-time mac)
-	obj
-	(format stream "~a,~a,~a~a" mac ipnum tla lease-time))
+  (let ((now (get-universal-time)))
+    (print-unreadable-object
+	(obj stream :type t)
+      (with-slots
+	    (mac ipnum tla lease-time mac)
+	  obj
+	(format stream "~a,~a,~a,~a" mac (numex:num->dotted ipnum) (- now tla) lease-time))
+      )
     )
   )
 
@@ -48,7 +50,9 @@
                         (list (->symbol field)
                               :documentation description
                               :accessor (->symbol field)
-                              :initarg (->keyword field)))))
+                              :initarg (->keyword field)
+			      :initform nil
+			      ))))
 	      *dhcp-bootp-base-fields*)
      )
   )
@@ -318,6 +322,7 @@
     )
   )
 
+
 (defun dhcp-allocate-ip (reqMsg net)
   (or (dhcp-search-allocated-by-mac (mac reqMsg))
       (let ((f (first-ip net))
@@ -351,7 +356,7 @@
 				  :xid (xid reqMsg)
 				  :secs (secs reqMsg)
 				  :flags (flags reqMsg)
-				  :yiaddr (numex:octets->num #(10 0 12 3) :endian :net) ;;    ;;(numex:octets->num (numex:num->octets (ipnum new-addr) :endian :net))
+				  :yiaddr (numex:host32u->net (ipnum new-addr))
 				  :siaddr  (numex:octets->num (this-ip) :endian :net)
 				  :giaddr (giaddr reqMsg)
 				  :chaddr (chaddr reqMsg)
@@ -452,12 +457,6 @@
 						     :element-type 'char
 						     ;;:local-host (numex:addr->dotted (this-ip))
 						     :local-port *dhcp-server-port*))
-		    #+nil(ssocket (usocket:socket-connect "255.255.255.255" ;;nil
-						    *dhcp-client-port*
-						    :protocol :datagram
-						    :element-type 'char
-						    ;;:local-port *dhcp-client-port*
-						    ))
 		    )
 	       (setf (usocket:socket-option rsocket :broadcast) t)
 	       (unwind-protect

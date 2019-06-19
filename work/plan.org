@@ -1,8 +1,12 @@
 #+title: Medium Term Plan
 
 * Goals
+  To have a programmable dhcp server.  This is a major component of
+  the following larger initiatives
 
-  To have a programmable dhcp server.
+  1. Advances network security system
+  2. IOT platform
+  3. networking tool for virtualized system
 
 
 * Milestones

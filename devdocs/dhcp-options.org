@@ -90,13 +90,8 @@
 ** TODO subnet
     match (:int
 
-* TODO decode dhcp request
-
-* TODO encode dhcp reply
 
 * TODO recreate the captured packets we have using encode function
-
-
 
 #+BEGIN_SRC lisp :results value list
   (encode-options `(

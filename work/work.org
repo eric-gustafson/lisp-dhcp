@@ -1,55 +1,74 @@
 #+title: work
 
-* TODO Today
-** return objects for host info kinds of things
-** remote and local should map to same basic object model
+* Today
+  [[file:../devdocs/]]
+  [[file:../dhcp-server.lisp]]
 
-* TODO host-info
-** interface-lists
-** ip-address
-
-** configure-parent-router
-   #1 use case
-*** TODO get wireless (name . ip) list
-**** TODO configure down stream router w/ info
-***** TODO
+** DONE fixup ip generator function of dhcp server
 #+BEGIN_SRC lisp
-  (lsa:iwconfig-interface-list)
+  (let ((reqMsg (make-instance 'dhcp :chaddr #(1 2 3 4 5 6))))
+    (dhcp-allocate-ip reqMsg *this-net*)
+    )
 #+END_SRC
 
 #+RESULTS:
-| wlo1 |
+: #<DHCP-ADDRESS #(1 2 3 4 5 6),10.0.12.2,0,300>
 
-#+BEGIN_SRC lisp
-  (lsa:ip-link)
+** DONE get mac address memory working
+
+** TODO get working with chromebook's dhcp client
+
+** TODO catch dhcp parse error and log
+   Just don't out the dhcp address, but keep chugging along
+
+** TODO check if rbpi has working watchdog
+
+* Week
+
+** TODO Add route for host on startup
+#+BEGIN_SRC sh
+    gksu ip a add 192.168.12.1/255.255.255.0 dev wlx9cefd5fdd60e
 #+END_SRC
 
-#+RESULTS:
-| lo   | <LOOPBACK,UP,LOWER_UP>            | mtu | 65536 | qdisc | noqueue | state | UNKNOWN | mode | DEFAULT | group | default | qlen | 1000 |
-| wlo1 | <BROADCAST,MULTICAST,UP,LOWER_UP> | mtu |  1500 | qdisc | mq      | state | UP      | mode | DORMANT | group | default | qlen | 1000 |
+** TODO simple network map gui
+   This might make getting mac memory working easier
+
+** TODO simple network scan GUI
+
+** TODO deploy bitbake image to beaglebone green
+
+* Month
+** TODO zigbee turn lights on/off
+   Use the current dongle.  Just an ezsp loop that sends a zcl broadcast command
+
+** TODO vpn connection to isolitiare from iot devics
 
 
-#+BEGIN_SRC lisp :results value
-  (lsa:ip-addr)
-#+END_SRC
+** TODO deploy to neo 
+   Consider this for prototype 3
 
-#+RESULTS:
-| lo   |      127.0.0.1 |
-| wlo1 | 192.168.11.255 |
-
-
-** TODO setup two laptops downstairs
+   - loose network-manager
+   - simple GUI that displays scan results
+   - tftp to work with scanner
+   - connects to rbpi server 
 
 ** TODO bring this up on laptop
 *** TODO try using submodules 
 *** TODO 2nd laptop joins g3
     traceroute, find out why we are not routing
+** TODO fax machine and TV's working witih IOT nat
+
+** TODO combine with snot
+
+* Future
 
 
 
 * RBPI
-** Port to ccl-bin
-** Port to ecl
+  If we want to use threads, we are going to need to use ccl-bin, or ecl.  
+** ccl-bin
+** ecl
+
 
 * TODO Laptop
 ** TODO turn network watchdog off and on
@@ -58,13 +77,7 @@
    Do we maybe want to get rid of network manager?
 
 
-* TODO get routing working
 
-#+BEGIN_SRC sh
-    gksu ip a add 192.168.12.1/255.255.255.0 dev wlx9cefd5fdd60e
-#+END_SRC
-
-#+RESULTS:
 
 * TODO network watchdog
   if after 15m, there is no network connectivity -- reboot
@@ -94,17 +107,6 @@
    pkexec ip link set dev wlx9cefd5fdd60e up
 #+END_SRC
 
-#+BEGIN_SRC sh :results raw
-   ip link
-#+END_SRC  
-
-#+RESULTS:
-|            1: | lo:               | <LOOPBACK,UP,LOWER_UP>              | mtu               | 65536 | qdisc | noqueue | state | UNKNOWN | mode | DEFAULT | group | default | qlen | 1000 |
-| link/loopback | 00:00:00:00:00:00 | brd                                 | 00:00:00:00:00:00 |       |       |         |       |         |      |         |       |         |      |      |
-|            2: | wlo1:             | <BROADCAST,MULTICAST,UP,LOWER_UP>   | mtu               |  1500 | qdisc | mq      | state | UP      | mode | DORMANT | group | default | qlen | 1000 |
-|    link/ether | 48:45:20:ef:5b:e6 | brd                                 | ff:ff:ff:ff:ff:ff |       |       |         |       |         |      |         |       |         |      |      |
-|            4: | wlx9cefd5fdd60e:  | <NO-CARRIER,BROADCAST,MULTICAST,UP> | mtu               |  1500 | qdisc | mq      | state | DOWN    | mode | DEFAULT | group | default | qlen | 1000 |
-|    link/ether | 9c:ef:d5:fd:d6:0e | brd                                 | ff:ff:ff:ff:ff:ff |       |       |         |       |         |      |         |       |         |      |      |
 
 
 * TODO create a commissioning network
