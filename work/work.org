@@ -1,27 +1,13 @@
 #+title: work
 
+* TODO catch dhcp parse error and log
+  Just don't out the dhcp address, but keep chugging along
+
+* TODO get working with chromebook's dhcp client
+
 * Today
   [[file:../devdocs/]]
   [[file:../dhcp-server.lisp]]
-
-** DONE fixup ip generator function of dhcp server
-#+BEGIN_SRC lisp
-  (let ((reqMsg (make-instance 'dhcp :chaddr #(1 2 3 4 5 6))))
-    (dhcp-allocate-ip reqMsg *this-net*)
-    )
-#+END_SRC
-
-#+RESULTS:
-: #<DHCP-ADDRESS #(1 2 3 4 5 6),10.0.12.2,0,300>
-
-** DONE get mac address memory working
-
-** TODO get working with chromebook's dhcp client
-
-** TODO catch dhcp parse error and log
-   Just don't out the dhcp address, but keep chugging along
-
-** TODO check if rbpi has working watchdog
 
 * Week
 
@@ -166,4 +152,8 @@
 * DONE dhcp network based ip allocation code
 
 * DONE give the same address out for mac hit
+
+* DONE check if rbpi has working watchdog
+
+* DONE get mac address memory working
 

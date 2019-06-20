@@ -106,7 +106,19 @@
 			  ((eq type :string)
 			   `(write-sequence (,(->symbol field) obj) out))
 			  ((eq type :int)
-			   `(write-sequence (numex:num->octets (,(->symbol field) obj) :length ,octets :endian :big) out))
+			   ;; support a number, or a list/vector octet in the field of the
+			   ;; object
+			   `(let ((value (,(->symbol field) obj)))
+			      (etypecase
+				  value
+				((integer)
+				 (write-sequence (numex:num->octets value :length ,octets :endian :big) out))
+				((vector list)
+				 (unless (eq (length value) ,octets)
+				   (error "integer sequence size mismatch"))
+				 (write-sequence value obj)))
+			      )
+			   )
 			  (t
 			   (error "Unexpected type ~a" row))
 			  )))))
@@ -356,8 +368,8 @@
 				  :xid (xid reqMsg)
 				  :secs (secs reqMsg)
 				  :flags (flags reqMsg)
-				  :yiaddr (numex:host32u->net (ipnum new-addr))
-				  :siaddr  (numex:octets->num (this-ip) :endian :net)
+				  :yiaddr (ipnum new-addr)
+				  :siaddr  (this-ip)
 				  :giaddr (giaddr reqMsg)
 				  :chaddr (chaddr reqMsg)
 				  :ciaddr (ciaddr reqMsg)
