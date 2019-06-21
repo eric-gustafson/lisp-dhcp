@@ -35,7 +35,6 @@
     )
   )
 
-(defparameter *ns* 1)
 (defparameter *dhcp-magic-cookie* '(99 130 83 99))
 
 (defmacro clos-code (name)
@@ -116,7 +115,7 @@
 				(sequence
 				 (unless (eq (length value) ,octets)
 				   (error "integer sequence size mismatch"))
-				 (write-sequence value value)))
+				 (write-sequence value out)))
 			      )
 			   )
 			  (t
@@ -151,21 +150,16 @@
 
 (defun serve ()
   t)
-  ;; (cond
-  ;;   ((numberp *ns*)
-  ;;    (cond
-  ;;      ((> *ns* 0)
-  ;; 	(decf *ns*)
-  ;; 	t)
-  ;;      (t nil)))
-  ;;   (t
-  ;;    t)))
 
 (defvar *last* nil)
 
 (defun save-binary-packet-to-file (path buff)
   (with-open-file (bout path :direction :output :element-type '(unsigned-byte 8)  :if-exists :overwrite :if-does-not-exist :create)
     (write-sequence buff bout))
+  )
+
+(defun save-last-packet ()
+  (save-binary-packet-to-file "a.bin" *last*)
   )
 
 (defun network-addr? (obj)
