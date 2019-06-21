@@ -116,7 +116,7 @@
 				(sequence
 				 (unless (eq (length value) ,octets)
 				   (error "integer sequence size mismatch"))
-				 (write-sequence value obj)))
+				 (write-sequence value value)))
 			      )
 			   )
 			  (t
