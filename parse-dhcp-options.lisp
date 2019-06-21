@@ -124,6 +124,16 @@
 					  (cons (list :max-dhcp-message-size num)
 						(decode-options rest))))
 		    )
+     ;;Client FQDN
+     (make-instance 'meta-dhcp-option
+		    :name "client fqdn"
+		    :id 81
+		    :symb :client-fqdn
+		    :serialize-code  `((list :max-dhcp-message-size num)
+				       (error "client fqdn not implemented"))
+		    :deserialize-code `((list* 81 n rest)
+					(decode-options rest))
+		    )
      
      )
     )
