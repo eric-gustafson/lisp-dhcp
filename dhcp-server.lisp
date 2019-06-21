@@ -111,9 +111,9 @@
 			   `(let ((value (,(->symbol field) obj)))
 			      (etypecase
 				  value
-				((integer)
+				(integer
 				 (write-sequence (numex:num->octets value :length ,octets :endian :big) out))
-				((vector list)
+				(sequence
 				 (unless (eq (length value) ,octets)
 				   (error "integer sequence size mismatch"))
 				 (write-sequence value obj)))
