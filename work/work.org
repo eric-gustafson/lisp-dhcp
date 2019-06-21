@@ -1,13 +1,17 @@
 #+title: work
 
-* TODO catch dhcp parse error and log
-  Just don't out the dhcp address, but keep chugging along
-
-* TODO get working with chromebook's dhcp client
 
 * Today
   [[file:../devdocs/]]
   [[file:../dhcp-server.lisp]]
+
+** TODO catch dhcp parse error and log
+   Just don't out the dhcp address, but keep chugging along
+
+** TODO get working with chromebook's dhcp client
+
+** TODO client-fqdn
+
 
 * Week
 
@@ -17,7 +21,7 @@
 #+END_SRC
 
 ** TODO simple network map gui
-   This might make getting mac memory working easier
+    This might make getting mac memory working easier
 
 ** TODO simple network scan GUI
 

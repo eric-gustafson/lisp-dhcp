@@ -96,6 +96,22 @@
 
 * Dev
 
+** client fqdn
+#+BEGIN_SRC lisp
+   (defvar *a* nil)
+  (with-open-file (binport #P"dhcp-captures/client-fqdn.bin" :element-type '(unsigned-byte 8))
+    (let ((obj (make-instance 'dhcp)))
+      (stream-deserialize obj binport)
+      (setf *a* obj)
+      (handle-dhcp-message *a*)
+      )
+    )
+
+#+END_SRC
+
+#+RESULTS:
+: #<DHCP op=2,chaddr=(34 41 5D E6 78 E1 0 0 0 0 0 0 0 0 0 0)>
+
 ** Decode a dhcp request broadcast
 
     172.24.200.232.bootpc > 172.24.200.15.bootps: BOOTP/DHCP, Request from 00:16:3e:79:c0:76 (oui Unknown), length 300
@@ -130,8 +146,6 @@
 
 ** Decode the dhcp options
    
-*** TODO Reproduce failure on rbpi
-
 #+BEGIN_SRC lisp :results output verbatim
   (let* ((ipA (handle-dhcp-message *a*))
          (buff (response->buff ipA)))
@@ -152,13 +166,6 @@
 :   1 1 51 4 0 0 0 120 1 4 192 168 1 1 6 8 8 8 8 8 4 4 4 4) 
 
 
-
-#+BEGIN_SRC lisp
-   (format nil "~X" 119)
-#+END_SRC   
-
-#+RESULTS:
-: 77
 
 #+BEGIN_SRC lisp :output list
   (flexi-streams:with-output-to-sequence (dummy :element-type '(unsigned-byte 8))

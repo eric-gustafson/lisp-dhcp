@@ -129,12 +129,25 @@
 		    :name "client fqdn"
 		    :id 81
 		    :symb :client-fqdn
-		    :serialize-code  `((list :max-dhcp-message-size num)
+		    :serialize-code  `((list :client-fqdn num)
 				       (error "client fqdn not implemented"))
 		    :deserialize-code `((list* 81 n rest)
-					(decode-options rest))
+					(cons
+					 (list :client-fqdn (subseq rest 0 n))
+					 (decode-options (subseq rest n))))
 		    )
-     
+     ;; force-nonce (authentication)
+     (make-instance 'meta-dhcp-option
+		    :name "Forcerenew Nonce Authentication Protocol"
+		    :id 145
+		    :symb :force-renew-nonce
+		    :serialize-code  `((list :force-renew-nonce num)
+				       (error "client fqdn not implemented"))
+		    :deserialize-code `((list* 145 n rest)
+					(cons
+					 (list :force-renew-nonce (subseq rest 0 n))
+					 (decode-options (subseq rest n))))
+		    )
      )
     )
   )
