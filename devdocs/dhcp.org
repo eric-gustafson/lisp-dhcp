@@ -106,7 +106,6 @@
       (handle-dhcp-message *a*)
       )
     )
-
 #+END_SRC
 
 #+RESULTS:

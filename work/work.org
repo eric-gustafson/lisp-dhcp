@@ -8,12 +8,29 @@
 ** TODO catch dhcp parse error and log
    Just don't out the dhcp address, but keep chugging along
 
-** TODO get working with chromebook's dhcp client
 
-** TODO client-fqdn
+** TODO gave the same ip address out to clients
+   wtf??
+
+** TODO cl-async
+   - poll (fd)
+   - wookie for http
 
 
 * Week
+
+** TODO architecture
+   - sbcl
+   - two programs
+     Communicating over IPC.  Look @ basic binary IPC.   Basic idea, serialize/deserialize 
+     - dhcp client/server
+     - snot
+   - can we feed dhcp socket to select?
+   - same with snot
+   - we should nice down snot
+
+
+** TODO dhcp release
 
 ** TODO Add route for host on startup
 #+BEGIN_SRC sh
