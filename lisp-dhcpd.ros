@@ -9,7 +9,7 @@ exec ros -Q -- $0 "$@"
   )
 
 (defpackage :ros.script.lisp-dhcpd.3767092429
-  (:use :cl))
+  (:use :cl ))
 (in-package :ros.script.lisp-dhcpd.3767092429)
 
 (ql:quickload :dhcp-server)

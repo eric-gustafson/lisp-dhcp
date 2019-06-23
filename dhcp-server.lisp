@@ -453,6 +453,10 @@
   (flexi-streams:with-output-to-sequence (opp :element-type '(unsigned-byte 8))
     (stream-serialize obj opp)))
 
+(defun local-host-addr ()
+  #+(or ccl) (return-from local-host-addr "255.255.255.255")
+  (numex:addr->dotted (this-ip)))
+  
 (defun create-dhcpd-handler ()
   (labels ((run ()
 	     (let* ((dhcpObj (make-instance 'dhcp))
@@ -460,11 +464,13 @@
 		    (rsocket (usocket:socket-connect nil
 						     nil
 						     :protocol :datagram
-						     :element-type 'char
-						     ;;:local-host (numex:addr->dotted (this-ip))
+						     :element-type '(unsigned-byte 8) ;;char
+						     :local-host (local-host-addr)
 						     :local-port *dhcp-server-port*))
 		    )
+	       (format t "~a created~%" rsocket)
 	       (setf (usocket:socket-option rsocket :broadcast) t)
+	       (format t "broadcast enabled~%")
 	       (unwind-protect
 		    (loop while (serve) do
 			 (multiple-value-bind (buff size client receive-port)
@@ -491,6 +497,11 @@
 		 (usocket:socket-close rsocket)
 		 ))))
     (run)))
+
+(defun run ()
+  (bt:make-thread #'create-dhcpd-handler :name "dhcp thread"))
+
+		  
 
 (defmethod print-object ((obj dhcp) stream)
   (print-unreadable-object
@@ -643,8 +654,9 @@
 	)))
   )
 
-(defvar *hostapd-proc-obj* '())
-(defun hostapd (iface)
+;;(defvar *hostapd-proc-obj* '())
+
+#+nil(defun hostapd (iface)
   ;; Geneate and save hostapd file
   (with-open-file (hfile #P"/tmp/hostapd.conf"
 			 :direction :output
@@ -659,13 +671,13 @@
 			     :output :interactive :error-output :interactive))
   )
 
-(defun hostapd-down ()
-  (when *hostapd-proc-obj*
-    (uiop:terminate-process *hostapd-proc-obj* :urgent t)
-    (uiop:wait-process *hostapd-proc-obj*)
-    (setf *hostapd-proc-obj* nil)
-    )
-  )
+;; (defun hostapd-down ()
+;;   (when *hostapd-proc-obj*
+;;     (uiop:terminate-process *hostapd-proc-obj* :urgent t)
+;;     (uiop:wait-process *hostapd-proc-obj*)
+;;     (setf *hostapd-proc-obj* nil)
+;;     )
+;;   )
 
 (defun not-local-host-ip-addr-objs ()
   (serapeum:filter
