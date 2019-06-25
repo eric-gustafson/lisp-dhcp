@@ -1,6 +1,9 @@
 (in-package :dhcp-server)
 
+
 (defclass dhcp-options ()
+  ;; This is a wierd thing...
+  ;; This allows us to short circuit some of the fields.  
   (
    (mtype :documentation "Type type of dhcp/bootp message"
 	  :accessor mtype
@@ -171,8 +174,6 @@
     
 		  ((list :broadcast octets)
 		   (append (list 28 4) octets))    
-    
-		  
 
 		  ((list :server-id a b c d)
 		   (list 54 4 a b c d))
@@ -285,5 +286,8 @@
      )
   )
 
+;; Create functions
+;; - encode-dhcp-options
+;; - decode-dhcp-options
 (m-encode-options)
 (m-decode-dhcp-options)

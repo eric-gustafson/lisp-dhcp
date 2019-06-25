@@ -505,14 +505,20 @@
 (defun run ()
   (bt:make-thread #'create-dhcpd-handler :name "dhcp thread"))
 
-		  
-
 (defmethod print-object ((obj dhcp) stream)
   (print-unreadable-object
       (obj stream :type t)
-    (with-slots (op htype xid chaddr)
+    (with-slots (op yiaddr ciaddr htype xid chaddr)
 	obj
-      (format stream "op=~a,chaddr=~X" op chaddr))
+      (format stream "op=~a,ciaddr=~a,yiaddr=~a,chaddr=~X"
+	      op
+	      (or (and (numberp ciaddr)
+		       (numex:num->octets ciaddr :endian :net))
+		  nil)
+	      (or (and (numberp yiaddr)
+		       (numex:num->octets yiaddr :endian :net))
+		  nil)
+	      chaddr))
     )
   )
 

@@ -1,0 +1,37 @@
+
+
+* Ask my router for several IP addresses
+
+#+BEGIN_SRC lisp :results output
+
+  (labels ((mreq (mac)
+             (make-instance 'dhcp 
+                            :op 1 
+                            :htype 1
+                            :hlen 6
+                            :xid (random (expt 2 32))
+                            :ciaddr #(0 0 0 0)
+                            :chaddr mac)))
+    (let ((rlst (list (mreq #(1 2 3 4 5 6))
+                      (mreq #(1 2 3 4 5 7))
+                      (mreq #(1 2 3 4 5 6))))
+          (oobj (make-instance 'dhcp-options
+                               :mtype 1
+                               :restof
+                               `((:lease-time 300) ))))
+      (loop :for obj :in rlst do
+         (setf (options obj) (encode-dhcp-options oobj))
+         (princ  (handle-dhcp-message obj)))
+      )
+    )
+#+END_SRC
+
+#+RESULTS:
+: #<DHCP op=1,ciaddr=NIL,yiaddr=NIL,chaddr=#(1 2 3 4 5 6)>dhcp discover received
+: get-address: #(10 0 12 2)
+: returning dhcp offer
+: #<DHCP op=2,ciaddr=NIL,yiaddr=#(10 0 12 2),chaddr=#(1 2 3 4 5 6)>
+
+
+* Generate a client to match each of the captured packets
+.

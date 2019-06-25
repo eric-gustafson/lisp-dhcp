@@ -1,13 +1,6 @@
 #+title: dhcp protocol meta code
 
 
-* TODO parsing dhcp options
-  returns an object now, with slot for the key options, and restof for the others
-
-** TODO pretty print print-object for the class
-
-
-    
 * DHCP Info
 
 ** Key Resources
