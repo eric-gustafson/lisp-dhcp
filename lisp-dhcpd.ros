@@ -17,7 +17,8 @@ exec ros -Q -- $0 "$@"
 (defun main (&rest argv)
   (declare (ignorable argv))
   (swank:create-server :dont-close t :port 4006)
-  ;;(dhcp-server::create-dhcpd-handler)
+  (dhcp-server:setup-prototype)
+  (dhcp-server:dhcpd)
   (loop
      (sleep 60)
      )

@@ -4,5 +4,8 @@
   (:use #:cl
 	)
   (:export
-   :dhcp)
+   :dhcp
+   :setup-prototype
+   :dhcpd
+   )
   )

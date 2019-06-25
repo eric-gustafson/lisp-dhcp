@@ -30,7 +30,11 @@
       (with-slots
 	    (mac ipnum tla lease-time mac)
 	  obj
-	(format stream "~a,~a,~a,~a" mac (numex:num->dotted ipnum) (- now tla) lease-time))
+	(format stream "~a,~a,~a,~a"
+		mac
+		(when (numberp ipnum)
+		  (numex:num->dotted ipnum))
+		(- now tla) lease-time))
       )
     )
   )
@@ -457,7 +461,7 @@
   #+(or ccl) (return-from local-host-addr "255.255.255.255")
   (numex:addr->dotted (this-ip)))
   
-(defun create-dhcpd-handler ()
+(defun dhcpd ()
   (labels ((run ()
 	     (let* ((dhcpObj (make-instance 'dhcp))
 		    (buff (make-array 1024 :element-type '(unsigned-byte 8)))
@@ -753,9 +757,12 @@
     
   
 (defun setup-prototype ()
-  ;;(setf lparallel:*kernel* (lparallel:make-kernel 4))
+  (unless lparallel:*kernel*
+    (setf lparallel:*kernel* (lparallel:make-kernel 4)))
+  (inferior-shell:run/s (format nil "/sbin/ip addr add ~a/24 brd + dev wlx9cefd5fdd60e" (numex:addr->dotted (this-ip))))
+  (inferior-shell:run/s "hostapd  /etc/hostapd/hostapd.conf &")
   ;;(network-watchdog)
-  (configure-parent-router)
+  ;;(configure-parent-router)
   
   )
 
