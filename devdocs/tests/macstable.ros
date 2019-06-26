@@ -1,8 +1,5 @@
+#!/bin/sh
 
-
-* Ask my router for several IP addresses
-
-#+BEGIN_SRC lisp :results output :tangle "tests/macstable.ros" :shebang "#!/bin/sh"
 #|-*- mode:lisp -*-|#
 #|
 exec ros -Q -- $0 "$@"
@@ -65,32 +62,3 @@ exec ros -Q -- $0 "$@"
       )
     (prove:finalize)
     )
-
-      
-#+END_SRC
-
-#+RESULTS:
-#+begin_example
-1..3
-
-dhcp discover received
-get-address: #(10 0 12 2)
-returning dhcp offer
-dhcp discover received
-get-address: #(10 0 12 3)
-returning dhcp offer
-dhcp discover received
-get-address: #(10 0 12 2)
-returning dhcp offer
-  [32m✓ [90mT is expected to be T[0m 
-[0m
-  [32m✓ [90mT is expected to be T[0m 
-[0m
-  [32m✓ [90mT is expected to be T[0m 
-[0m
-[32m✓ 3 tests completed[0m [90m(0ms)[0m
-#+end_example
-
-
-* Generate a client to match each of the captured packets
-.

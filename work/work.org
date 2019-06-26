@@ -8,21 +8,16 @@
 ** TODO catch dhcp parse error and log
    Just don't out the dhcp address, but keep chugging along
 
-** TODO gave the same ip address out to clients
+** DONE gave the same ip address out to clients
    wtf??
+   
+   Test again
 
-*** TODO dhcp client request 
-
-* TODO parsing dhcp options
-  returns an object now, with slot for the key options, and restof for the others
-
-    
-
-
+* TODO unit and systems testing from another module
 
 * Week
 
-** TODO architecture
+** DONE architecture
    - sbcl
    - two programs
      Communicating over IPC.  Look @ basic binary IPC.   Basic idea, serialize/deserialize 
@@ -35,7 +30,7 @@
 
 ** TODO dhcp release
 
-** TODO Add route for host on startup
+** DONE Add route for host on startup
 #+BEGIN_SRC sh
     gksu ip a add 192.168.12.1/255.255.255.0 dev wlx9cefd5fdd60e
 #+END_SRC
@@ -45,7 +40,8 @@
 
 ** TODO simple network scan GUI
 
-** TODO deploy bitbake image to beaglebone green
+** DONE deploy bitbake image to beaglebone green
+   It looks like we don't need to do this.  It comes with debian on it.
 
 * Month
 ** TODO zigbee turn lights on/off

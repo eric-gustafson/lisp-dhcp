@@ -282,6 +282,10 @@
 
 (defmethod ip=? (a b)
   (cond
+    ((numberp a)
+     (ip=? (numex:num->octets a) b))
+    ((numberp b)
+     (ip=? a (numex:num->octets b)))
     ((stringp a)
      (ip=? (numex:dotted->vector a) b))
     ((stringp b)
