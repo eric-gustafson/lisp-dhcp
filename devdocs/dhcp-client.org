@@ -2,75 +2,31 @@
 
 * Ask my router for several IP addresses
 
-#+BEGIN_SRC lisp :results output :tangle "tests/macstable.ros" :shebang "#!/bin/sh"
-#|-*- mode:lisp -*-|#
-#|
-exec ros -Q -- $0 "$@"
-|#
-  (progn ;;init forms
-    (ros:ensure-asdf)
-    ;;#+quicklisp(ql:quickload '() :silent t)
-    )
 
-  (defpackage :ros.script.mac-test.3770496090
-    (:use :cl))
-  (in-package :ros.script.mac-test.3770496090)
-  (ql:quickload :prove)
-  (ql:quickload :dhcp-server)
+* Generate a client to match each of the captured packets
 
-  (defun main (&rest argv)
-    (declare (ignorable argv))
 
-    (in-package :cl-user)
-    (defpackage dhcp-test
-      (:use :cl :dhcp-server
-            :prove))
-    (in-package :dhcp-test)
+* Testing
 
-    (prove:plan 3)
+  [[file:./tests]]
 
-    (labels ((mreq (mac)
-               (make-instance 'dhcp-server:dhcp 
-                              :op 1 
-                              :htype 1
-                              :hlen 6
-                              :xid (random (expt 2 32))
-                              :ciaddr #(0 0 0 0)
-                              :chaddr mac)))
-      (let ((rlst (list (mreq #(1 2 3 4 5 6))
-                        (mreq #(1 2 3 4 5 7))
-                        (mreq #(1 2 3 4 5 6))))
-            (oobj (make-instance 'dhcp-server:dhcp-options
-                                 :mtype 1
-                                 :restof
-                                 `((:lease-time 300) ))))
-        (trivia:match
-            (loop :for obj :in rlst do
-               (setf (dhcp-server:options obj) (dhcp-server:encode-dhcp-options oobj))
-               :collect
-               (dhcp-server:handle-dhcp-message obj))
-          ((list x y z)
-           ;;(print x)
-           ;;(print (dhcp-server:yiaddr x))
-           (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr x) #(10 0 12 2)))
-           (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr y) #(10 0 12 3)))
-           (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr z) #(10 0 12 2)))
-           )
-          )
-
-        ;;(ok (not (find 4 '(1 2 3))))
-        ;;(is 4 4)
-        ;;(isnt 1 #\1)
-        )
-      )
-    (prove:finalize)
-    )
-
-      
+#+BEGIN_SRC sh :results raw :dir tests
+   make
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
+ros macstable.ros | tee macstable.results
+To load "prove":
+  Load 1 ASDF system:
+    prove
+; Loading "prove"
+.
+To load "dhcp-server":
+  Load 1 ASDF system:
+    dhcp-server
+; Loading "dhcp-server"
+.......
 1..3
 
 dhcp discover received
@@ -89,8 +45,7 @@ returning dhcp offer
   [32m✓ [90mT is expected to be T[0m 
 [0m
 [32m✓ 3 tests completed[0m [90m(0ms)[0m
+echo "done;"
+done;
 #+end_example
 
-
-* Generate a client to match each of the captured packets
-.

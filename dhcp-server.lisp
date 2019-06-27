@@ -338,6 +338,7 @@
 
 
 (defun dhcp-allocate-ip (reqMsg net)
+  ;; TODO: Handle the case whe we run out of addresses
   (or (dhcp-search-allocated-by-mac (mac reqMsg))
       (let ((f (first-ip net))
 	    (l (last-ip net)))

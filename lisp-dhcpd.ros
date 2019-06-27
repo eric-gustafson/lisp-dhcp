@@ -16,11 +16,15 @@ exec ros -Q -- $0 "$@"
 
 (defun main (&rest argv)
   (declare (ignorable argv))
-  (swank:create-server :dont-close t :port 4006)
-  (dhcp-server:setup-prototype)
-  (dhcp-server:dhcpd)
-  (loop
-     (sleep 60)
-     )
+  (let ((argv (cdr sb-ext:*posix-argv*)))
+    (destructuring-bind (&key (sport 4009))
+        (loop for x in argv collect (with-input-from-string (p x) (read p)))
+      (swank:create-server :dont-close t :port sport)
+      )
+    (dhcp-server:setup-prototype)
+    (dhcp-server:dhcpd)
+    (loop (sleep 60))
+    )
   )
+
 ;;; vim: set ft=lisp lisp:

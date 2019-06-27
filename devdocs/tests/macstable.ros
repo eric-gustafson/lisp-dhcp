@@ -1,13 +1,12 @@
 #!/bin/sh
-
 #|-*- mode:lisp -*-|#
 #|
 exec ros -Q -- $0 "$@"
 |#
-  (progn ;;init forms
-    (ros:ensure-asdf)
-    ;;#+quicklisp(ql:quickload '() :silent t)
-    )
+(progn ;;init forms
+  (ros:ensure-asdf)
+  ;;#+quicklisp(ql:quickload '() :silent t)
+  )
 
   (defpackage :ros.script.mac-test.3770496090
     (:use :cl))
@@ -15,7 +14,45 @@ exec ros -Q -- $0 "$@"
   (ql:quickload :prove)
   (ql:quickload :dhcp-server)
 
-  (defun main (&rest argv)
+
+(defun simple-allocation ()
+  (labels ((mreq (mac)
+	     (make-instance 'dhcp-server:dhcp 
+			    :op 1 
+			    :htype 1
+			    :hlen 6
+			    :xid (random (expt 2 32))
+			    :ciaddr #(0 0 0 0)
+			    :chaddr mac)))
+    (let ((rlst (list (mreq #(1 2 3 4 5 6))
+		      (mreq #(1 2 3 4 5 7))
+		      (mreq #(1 2 3 4 5 6))))
+	  (oobj (make-instance 'dhcp-server:dhcp-options
+			       :mtype 1
+			       :restof
+			       `((:lease-time 300) ))))
+      (trivia:match
+	  (loop :for obj :in rlst do
+	     (setf (dhcp-server:options obj) (dhcp-server:encode-dhcp-options oobj))
+	     :collect
+	     (dhcp-server:handle-dhcp-message obj))
+	((list x y z)
+	 ;;(print x)
+	 ;;(print (dhcp-server:yiaddr x))
+	 (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr x) #(10 0 12 2)))
+	 (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr y) #(10 0 12 3)))
+	 (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr z) #(10 0 12 2)))
+	 )
+	)
+
+      ;;(ok (not (find 4 '(1 2 3))))
+      ;;(is 4 4)
+      -	;;(isnt 1 #\1)
+      )
+    )
+  )
+  
+(defun main (&rest argv)
     (declare (ignorable argv))
 
     (in-package :cl-user)
@@ -25,40 +62,8 @@ exec ros -Q -- $0 "$@"
     (in-package :dhcp-test)
 
     (prove:plan 3)
-
-    (labels ((mreq (mac)
-               (make-instance 'dhcp-server:dhcp 
-                              :op 1 
-                              :htype 1
-                              :hlen 6
-                              :xid (random (expt 2 32))
-                              :ciaddr #(0 0 0 0)
-                              :chaddr mac)))
-      (let ((rlst (list (mreq #(1 2 3 4 5 6))
-                        (mreq #(1 2 3 4 5 7))
-                        (mreq #(1 2 3 4 5 6))))
-            (oobj (make-instance 'dhcp-server:dhcp-options
-                                 :mtype 1
-                                 :restof
-                                 `((:lease-time 300) ))))
-        (trivia:match
-            (loop :for obj :in rlst do
-               (setf (dhcp-server:options obj) (dhcp-server:encode-dhcp-options oobj))
-               :collect
-               (dhcp-server:handle-dhcp-message obj))
-          ((list x y z)
-           ;;(print x)
-           ;;(print (dhcp-server:yiaddr x))
-           (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr x) #(10 0 12 2)))
-           (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr y) #(10 0 12 3)))
-           (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr z) #(10 0 12 2)))
-           )
-          )
-
-        ;;(ok (not (find 4 '(1 2 3))))
-        ;;(is 4 4)
-        ;;(isnt 1 #\1)
-        )
-      )
+    (simple-allocation)
     (prove:finalize)
     )
+
+
