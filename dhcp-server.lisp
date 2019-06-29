@@ -682,22 +682,28 @@
 
 
 (defun disable-firewall (external-if internal-if)
-  (ssh:with-connection
-      (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
-    (loop :for command :in (generate-nat-commands external-if internal-if)  :do
-       (handler-case
-	   (ssh:with-command
-	       (conn iostream command)
-	     (loop
-		for l = (read-line iostream nil)
-		while l
-		do (print l *standard-output*))
+  (handler-case
+      (ssh:with-connection
+	  (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
+	(loop :for command :in (generate-nat-commands external-if internal-if)  :do
+	   (handler-case
+	       (ssh:with-command
+		   (conn iostream command)
+		 (loop
+		    for l = (read-line iostream nil)
+		    while l
+		    do (print l *standard-output*))
+		 )
+	     (t (c)
+	       (format t "We caught a condition.~&")
+	       (values nil c)
+	       )
 	     )
-	 (t (c)
-	   (format t "We caught a condition.~&")
-	   (values nil c))
-	 )
-       )
+	   )
+	)
+    (t (c)
+      (format t "Outer error in ssh. ~&")
+      (values nil c))
     )
   )
 
@@ -816,7 +822,8 @@
       (inferior-shell:run/s (format nil "/sbin/ip addr add ~a/24 brd + dev wlx9cefd5fdd60e" (numex:addr->dotted (this-ip))))
     (t (c)
       (format t "We caught a condition.~&")
-      (values nil c)))
+      (values nil c)
+      ))
   (handler-case
       (inferior-shell:run/s "hostapd  /etc/hostapd/hostapd.conf &")
     (t (c)
