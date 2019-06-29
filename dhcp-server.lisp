@@ -693,7 +693,7 @@
 		while l
 		do (print l *standard-output*))
 	     )
-	 (error (c)
+	 (t (c)
 	   (format t "We caught a condition.~&")
 	   (values nil c))
 	 )
@@ -814,12 +814,12 @@
     (setf lparallel:*kernel* (lparallel:make-kernel 4)))
   (handler-case 
       (inferior-shell:run/s (format nil "/sbin/ip addr add ~a/24 brd + dev wlx9cefd5fdd60e" (numex:addr->dotted (this-ip))))
-    (error (c)
+    (t (c)
       (format t "We caught a condition.~&")
       (values nil c)))
   (handler-case
       (inferior-shell:run/s "hostapd  /etc/hostapd/hostapd.conf &")
-    (error (c)
+    (t (c)
       (format t "We caught a condition.~&")
       (values nil c)))
   ;;(network-watchdog)
