@@ -661,21 +661,23 @@
   )
 
 (defparameter *firewall-reset-cmds* (list
-				     "iptables -P INPUT ACCEPT"
-				     "iptables -P FORWARD ACCEPT"
-				     "iptables -P OUTPUT ACCEPT"
-				     "iptables -t nat -F"
-				     "iptables -t mangle -F"
-				     "iptables -F"
-				     "iptables -X"))
+				     "/usr/sbin/iptables -P INPUT ACCEPT"
+				     "/usr/sbin/iptables -P FORWARD ACCEPT"
+				     "/usr/sbin/iptables -P OUTPUT ACCEPT"
+				     "/usr/sbin/iptables -t nat -F"
+				     "/usr/sbin/iptables -t mangle -F"
+				     "/usr/sbin/iptables -F"
+				     "/usr/sbin/iptables -X"))
 
 (defun generate-nat-commands (external-if internal-if)
-  (list
-   "echo 1 > /proc/sys/net/ipv4/ip_forward\n"
-   (format nil "/sbin/iptables -t nat -A POSTROUTING -o ~a -j MASQUERADE\n" external-if)
-   (format nil "/sbin/iptables -A FORWARD -i ~a -o ~a -m state --state RELATED,ESTABLISHED -j ACCEPT\n" external-if internal-if)
-   (format ni "/sbin/iptables -A FORWARD -i ~a -o ~a -j ACCEPT" internal-if external-if)
-   )
+  (append
+   *firewall-reset-cmds*
+   (list
+   "echo 1 > /proc/sys/net/ipv4/ip_forward"
+   (format nil "/usr/sbin/iptables -t nat -A POSTROUTING -o ~a -j MASQUERADE" external-if)
+   (format nil "/usr/sbin/iptables -A FORWARD -i ~a -o ~a -m state --state RELATED,ESTABLISHED -j ACCEPT" external-if internal-if)
+   (format nil "/usr/sbin/iptables -A FORWARD -i ~a -o ~a -j ACCEPT" internal-if external-if)
+   ))
   )
 
 

@@ -16,7 +16,9 @@ exec ros -Q -- $0 "$@"
 
 (defun main (&rest argv)
   (declare (ignorable argv))
-  (let ((argv (cdr sb-ext:*posix-argv*)))
+  (let ((argv #+(or sbcl) (cdr sb-ext:*posix-argv*)
+	      #+(or ccl) ccl:*unprocessed-command-line-arguments*)
+	  )
     (destructuring-bind (&key (sport 4009))
         (loop for x in argv collect (with-input-from-string (p x) (read p)))
       (swank:create-server :dont-close t :port sport)
