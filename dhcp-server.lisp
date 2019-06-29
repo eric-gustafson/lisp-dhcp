@@ -598,14 +598,16 @@
 	   *router-table*))
 
 (defun get-routes ()
-  (let ((results (ssh:with-connection
-		     (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
-		   (ssh:with-command
-		       (conn iostream "cat /proc/net/route")
-		     (loop
-			for l = (read-line iostream nil)
-			while l
-			collect (ppcre::split "\\s+" l))))))
+  (let ((results (invoke/logger
+		  #'(lambda()
+		      (ssh:with-connection
+			  (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
+			(ssh:with-command
+			    (conn iostream "cat /proc/net/route")
+			  (loop
+			     for l = (read-line iostream nil)
+			     while l
+			     collect (ppcre::split "\\s+" l))))))))
     (cons
      (car results)
      (mapcar
@@ -631,15 +633,17 @@
 
 
 (defmethod remove-route ((rte router-if))
-  (ssh:with-connection
-      (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
-    (ssh:with-command
-	(conn iostream (format nil "route del -net ~a gw ~a netmask ~a dev ~a" (numex:addr->dotted (dest rte)) (numex:addr->dotted (gw rte)) (numex:addr->dotted (mask rte)) (iface rte)))
-      (loop
-	 for l = (read-line iostream nil)
-	 while l
-	 collect (ppcre::split "\\s+" l))))
-  )
+  (invoke/logger
+   #'(lambda()
+       (ssh:with-connection
+	   (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
+	 (ssh:with-command
+	     (conn iostream (format nil "route del -net ~a gw ~a netmask ~a dev ~a" (numex:addr->dotted (dest rte)) (numex:addr->dotted (gw rte)) (numex:addr->dotted (mask rte)) (iface rte)))
+	   (loop
+	      for l = (read-line iostream nil)
+	      while l
+	      collect (ppcre::split "\\s+" l))))
+       )))
 
 (defmethod route-add-cmd ((rte router-if))
   (format nil "route add -net ~a gw ~a netmask ~a dev ~a"
@@ -650,15 +654,17 @@
   )
 
 (defmethod add-route ((rte router-if))
-  (ssh:with-connection
-      (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
-    (ssh:with-command
-	(conn iostream (route-add-cmd rte))
-      (loop
-	 for l = (read-line iostream nil)
-	 while l
-	 collect (ppcre::split "\\s+" l))))
-  )
+  (invoke/logger
+   #'(lambda()
+       (ssh:with-connection
+	   (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
+	 (ssh:with-command
+	     (conn iostream (route-add-cmd rte))
+	   (loop
+	      for l = (read-line iostream nil)
+	      while l
+	      collect (ppcre::split "\\s+" l))))
+       )))
 
 (defparameter *firewall-reset-cmds* (list
 				     "/usr/sbin/iptables -P INPUT ACCEPT"
@@ -680,31 +686,42 @@
    ))
   )
 
+(defvar *log-stream* (open #P"/tmp/dhcp-errors"
+			   :direction :output
+			   :if-does-not-exist :create
+			   :if-exists :append
+			   :external-format '(unsigned-byte 8)))
+			  
+			   
+
+(defun invoke/logger (thunk)
+  (handler-case
+      (funcall thunk)
+    (t (c)
+      (format *log-stream*
+	      "We caught a condition.~&")
+      (values nil c))))
 
 (defun disable-firewall (external-if internal-if)
-  (handler-case
-      (ssh:with-connection
-	  (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
-	(loop :for command :in (generate-nat-commands external-if internal-if)  :do
-	   (handler-case
-	       (ssh:with-command
-		   (conn iostream command)
-		 (loop
-		    for l = (read-line iostream nil)
-		    while l
-		    do (print l *standard-output*))
-		 )
-	     (t (c)
-	       (format t "We caught a condition.~&")
-	       (values nil c)
-	       )
-	     )
-	   )
-	)
-    (t (c)
-      (format t "Outer error in ssh. ~&")
-      (values nil c))
-    )
+  (invoke/logger #'(lambda()
+		     (ssh:with-connection
+			 (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
+		       (loop :for command :in (generate-nat-commands external-if internal-if)  :do
+			  (handler-case
+			      (ssh:with-command
+				  (conn iostream command)
+				(loop
+				   for l = (read-line iostream nil)
+				   while l
+				   do (print l *standard-output*))
+				)
+			    (t (c)
+			      (format t "We caught a condition.~&")
+			      (values nil c)
+			      )
+			    )
+			  )
+		       )))
   )
 
 (defun network-watchdog ()
