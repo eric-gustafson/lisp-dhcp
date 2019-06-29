@@ -808,7 +808,7 @@
   (inferior-shell:run/s (format nil "/sbin/ip addr add ~a/24 brd + dev wlx9cefd5fdd60e" (numex:addr->dotted (this-ip))))
   (inferior-shell:run/s "hostapd  /etc/hostapd/hostapd.conf &")
   ;;(network-watchdog)
-  ;;(configure-parent-router)
+  (configure-parent-router)
   
   )
 
