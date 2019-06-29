@@ -8,12 +8,8 @@
 ** TODO catch dhcp parse error and log
    Just don't out the dhcp address, but keep chugging along
 
-** DONE gave the same ip address out to clients
-   wtf??
-   
-   Test again
+** TODO apply firewall rules when we setup
 
-* TODO unit and systems testing from another module
 
 * Week
 
@@ -40,15 +36,12 @@
 
 ** TODO simple network scan GUI
 
-** DONE deploy bitbake image to beaglebone green
-   It looks like we don't need to do this.  It comes with debian on it.
 
 * Month
 ** TODO zigbee turn lights on/off
    Use the current dongle.  Just an ezsp loop that sends a zcl broadcast command
 
 ** TODO vpn connection to isolitiare from iot devics
-
 
 ** TODO deploy to neo 
    Consider this for prototype 3
@@ -114,10 +107,8 @@
 #+END_SRC
 
 
-
 * TODO create a commissioning network
   This is a virtual interface with a network allocated from *network-malloc*
-
 
 ** TODO verfify that this shows up on RBPI
 

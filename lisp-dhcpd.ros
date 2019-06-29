@@ -22,6 +22,7 @@ exec ros -Q -- $0 "$@"
       (swank:create-server :dont-close t :port sport)
       )
     (dhcp-server:setup-prototype)
+    (dhcp-server:configure-parent-router)
     (dhcp-server:dhcpd)
     (loop (sleep 60))
     )

@@ -660,6 +660,40 @@
 	 collect (ppcre::split "\\s+" l))))
   )
 
+(defparameter *firewall-reset-cmds* (list
+				     "iptables -P INPUT ACCEPT"
+				     "iptables -P FORWARD ACCEPT"
+				     "iptables -P OUTPUT ACCEPT"
+				     "iptables -t nat -F"
+				     "iptables -t mangle -F"
+				     "iptables -F"
+				     "iptables -X"))
+
+(defun generate-nat-commands (external-if internal-if)
+  (list
+   "echo 1 > /proc/sys/net/ipv4/ip_forward\n"
+   (format nil "/sbin/iptables -t nat -A POSTROUTING -o ~a -j MASQUERADE\n" external-if)
+   (format nil "/sbin/iptables -A FORWARD -i ~a -o ~a -m state --state RELATED,ESTABLISHED -j ACCEPT\n" external-if internal-if)
+   (format ni "/sbin/iptables -A FORWARD -i ~a -o ~a -j ACCEPT" internal-if external-if)
+   )
+  )
+
+
+(defun disable-firewall (external-if internal-if)
+  (ssh:with-connection
+      (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
+    (loop :for command :in (generate-nat-commands external-if internal-if)  :do
+       (ssh:with-command
+	   (conn iostream command)
+	 (loop
+	    for l = (read-line iostream nil)
+	    while l
+	    do (print l *standard-output*))
+	 )
+       )
+    )
+  )
+
 (defun network-watchdog ()
   (let ((channel (lparallel:make-channel)))
     ;;(submit-task channel '+ 3 4)
@@ -757,6 +791,7 @@
        (if (equal '(10 0 12 0) (dest re))
 	   (remove-route re)))
     (add-route r)
+    (disable-firewall "eth1" "br0")
     )
   )  
 

@@ -13,6 +13,7 @@
    :ip=?
    :options
    :setup-prototype
+   :configure-parent-router
    :yiaddr
    :ciaddr
    )
