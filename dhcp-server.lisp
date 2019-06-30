@@ -676,6 +676,7 @@
   (append
    *firewall-reset-cmds*
    (list
+
     "echo 1 > /proc/sys/net/ipv4/ip_forward"
     (format nil "/usr/sbin/iptables -t nat -F")
     (format nil "/usr/sbin/iptables -t mangle -F")
@@ -690,7 +691,6 @@
    )
   )
 
-			   
 
 (defmacro catch/log (&body body)
   ;; #+nil(handler-case
