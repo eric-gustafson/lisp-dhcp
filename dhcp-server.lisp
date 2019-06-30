@@ -598,16 +598,15 @@
 	   *router-table*))
 
 (defun get-routes ()
-  (let ((results (invoke/logger
-		  #'(lambda()
-		      (ssh:with-connection
-			  (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
-			(ssh:with-command
-			    (conn iostream "cat /proc/net/route")
-			  (loop
-			     for l = (read-line iostream nil)
-			     while l
-			     collect (ppcre::split "\\s+" l))))))))
+  (let ((results (catch/log
+		  (ssh:with-connection
+		      (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
+		    (ssh:with-command
+			(conn iostream "cat /proc/net/route")
+		      (loop
+			 for l = (read-line iostream nil)
+			 while l
+			 collect (ppcre::split "\\s+" l)))))))
     (cons
      (car results)
      (mapcar
@@ -633,17 +632,16 @@
 
 
 (defmethod remove-route ((rte router-if))
-  (invoke/logger
-   #'(lambda()
-       (ssh:with-connection
-	   (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
-	 (ssh:with-command
-	     (conn iostream (format nil "route del -net ~a gw ~a netmask ~a dev ~a" (numex:addr->dotted (dest rte)) (numex:addr->dotted (gw rte)) (numex:addr->dotted (mask rte)) (iface rte)))
-	   (loop
-	      for l = (read-line iostream nil)
-	      while l
-	      collect (ppcre::split "\\s+" l))))
-       )))
+  (catch/log
+   (ssh:with-connection
+       (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
+     (ssh:with-command
+	 (conn iostream (format nil "route del -net ~a gw ~a netmask ~a dev ~a" (numex:addr->dotted (dest rte)) (numex:addr->dotted (gw rte)) (numex:addr->dotted (mask rte)) (iface rte)))
+       (loop
+	  for l = (read-line iostream nil)
+	  while l
+	  collect (ppcre::split "\\s+" l))))
+       ))
 
 (defmethod route-add-cmd ((rte router-if))
   (format nil "route add -net ~a gw ~a netmask ~a dev ~a"
@@ -654,17 +652,16 @@
   )
 
 (defmethod add-route ((rte router-if))
-  (invoke/logger
-   #'(lambda()
-       (ssh:with-connection
-	   (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
-	 (ssh:with-command
-	     (conn iostream (route-add-cmd rte))
-	   (loop
-	      for l = (read-line iostream nil)
-	      while l
-	      collect (ppcre::split "\\s+" l))))
-       )))
+  (catch/log
+   (ssh:with-connection
+       (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
+     (ssh:with-command
+	 (conn iostream (route-add-cmd rte))
+       (loop
+	  for l = (read-line iostream nil)
+	  while l
+	  collect (ppcre::split "\\s+" l))))
+       ))
 
 (defparameter *firewall-reset-cmds* (list
 				     "/usr/sbin/iptables -P INPUT ACCEPT"
@@ -679,50 +676,52 @@
   (append
    *firewall-reset-cmds*
    (list
-   "echo 1 > /proc/sys/net/ipv4/ip_forward"
-   (format nil "/usr/sbin/iptables -t nat -A POSTROUTING -o ~a -j MASQUERADE" external-if)
-   (format nil "/usr/sbin/iptables -A FORWARD -i ~a -o ~a -m state --state RELATED,ESTABLISHED -j ACCEPT" external-if internal-if)
-   (format nil "/usr/sbin/iptables -A FORWARD -i ~a -o ~a -j ACCEPT" internal-if external-if)
-   ))
+    "echo 1 > /proc/sys/net/ipv4/ip_forward"
+    (format nil "/usr/sbin/iptables -t nat -F")
+    (format nil "/usr/sbin/iptables -t mangle -F")
+    ;;(format nil "/usr/sbin/iptables -t nat -A POSTROUTING -o ~a -j SNAT --to 192.168.1.8" external-if)
+    (format nil "/usr/sbin/iptables -t nat -A POSTROUTING -o ~a -j MASQUERADE" external-if)
+    ;;(format nil "/usr/sbin/iptables -A FORWARD -i ~a -o ~a -m state --state RELATED,ESTABLISHED -j ACCEPT" external-if internal-if)
+    ;;(format nil "/usr/sbin/iptables -A FORWARD -i ~a -o ~a -j ACCEPT" internal-if external-if)
+    ;;(format nil "/usr/sbin/iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT")
+    ;;(format nil "/usr/sbin/iptables -A FORWARD -i ~a -o ~a -j ACCEPT" internal-if external-if)
+    
+    )
+   )
   )
 
-(defvar *log-stream* (open #P"/tmp/dhcp-errors"
-			   :direction :output
-			   :if-does-not-exist :create
-			   :if-exists :append
-			   :external-format '(unsigned-byte 8)))
-			  
 			   
 
-(defun invoke/logger (thunk)
-  (handler-case
-      (funcall thunk)
-    (t (c)
-      (format *log-stream*
-	      "We caught a condition.~&")
-      (values nil c))))
+(defmacro catch/log (&body body)
+  ;; #+nil(handler-case
+  ;;      (progn
+  ;; 	 ,@body)
+  ;;    (error (c)
+  ;;      (format *standard-output*
+  ;; 	       "We caught a condition. ~&")
+  ;;      (force-output *standard-output*)
+  ;;      (values nil c)))
+  `(progn
+     ,@body
+     )
+  )
+  
 
 (defun disable-firewall (external-if internal-if)
-  (invoke/logger #'(lambda()
-		     (ssh:with-connection
-			 (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
-		       (loop :for command :in (generate-nat-commands external-if internal-if)  :do
-			  (handler-case
-			      (ssh:with-command
-				  (conn iostream command)
-				(loop
-				   for l = (read-line iostream nil)
-				   while l
-				   do (print l *standard-output*))
-				)
-			    (t (c)
-			      (format t "We caught a condition.~&")
-			      (values nil c)
-			      )
-			    )
-			  )
-		       )))
-  )
+  (catch/log
+    (ssh:with-connection
+       (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
+     (loop :for command :in (generate-nat-commands external-if internal-if)  :do
+	(catch/log
+	 (ssh:with-command
+	     (conn iostream command)
+	   (loop
+	      for l = (read-line iostream nil)
+	      while l
+	      do (print l *standard-output*))
+	   ))
+	)
+     )))
 
 (defun network-watchdog ()
   (let ((channel (lparallel:make-channel)))
