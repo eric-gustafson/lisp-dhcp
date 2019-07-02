@@ -1,3 +1,4 @@
+#+startup: overview
 
 * Prototype
 ** DHCP server for my personal devices
@@ -8,7 +9,6 @@
       devices are not allowed to talk to other internal devices.
 
 *** Watch movies using *g3*
-
 
 * IOT server
   Move TV's and alexa's onto IOT network

@@ -484,24 +484,34 @@
 		    (loop while (serve) do
 			 (multiple-value-bind (buff size client receive-port)
 			     (usocket:socket-receive rsocket buff 1024)
-			   (format t "got request~%")
-			   (setf *last* (copy-seq buff))
-			   (deserialize-into-dhcp-from-buff! dhcpObj buff)
-			   (let* ((m (handle-dhcp-message dhcpObj))
-				  (buff (response->buff m)))
-			     (format t "sending response:~a~%" (numex:num->octets (yiaddr m)))
-			     (setf (usocket:socket-option rsocket :broadcast) t)			     
-			     (let ((nbw (usocket:socket-send
-					 rsocket buff (length buff)
-					 :port *dhcp-client-port*
-					 :host #(10 0 12 255)
-					 ;;:host  (coerce (this-ip) 'vector)
-					 )))
-			       (format t "number of bytes sent:~a~%" nbw))
+			   (handler-case
+			       (progn
+				 (format t "got request~%")
+				 (setf *last* (copy-seq buff))
+				 (deserialize-into-dhcp-from-buff! dhcpObj buff)
+				 (let* ((m (handle-dhcp-message dhcpObj))
+					(buff (response->buff m)))
+				   (format t "sending response:~a~%" (numex:num->octets (yiaddr m)))
+				   (setf (usocket:socket-option rsocket :broadcast) t)			     
+				   (let ((nbw (usocket:socket-send
+					       rsocket buff (length buff)
+					       :port *dhcp-client-port*
+					       :host #(10 0 12 255)
+					       ;;:host  (coerce (this-ip) 'vector)
+					       )))
+				     (format t "number of bytes sent:~a~%" nbw))
+				   )
+				 (force-output *standard-output*)
+				 )
+			     (error (c)
+			       (syslog:log "dhcp-server" :user :warning "Error parsing or processing dhcp message")
+			       (syslog:log "path ~a"
+					   (uiop/stream:with-temporary-file (:stream bout :element-type '(unsigned-byte 8))
+					     (write-sequence buff bout)
+					     ))
+			       (values nil c))
 			     )
-			   (force-output *standard-output*)
-			   )
-			 )
+			   ))
 		 ;;(usocket:socket-close ssocket)
 		 (usocket:socket-close rsocket)
 		 ))))
@@ -837,7 +847,7 @@
   (handler-case 
       (inferior-shell:run/s (format nil "/sbin/ip addr add ~a/24 brd + dev wlx9cefd5fdd60e" (numex:addr->dotted (this-ip))))
     (t (c)
-      (format t "We caught a condition.~&")
+      (format t "Error condition setting ip address.~&")
       (values nil c)
       ))
   (handler-case

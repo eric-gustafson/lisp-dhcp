@@ -2,6 +2,7 @@
 
 (defpackage #:dhcp-server
   (:use #:cl
+	;;#:cl-syslog
 	)
   (:export
    

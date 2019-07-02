@@ -8,33 +8,31 @@
 ** TODO catch dhcp parse error and log
    Just don't out the dhcp address, but keep chugging along
 
-** TODO apply firewall rules when we setup
+** TODO Try RBPi with just USB dongle
+   https://superuser.com/questions/612155/how-do-i-use-a-single-wireless-adapter-for-both-an-access-point-and-client-on-ra
+
+** TODO simple network scan GUI
+   https://www.linuxjournal.com/content/wi-fi-command-line
+
+#+BEGIN_SRC sh  :dir /sudo::~/
+ iwlist wlan0 scan
+#+END_SRC
+
+#+RESULTS:
+
+** TODO run function to determine if we can setup mesh router on this athena
+
+** TODO prototype laptop without network manager
+   Or maybe use the beaglebone
+
 
 
 * Week
 
-** DONE architecture
-   - sbcl
-   - two programs
-     Communicating over IPC.  Look @ basic binary IPC.   Basic idea, serialize/deserialize 
-     - dhcp client/server
-     - snot
-   - can we feed dhcp socket to select?
-   - same with snot
-   - we should nice down snot
-
-
 ** TODO dhcp release
-
-** DONE Add route for host on startup
-#+BEGIN_SRC sh
-    gksu ip a add 192.168.12.1/255.255.255.0 dev wlx9cefd5fdd60e
-#+END_SRC
 
 ** TODO simple network map gui
     This might make getting mac memory working easier
-
-** TODO simple network scan GUI
 
 
 * Month
@@ -51,10 +49,6 @@
    - tftp to work with scanner
    - connects to rbpi server 
 
-** TODO bring this up on laptop
-*** TODO try using submodules 
-*** TODO 2nd laptop joins g3
-    traceroute, find out why we are not routing
 ** TODO fax machine and TV's working witih IOT nat
 
 ** TODO combine with snot
@@ -62,20 +56,11 @@
 * Future
 
 
-
-* RBPI
-  If we want to use threads, we are going to need to use ccl-bin, or ecl.  
-** ccl-bin
-** ecl
-
-
 * TODO Laptop
 ** TODO turn network watchdog off and on
 ** TODO syslog
 ** TODO dhcp client
    Do we maybe want to get rid of network manager?
-
-
 
 
 * TODO network watchdog

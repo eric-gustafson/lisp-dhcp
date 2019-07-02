@@ -20,6 +20,7 @@
 	       #:numex
 	       #:lsa
 	       #:trivial-ssh
+	       #:cl-syslog
 	       )
   :components ((:file "package")
 	       (:file "dhcp-bootp-fields")
