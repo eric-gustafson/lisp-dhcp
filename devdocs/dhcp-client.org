@@ -15,7 +15,6 @@
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
 ros macstable.ros | tee macstable.results
 To load "prove":
   Load 1 ASDF system:
@@ -47,5 +46,4 @@ returning dhcp offer
 [32m✓ 3 tests completed[0m [90m(0ms)[0m
 echo "done;"
 done;
-#+end_example
 
