@@ -5,6 +5,7 @@
   [[file:../devdocs/]]
   [[file:../dhcp-server.lisp]]
 
+
 ** TODO catch dhcp parse error and log
    Just don't out the dhcp address, but keep chugging along
 
