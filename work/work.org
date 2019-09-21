@@ -1,38 +1,68 @@
 #+title: work
 
+[[/ssh:root@192.168.1.2:/]]
+
+  Remote slime
+#+BEGIN_SRC sh
+ssh -N -R 4009:localhost:4009 root@192.168.1.3
+#+END_SRC
+
+
 
 * Today
   [[file:../devdocs/]]
   [[file:../dhcp-server.lisp]]
 
-** TODO catch dhcp parse error and log
+* TODO error setting up ip address
+  DEADLINE: <2019-09-21 Sat>
+
+  
+
+* TODO catch dhcp parse error and log
+  DEADLINE: <2019-09-15 Sun>
    Just don't out the dhcp address, but keep chugging along
 
 ** TODO Try RBPi with just USB dongle
    https://superuser.com/questions/612155/how-do-i-use-a-single-wireless-adapter-for-both-an-access-point-and-client-on-ra
 
-** TODO simple network scan GUI
-   https://www.linuxjournal.com/content/wi-fi-command-line
 
-#+BEGIN_SRC sh  :dir /sudo::~/
- iwlist wlan0 scan
+** TODO simple network map gui
+    This might make getting mac memory working easier
+
+** TODO simple network scan gui
+
+
+** TODO have everything come up from a boot
+   DEADLINE: <2019-09-24 Tue>
+   hostapd brings the interface up.  Bringing the interface up before
+   running that hostapd put things into a state that I couldn't recover
+   from without a reboot. (I think I have a little scriplet here somewhere
+   that would recover ...)
+
+   The thing is, we need a fork/exec init kind of thing to run from here.
+   
+** TODO Have the program install everything to run as a daemon
+
+** TODO add the interface
+
+#+BEGIN_SRC sh
+   apt-get install -y lib-ssh2-1-dev
 #+END_SRC
 
 #+RESULTS:
 
-** TODO run function to determine if we can setup mesh router on this athena
+   Get the interface
 
-** TODO prototype laptop without network manager
-   Or maybe use the beaglebone
+#+BEGIN_SRC sh
+   pkexec ip link set dev wlx9cefd5fdd60e up
+#+END_SRC
 
 
 
 * Week
 
-** TODO dhcp release
 
-** TODO simple network map gui
-    This might make getting mac memory working easier
+** TODO dhcp release
 
 
 * Month
@@ -65,31 +95,6 @@
 
 * TODO network watchdog
   if after 15m, there is no network connectivity -- reboot
-
-
-* TODO have everything come up from a boot
-  hostapd brings the interface up.  Bringing the interface up before
-  running that hostapd put things into a state that I couldn't recover
-  from without a reboot. (I think I have a little scriplet here somewhere
-  that would recover ...)
-
-  The thing is, we need a fork/exec init kind of thing to run from here.
-  
-** TODO Have the program install everything to run as a daemon
-
-** TODO add the interface
-
-#+BEGIN_SRC sh
-   apt-get install -y lib-ssh2-1-dev
-#+END_SRC
-
-#+RESULTS:
-
-   Get the interface
-
-#+BEGIN_SRC sh
-   pkexec ip link set dev wlx9cefd5fdd60e up
-#+END_SRC
 
 
 * TODO create a commissioning network
@@ -131,10 +136,10 @@
 ** call recvfrom. any time before calling recvfrom, set up length parameter
 
 
-
-
 * TODO move netsecurity.org document for erlang dhcp project here
-  It was all there, except for the actual way to stop x-talk on the wireless lan (seperate networks for each node)
+  DEADLINE: <2019-09-07 Sat>
+  It was all there, except for the actual way to stop x-talk on the
+  wireless lan (seperate networks for each node)
 
 
 
@@ -145,11 +150,18 @@
   mac address should use the 'size' operator which is one of the first parameters
   which then allows us to trim the chaddr field.
 
-* DONE dhcp network based ip allocation code
 
-* DONE give the same address out for mac hit
+* TODO simple network scan GUI
+   https://www.linuxjournal.com/content/wi-fi-command-line
 
-* DONE check if rbpi has working watchdog
+#+BEGIN_SRC sh  :dir /sudo::~/
+ iwlist wlan0 scan
+#+END_SRC
 
-* DONE get mac address memory working
+#+RESULTS:
+
+** TODO run function to determine if we can setup mesh router on this athena
+
+** TODO prototype laptop without network manager
+   Or maybe use the beaglebone
 
