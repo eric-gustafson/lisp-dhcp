@@ -837,15 +837,22 @@
 
 (defun setup-hostapd ()
   (serapeum:and-let* ((x (car (get-wifi-gateway-candidates))))
-    (hostapd (lsa:name x)))
+		     (hostapd (lsa:name x)
+			      "g3"
+			      "bustergus25"))
   )
-    
+
+;; wlx9cefd5fdd60e
+(defun compute-wifi-interface ()
+  (let ((uname-string (inferior-shell:run/s "uname -a")))
+    "wlan0"))
+
   
 (defun setup-prototype ()
   (unless lparallel:*kernel*
     (setf lparallel:*kernel* (lparallel:make-kernel 4)))
   (handler-case 
-      (inferior-shell:run/s (format nil "/sbin/ip addr add ~a/24 brd + dev wlx9cefd5fdd60e" (numex:addr->dotted (this-ip))))
+      (inferior-shell:run/s (format nil "/sbin/ip addr add ~a/24 brd + dev ~a" (numex:addr->dotted (this-ip)) (compute-wifi-interface)))
     (t (c)
       (format t "Error condition setting ip address.~&")
       (values nil c)
