@@ -788,13 +788,31 @@
 (defun connected-ip ()
   (get-ip-of-this-hosts-lan-card))
 
+
+(progn
+  (defvar *machine-class* nil)
+  (defun machine-class ()
+    (cond
+      ((null *machine-class*)
+       (let ((uname-string (inferior-shell:run/s "uname -a")))
+	 (cond
+	   ((ppcre:scan "yocto" uname-string)
+	    (setf *machine-class* `(:yocto :bbb)))
+	   )
+	 ))
+      (t
+       *machine-class*)))
+  )
+
 (defun get-wifi-gateway-candidates ()
   "filter out localhost and ip address of the network we are bringing up"
   (serapeum:filter
    (trivia:lambda-match
      ((lsa:link :state sstate :name name)
-      (and (ppcre:scan "wlx.*" name)
-	   (string-equal (string-upcase sstate) "DOWN"))
+      (and
+       (or (ppcre:scan "wlx.*" name)
+	   (ppcre:scan "wlan" name))
+       (string-equal (string-upcase sstate) "DOWN"))
       ))
    (lsa:ip-link-objs)
    )
@@ -834,18 +852,38 @@
     )
   )  
 
+(defun hostapd-file ()
+  "/etc/hostapd/hostapd.conf")
 
 (defun setup-hostapd ()
-  (serapeum:and-let* ((x (car (get-wifi-gateway-candidates))))
-		     (hostapd (lsa:name x)
-			      "g3"
-			      "bustergus25"))
+  (serapeum:and-let*
+      ((x (car (get-wifi-gateway-candidates)))
+       (filename (hostapd-file))
+       (pathname (pathname filename)))
+    (uiop:ensure-all-directories-exist (list pathname))
+    (with-open-file
+	(out  pathname
+	      :direction :output
+	      ;;:element-type :utf-8 ;;'(unsigned-byte 8)
+	      :if-exists :supersede
+	      :if-does-not-exist :create)
+      (princ
+       (lsa:hostapd (lsa:name x)
+		    "g3"
+		    "bustergus25")
+       out)
+      ))
+    )
   )
 
 ;; wlx9cefd5fdd60e
 (defun compute-wifi-interface ()
   (let ((uname-string (inferior-shell:run/s "uname -a")))
-    "wlan0"))
+    (cond
+      ((ppcre:scan "yocto" uname-string)
+       "wlan0"))
+    
+    ))
 
   
 (defun setup-prototype ()
@@ -858,13 +896,12 @@
       (values nil c)
       ))
   (handler-case
-      (inferior-shell:run/s "hostapd  /etc/hostapd/hostapd.conf &")
+      (inferior-shell:run/s (format nil "hostapd  ~a &" (hostapd-file)))
     (t (c)
       (format t "We caught a condition.~&")
       (values nil c)))
   ;;(network-watchdog)
-  (configure-parent-router)
-  
+  ;;(configure-parent-router)
   )
 
 (defun apply-configuration ()
