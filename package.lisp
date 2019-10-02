@@ -14,6 +14,7 @@
    :ip=?
    :options
    :setup-prototype
+   :setup-hostapd
    :configure-parent-router
    :yiaddr
    :ciaddr

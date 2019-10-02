@@ -23,6 +23,7 @@ exec ros -Q -- $0 "$@"
         (loop for x in argv collect (with-input-from-string (p x) (read p)))
       (swank:create-server :dont-close t :port sport)
       )
+    (dhcp-server:setup-hostapd)
     (dhcp-server:setup-prototype)
     ;;(dhcp-server:configure-parent-router)
     ;;
