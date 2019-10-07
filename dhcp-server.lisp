@@ -854,6 +854,10 @@
 (defun hostapd-file ()
   "/etc/hostapd/hostapd.conf")
 
+(defun find-and-kill-wpa-supplicant ()
+  1)
+
+
 (defun setup-hostapd ()
   (serapeum:and-let*
       ((x (car (get-wifi-gateway-candidates)))
