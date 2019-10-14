@@ -887,6 +887,37 @@
     
     ))
 
+(defun unblock-wifi ()
+  ""
+  (handler-case
+      (inferior-shell:run/s "rfkill unblock all")
+    (t (c)
+      (format t "We caught a condition.~&")
+      (values nil c)))
+  )
+
+(defun run-hostapd-in-background ()
+  (handler-case
+      (inferior-shell:run/s (format nil "hostapd  ~a &" (hostapd-file)))
+    (t (c)
+      (format t "Error running hostapd in background: ~&")
+      (values nil c)))
+  )
+
+(defun nat-routing ()
+  (handler-case
+      (loop :for cmd :in 
+	 (list "echo 1 > /proc/sys/net/ipv4/ip_forward"
+	       "iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE"
+	       "iptables -A FORWARD -i wlan0 -j ACCEPT")
+	 :do
+	 (inferior-shell:run/s cmd))
+    (t (c)
+      (format t "Error condition in nat-routing: ~&")
+      (values nil c)
+      )
+    ))
+
   
 (defun setup-prototype ()
   (unless lparallel:*kernel*
@@ -897,11 +928,10 @@
       (format t "Error condition setting ip address.~&")
       (values nil c)
       ))
-  (handler-case
-      (inferior-shell:run/s (format nil "hostapd  ~a &" (hostapd-file)))
-    (t (c)
-      (format t "We caught a condition.~&")
-      (values nil c)))
+  (unblock-wifi)
+  (run-hostapd-in-background)
+  (nat-routing)
+  
   ;;(network-watchdog)
   ;;(configure-parent-router)
   )
