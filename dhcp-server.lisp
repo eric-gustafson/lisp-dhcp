@@ -504,7 +504,7 @@
 				 )
 			     (error (c)
 			       (syslog:log "dhcp-server" :user :warning "Error parsing or processing dhcp message")
-			       (syslog:log "path ~a"
+			       (syslog:log "dhcp-server" :user :warning "path ~a"
 					   (uiop/stream:with-temporary-file (:stream bout :element-type '(unsigned-byte 8))
 					     (write-sequence buff bout)
 					     ))
