@@ -931,7 +931,6 @@
   (unblock-wifi)
   (run-hostapd-in-background)
   (nat-routing)
-  
   ;;(network-watchdog)
   ;;(configure-parent-router)
   )
