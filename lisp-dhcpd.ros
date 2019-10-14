@@ -21,12 +21,12 @@ exec ros -Q -- $0 "$@"
 	  )
     (destructuring-bind (&key (sport 4010))
         (loop for x in argv collect (with-input-from-string (p x) (read p)))
+      (swank:create-server :dont-close t :port sport)
       (dhcp-server:setup-hostapd)
       (dhcp-server:setup-prototype)
     ;;(dhcp-server:configure-parent-router)
     ;;
       (dhcp-server:dhcpd)
-      (swank:create-server :dont-close t :port sport)
       (loop (sleep 60))
       )
     )
