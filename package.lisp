@@ -2,6 +2,7 @@
 
 (defpackage #:dhcp-server
   (:use #:cl
+	#:numex
 	;;#:cl-syslog
 	)
   (:export
@@ -18,5 +19,8 @@
    :configure-parent-router
    :yiaddr
    :ciaddr
+   
+   :address-list
+   :broadcast-address
    )
   )

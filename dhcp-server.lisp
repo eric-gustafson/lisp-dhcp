@@ -10,7 +10,9 @@
   (
    (ipnum :accessor ipnum :initarg :ipnum)
    (cidr :accessor cidr :initarg :cidr)
+   (cidr-subnet :accessor cidr-subnet :initarg :cidr-subnet)
    (mask :accessor mask :initarg :mask)
+   (broadcast :accessor broadcast :initarg :broadcast)
    )
   )
 
@@ -173,10 +175,16 @@
 
 (defparameter *this-net*
   (make-instance 'cidr-net
-		 :cidr 24
-		 :ipnum (numex:octets->num #(10 0 12 0))
-		 :mask (numex:octets->num #(255 255 255 0)))
-  ) 
+		 :cidr 16
+		 :cidr-subnet 24
+		 :ipnum (numex:octets->num #(10 0 0 0))
+		 :mask (numex:octets->num #(255 255 0 0)))
+  )
+
+(defparameter *nets* (serapeum:dict))
+
+(defun init-nets! ()
+  (loop :for net in (subnets *this-net* :cidr 30)))
 
 (defparameter *pnet* ;; parent's network
   (make-instance 'cidr-net
@@ -232,6 +240,17 @@
 
 (defmethod cidr-in? ((obj cidr-net) (ip-addr string))
   (cidr-in? obj (numex:dotted->num ip-addr)))
+
+(defmethod address-list ((obj cidr-net))
+  "returns a list of ip addresses for the object"
+  (let ((mask (mask obj)))
+    (loop :for i :upto mask :collect (+ (ipnum obj) i)))
+  )
+
+(defmethod broadcast-address ((obj cidr-net))
+  "Returns the broadcast address for the object"
+  (+ (ipnum obj) (mask obj))
+  )
 
 (defmethod get-cidr ((obj string))
   "extract cidr notation from string, or nil if there isn't any"
@@ -336,12 +355,68 @@
     )
   )
 
-(defun dhcp-allocate-ip (reqMsg net)
+
+(defmethod subnets ((net-obj cidr-net) &key cidr)
+  (declare (integer subnet-num))
+    (let ((f (first-ip net-obj))
+	  (l (last-ip net-obj))
+	  (subnet-size (expt 2 (- 32 cidr) )))
+      ;; Subtrack 1 additional from the upto number, to account for
+      ;; the subnet broadcast
+      (loop :for ip :from f :upto  l :by subnet-size
+	 :collect
+	 (make-instance 'cidr-net
+			:ipnum ip
+			:cidr cidr
+			:broadcast (logior ip (- subnet-size 1))
+			:mask (numex:make-cidr-mask cidr))
+	 ))
+    )
+
+(defmethod addresses ((net-obj cidr-net))
+  "returns a list of all of the addreses in the cidr-net"
+  (loop :for ip :from (first-ip net-obj) :upto (last-ip net-obj) :collect ip)
+  )
+
+(defmethod broadcast ((net-obj cidr-net))
+  "returns the broadcast address of the cidr-net"
+  )
+
+(defmethod subnet-info ((net-obj cidr-net) subnet-num)
+  "f=ma like stuff"
+  (list :num-nets (floor (/ (- (last-ip net-obj) (first-ip net-obj)) subnet-num))
+	)
+  )
+
+
+(defmethod dhcp-addresses ((net-obj cidr-net))
+  "returns a list of ip addresses that will be dished out by the system"
+  (let ((net-increment (logand #xffffffff (lognot (mask net-obj)))))
+    (declare (integer net-increment))
+    (let ((f (first-ip net-obj))
+	  (l (last-ip net-obj)))    
+      (loop :for ip :from f :upto l :by 4 :collect ip))
+    )
+  )
+
+(defun setup-dhcp-network-interfaces ()
+  (loop :for ipn in (numex:cidr-subnets (first-ip *this-net*)
+					(cidr *this-net*)
+					(cidr-subnet *this-net*))
+     :do
+     (lsa:add-vnet (+ 1 ipn) 24))
+  )
+     
+
+
+;;  "Search for an unallocated ip within the range defined in the cidr-net object."
+(defmethod dhcp-allocate-ip ((reqMsg dhcp) (net cidr-net))
   ;; TODO: Handle the case whe we run out of addresses
-  (or (dhcp-search-allocated-by-mac (mac reqMsg))
-      (let ((f (first-ip net))
-	    (l (last-ip net)))
-	(loop :for ip :from f :upto l :do
+  (let ((net-increment (logand #xffffffff (lognot (mask *this-net*)))))
+    (declare (integer net-increment))
+    (or (dhcp-search-allocated-by-mac (mac reqMsg))
+	(loop :for ip :from (numex:cidr-subnets (first-ip net) (cidr net) (cidr-subnets net))
+	   :do
 	   (unless (ip-allocated? net ip)
 	     (let ((addrObj (make-instance 'dhcp-address
 					   :ipnum ip
@@ -352,7 +427,7 @@
 	       (return-from dhcp-allocate-ip addrObj)))
 	   )
 	)
-      )
+    )
   )
 
 (defun deallocate-ip (net ip)
