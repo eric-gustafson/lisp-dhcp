@@ -1021,7 +1021,7 @@
 (defun setup-prototype ()
   (unless lparallel:*kernel*
     (setf lparallel:*kernel* (lparallel:make-kernel 4)))
-  (handler-case 
+  #+nil(handler-case 
       (inferior-shell:run/s (format nil "/sbin/ip addr add ~a/24 brd + dev ~a" (numex:addr->dotted (this-ip)) (compute-wifi-interface)))
     (t (c)
       (format t "Error condition setting ip address.~&")
