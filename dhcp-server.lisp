@@ -601,11 +601,11 @@
 				 (force-output *standard-output*)
 				 )
 			     (error (c)
-			       (syslog:log "dhcp-server" :user :warning "Error parsing or processing dhcp message")
-			       (syslog:log "dhcp-server" :user :warning "path ~a"
-					   (uiop/stream:with-temporary-file (:stream bout :element-type '(unsigned-byte 8))
+			       (syslog:log "dhcp-server" :user :warning
+					   (format nil "Error parsing or processing dhcp message ~a")
+					   (uiop/stream:with-temporary-file (:stream bout :pathname x :element-type '(unsigned-byte 8))
 					     (write-sequence buff bout)
-					     ))
+					     x))
 			       (values nil c))
 			     )
 			   ))
