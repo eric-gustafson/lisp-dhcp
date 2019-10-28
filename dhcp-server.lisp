@@ -602,10 +602,12 @@
 				 )
 			     (error (c)
 			       (syslog:log "dhcp-server" :user :warning
-					   (format nil "Error parsing or processing dhcp message ~a")
-					   (uiop/stream:with-temporary-file (:stream bout :pathname x :element-type '(unsigned-byte 8))
-					     (write-sequence buff bout)
-					     x))
+					   (format nil
+						   "Error parsing or processing dhcp message ~a"
+						   (uiop/stream:with-temporary-file
+						       (:stream bout :pathname x :element-type '(unsigned-byte 8))
+						     (write-sequence buff bout)
+						     x)))
 			       (values nil c))
 			     )
 			   ))
