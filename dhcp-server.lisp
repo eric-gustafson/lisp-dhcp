@@ -399,14 +399,34 @@
     )
   )
 
+(defparameter *dhcp-nets* 
+     (numex:cidr-subnets
+      (first-ip *this-net*)
+      (cidr *this-net*)
+      (cidr-subnet *this-net*)
+      )
+  )
+
 (defun setup-dhcp-network-interfaces ()
-  (loop :for ipn in (numex:cidr-subnets (first-ip *this-net*)
-					(cidr *this-net*)
-					(cidr-subnet *this-net*))
+  (loop
+     :repeat 3
+     :for ipn in *dhcp-nets*
      :do
      (lsa:add-vnet (+ 1 ipn) 24))
   )
-     
+
+(defun teardown-dhcp-network-interfaces ()
+  (loop
+     :repeat 3
+     :for ipn in *dhcp-nets*
+     :do
+     (lsa:del-vnet (+ 1 ipn) 24))
+  )
+
+(defun ip-net-lst ()
+  "This is the list of ip-nets that the dhcp-server will give out"
+  (serapeum:firstn 10 *dhcp-nets*)
+  )
 
 
 ;;  "Search for an unallocated ip within the range defined in the cidr-net object."
@@ -415,8 +435,11 @@
   (let ((net-increment (logand #xffffffff (lognot (mask *this-net*)))))
     (declare (integer net-increment))
     (or (dhcp-search-allocated-by-mac (mac reqMsg))
-	(loop :for ip :from (numex:cidr-subnets (first-ip net) (cidr net) (cidr-subnets net))
+	(loop
+	   :for ip :from *dhcp-nets*
+	   :repeat 3
 	   :do
+	   (incf ip)
 	   (unless (ip-allocated? net ip)
 	     (let ((addrObj (make-instance 'dhcp-address
 					   :ipnum ip
@@ -930,7 +953,8 @@
   "/etc/hostapd/hostapd.conf")
 
 (defun find-and-kill-wpa-supplicant ()
-  1)
+  (inferior-shell:run/s "killall -9 wpa_supplicant")
+  )
 
 
 (defun setup-hostapd ()

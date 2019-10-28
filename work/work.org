@@ -6,19 +6,19 @@
 
 #+begin_src lisp
   (mapcar
-   #'->dotted
-   (numex:cidr-subnets
-    (first-ip *this-net*)
-    (cidr *this-net*)
-    (cidr-subnet *this-net*)
-    )
-   )
+     #'->dotted
+     (numex:cidr-subnets
+      (first-ip *this-net*)
+      (cidr *this-net*)
+      (cidr-subnet *this-net*)
+      )
+     )
 #+end_src
 
 
   Remote slime
 #+BEGIN_SRC sh
-  ssh -L 4009:localhost:4009 root@192.168.1.3
+  ssh -L 4009:localhost:4009 root@192.168.1.2
 #+END_SRC
 
 
