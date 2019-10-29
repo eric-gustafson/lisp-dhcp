@@ -5,7 +5,7 @@
 
 
 #+begin_src lisp
-  (mapcar
+(mapcar
      #'->dotted
      (numex:cidr-subnets
       (first-ip *this-net*)
@@ -320,3 +320,12 @@
    | (10 0 12 251) | /30        | (255 255 255 252) | FFFFFFFC    |
 
 
+
+
+** dhcp testing
+   #+begin_src lisp
+   (ip-allocated? *this-net*  (+ 1 (car *dhcp-nets*)))
+   #+end_src
+
+   #+RESULTS:
+   : NIL

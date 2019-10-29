@@ -4,6 +4,10 @@
 (defvar *dhcp-server-port* 67)
 (defvar *dhcp-client-port* 68)
 
+(defmethod alog ((str string))
+  (syslog:log "dhcp-server" :user :warning str))
+  
+
 (defclass cidr-net ()
   ;; A network defined using cidr notation
   ;;
@@ -432,15 +436,13 @@
 ;;  "Search for an unallocated ip within the range defined in the cidr-net object."
 (defmethod dhcp-allocate-ip ((reqMsg dhcp) (net cidr-net))
   ;; TODO: Handle the case whe we run out of addresses
-  (let ((net-increment (logand #xffffffff (lognot (mask *this-net*)))))
-    (declare (integer net-increment))
-    (or (dhcp-search-allocated-by-mac (mac reqMsg))
-	(loop
-	   :for ip :from *dhcp-nets*
-	   :repeat 3
-	   :do
-	   (incf ip)
-	   (unless (ip-allocated? net ip)
+  (or (dhcp-search-allocated-by-mac (mac reqMsg))
+      (loop
+	 :for ip :from *dhcp-nets*
+	 :repeat 3
+	 :do
+	 (incf ip)
+	 (unless (ip-allocated? net ip)
 	     (let ((addrObj (make-instance 'dhcp-address
 					   :ipnum ip
 					   :tla (get-universal-time)
@@ -448,9 +450,8 @@
 					   )))
 	       (push addrObj *dhcp-allocated-table*)
 	       (return-from dhcp-allocate-ip addrObj)))
-	   )
-	)
-    )
+	 )
+      )
   )
 
 (defun deallocate-ip (net ip)
@@ -529,6 +530,7 @@
     (setf (options replyMsg) (encode-dhcp-options replyMsgOptions))
     replyMsg))
 
+
 (defmethod handle-dhcp-message ((obj dhcp))
   (let* ((options (decode-dhcp-options (options obj)))
 	 (sig
@@ -539,13 +541,13 @@
 	sig
       ((list 1 1 1) ;; dhcp discover
        ;; create a dhcp offer message
-       (format t "dhcp discover received~%")       
+       (alog "dhcp discover received~%")
        (let ((offer (get-address obj)))
-	 (format t "returning dhcp offer~%")
+	 (alog "returning dhcp offer")
 	 offer)
        )
       ((list 1 1 3)
-       (format t "dhcp request received~%")
+       (alog "dhcp request received~%")
        ;; Send the ack
        (get-ack obj)
        )
@@ -601,14 +603,12 @@
 				 (force-output *standard-output*)
 				 )
 			     (error (c)
-			       (syslog:log "dhcp-server" :user :warning
-					   (format nil
-						   "Error parsing or processing dhcp message ~a"
-						   (uiop/stream:with-temporary-file
-						       (:stream bout :pathname x :element-type '(unsigned-byte 8))
-						     (write-sequence buff bout)
-						     x)))
-			       (values nil c))
+			       (let ((path (uiop/stream:with-temporary-file
+					    (:stream bout :pathname x :element-type '(unsigned-byte 8))
+					     (write-sequence buff bout)
+					     x)))
+				 (alog (format nil "Error parsing or processing dhcp message ~a" path))
+				 (values nil c)))
 			     )
 			   ))
 		 ;;(usocket:socket-close ssocket)
