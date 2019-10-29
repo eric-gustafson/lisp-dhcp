@@ -438,7 +438,7 @@
   ;; TODO: Handle the case whe we run out of addresses
   (or (dhcp-search-allocated-by-mac (mac reqMsg))
       (loop
-	 :for ip :from *dhcp-nets*
+	 :for ip :in *dhcp-nets*
 	 :repeat 3
 	 :do
 	 (incf ip)
@@ -541,13 +541,13 @@
 	sig
       ((list 1 1 1) ;; dhcp discover
        ;; create a dhcp offer message
-       (alog "dhcp discover received~%")
+       (alog "dhcp discover received")
        (let ((offer (get-address obj)))
 	 (alog "returning dhcp offer")
 	 offer)
        )
       ((list 1 1 3)
-       (alog "dhcp request received~%")
+       (alog "dhcp request received")
        ;; Send the ack
        (get-ack obj)
        )
@@ -564,7 +564,14 @@
 (defun local-host-addr ()
   #+(or ccl) (return-from local-host-addr "255.255.255.255")
   (numex:addr->dotted (this-ip)))
-  
+
+(defun test-tmp-file ()
+  (uiop/stream:with-temporary-file
+      (:stream bout :pathname x :keep t :element-type '(unsigned-byte 8) :directory "/home/root")
+    (write-sequence (map 'array #'char-code "how do u like me now?")  bout)
+    x)
+  )
+
 (defun dhcpd ()
   (labels ((run ()
 	     (let* ((dhcpObj (make-instance 'dhcp))
@@ -585,12 +592,12 @@
 			     (usocket:socket-receive rsocket buff 1024)
 			   (handler-case
 			       (progn
-				 (format t "got request~%")
+				 (alog "got request")
 				 (setf *last* (copy-seq buff))
 				 (deserialize-into-dhcp-from-buff! dhcpObj buff)
 				 (let* ((m (handle-dhcp-message dhcpObj))
 					(buff (response->buff m)))
-				   (format t "sending response:~a~%" (numex:num->octets (yiaddr m)))
+				   (alog "sending response:~a~%" (numex:num->octets (yiaddr m)))
 				   (setf (usocket:socket-option rsocket :broadcast) t)			     
 				   (let ((nbw (usocket:socket-send
 					       rsocket buff (length buff)
@@ -598,13 +605,14 @@
 					       :host #(10 0 12 255)
 					       ;;:host  (coerce (this-ip) 'vector)
 					       )))
-				     (format t "number of bytes sent:~a~%" nbw))
+				     ;;(alog (format nil "number of bytes sent:~a~%" nbw))
+				     )
 				   )
 				 (force-output *standard-output*)
 				 )
 			     (error (c)
 			       (let ((path (uiop/stream:with-temporary-file
-					    (:stream bout :pathname x :element-type '(unsigned-byte 8))
+					    (:stream bout :pathname x :keep t :element-type '(unsigned-byte 8))
 					     (write-sequence buff bout)
 					     x)))
 				 (alog (format nil "Error parsing or processing dhcp message ~a" path))
@@ -999,7 +1007,10 @@
 
 (defun run-hostapd-in-background ()
   (handler-case
-      (inferior-shell:run/s (format nil "hostapd  ~a &" (hostapd-file)))
+      (progn
+	(inferior-shell:run/s "killall -9 hostapd")
+	(inferior-shell:run/s (format nil "hostapd  ~a &" (hostapd-file)))
+	)
     (t (c)
       (format t "Error running hostapd in background: ~&")
       (values nil c)))
