@@ -602,7 +602,7 @@
 				   (let ((nbw (usocket:socket-send
 					       rsocket buff (length buff)
 					       :port *dhcp-client-port*
-					       :host (cidr-bcast-addr (yiaddr m) (cidr-subnet *this-net*))
+					       :host #(10 255 255 255)
 					       ;;:host  (coerce (this-ip) 'vector)
 					       )))
 				     (alog (format nil "number of bytes sent:~a~%" nbw))
