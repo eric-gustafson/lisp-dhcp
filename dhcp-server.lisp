@@ -441,7 +441,7 @@
 	 :for ip :in *dhcp-nets*
 	 :repeat 3
 	 :do
-	 (incf ip)
+	 (incf ip 2)
 	 (unless (ip-allocated? net ip)
 	     (let ((addrObj (make-instance 'dhcp-address
 					   :ipnum ip
