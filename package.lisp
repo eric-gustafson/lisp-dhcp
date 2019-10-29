@@ -6,7 +6,9 @@
 	;;#:cl-syslog
 	)
   (:export
-   
+
+   :cidr-subnet
+   :*this-net* 
    :dhcp
    :dhcpd
    :dhcp-options

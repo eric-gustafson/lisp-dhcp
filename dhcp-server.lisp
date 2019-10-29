@@ -572,6 +572,39 @@
     x)
   )
 
+(defun dhcp-handler (dhcpObj buff size client receive-port)
+  (handler-case
+      (progn
+	(alog "got request")
+	(setf *last* (copy-seq buff))
+	(deserialize-into-dhcp-from-buff! dhcpObj buff)
+	(let* ((m (handle-dhcp-message dhcpObj))
+	       (buff (response->buff m))
+	       (bcast (coerce (numex:num->octets (cidr-bcast (yiaddr m))) 'vector))
+	       )
+	  (alog (format nil "broadcasting offer:~a on ~a" (numex:num->octets (yiaddr m))) bcast)
+	  (setf (usocket:socket-option rsocket :broadcast) t)			     
+	  (let ((nbw (usocket:socket-send
+		      rsocket buff (length buff)
+		      :port *dhcp-client-port*
+		      :host bcast
+		      ;;:host  (coerce (this-ip) 'vector)
+		      )))
+	    (alog (format nil "number of bytes sent:~a~%" nbw))
+	    )
+	  )
+	)
+    (error (c)
+      (alog (format nil "~&"))
+      (let ((path (uiop/stream:with-temporary-file
+		      (:stream bout :pathname x :keep t :element-type '(unsigned-byte 8))
+		    (write-sequence buff bout)
+		    x)))
+	(alog (format nil "Error parsing or processing dhcp message ~a" path))
+	(values nil c)))
+    )
+  )
+  
 (defun dhcpd ()
   (labels ((run ()
 	     (let* ((dhcpObj (make-instance 'dhcp))
@@ -590,36 +623,7 @@
 		    (loop while (serve) do
 			 (multiple-value-bind (buff size client receive-port)
 			     (usocket:socket-receive rsocket buff 1024)
-			   (handler-case
-			       (progn
-				 (alog "got request")
-				 (setf *last* (copy-seq buff))
-				 (deserialize-into-dhcp-from-buff! dhcpObj buff)
-				 (let* ((m (handle-dhcp-message dhcpObj))
-					(buff (response->buff m))
-					(bcast (coerce (->octets (cidr-bcast (yiaddr m))) 'vector))
-					)
-				   (alog (format nil "broadcasting offer:~a on ~a" (numex:num->octets (yiaddr m))) bcast)
-				   (setf (usocket:socket-option rsocket :broadcast) t)			     
-				   (let ((nbw (usocket:socket-send
-					       rsocket buff (length buff)
-					       :port *dhcp-client-port*
-					       :host bcast
-					       ;;:host  (coerce (this-ip) 'vector)
-					       )))
-				     (alog (format nil "number of bytes sent:~a~%" nbw))
-				     )
-				   )
-				 )
-			     (error (c)
-			       (alog (format nil "~&"))
-			       (let ((path (uiop/stream:with-temporary-file
-					    (:stream bout :pathname x :keep t :element-type '(unsigned-byte 8))
-					     (write-sequence buff bout)
-					     x)))
-				 (alog (format nil "Error parsing or processing dhcp message ~a" path))
-				 (values nil c)))
-			     )
+			   (dhcp-handler dhcpObj buff size client receive-port)
 			   ))
 		 ;;(usocket:socket-close ssocket)
 		 (usocket:socket-close rsocket)

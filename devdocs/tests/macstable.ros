@@ -8,11 +8,14 @@ exec ros -Q -- $0 "$@"
   ;;#+quicklisp(ql:quickload '() :silent t)
   )
 
-  (defpackage :ros.script.mac-test.3770496090
-    (:use :cl))
-  (in-package :ros.script.mac-test.3770496090)
+(ql:quickload :numex)
   (ql:quickload :prove)
   (ql:quickload :dhcp-server)
+
+
+  (defpackage :ros.script.mac-test.3770496090
+    (:use :cl :numex :dhcp-server))
+  (in-package :ros.script.mac-test.3770496090)
 
 
 (defun simple-allocation ()
@@ -24,30 +27,43 @@ exec ros -Q -- $0 "$@"
 			    :xid (random (expt 2 32))
 			    :ciaddr #(0 0 0 0)
 			    :chaddr mac)))
-    (let ((rlst (list (mreq #(1 2 3 4 5 6))
+    (let* ((rlst (list (mreq #(1 2 3 4 5 6))
 		      (mreq #(1 2 3 4 5 7))
 		      (mreq #(1 2 3 4 5 6))))
 	  (oobj (make-instance 'dhcp-server:dhcp-options
 			       :mtype 1
 			       :restof
-			       `((:lease-time 300) ))))
-      (trivia:match
-	  (loop :for obj :in rlst do
+			       `((:lease-time 300) )))
+	   (results
+	    (loop :for obj :in rlst do
 	     (setf (dhcp-server:options obj) (dhcp-server:encode-dhcp-options oobj))
 	     :collect
-	     (dhcp-server:handle-dhcp-message obj))
+	     (dhcp-server:handle-dhcp-message obj)))
+	   )
+      (print results)
+      (trivia:ematch
+	  results
 	((list x y z)
-	 ;;(print x)
-	 ;;(print (dhcp-server:yiaddr x))
-	 (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr x) #(10 0 12 2)))
-	 (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr y) #(10 0 12 3)))
-	 (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr z) #(10 0 12 2)))
-	 )
-	)
+	 (let ((bcast-addr
+		(coerce (numex:num->octets (cidr-bcast (dhcp-server:yiaddr x)
+						       (dhcp-server:cidr-subnet dhcp-server:*this-net*)
+						       )) 'vector)))
+	   (print `(
+		    :x ,x
+		       :bcast-addr ,bcast-addr
+		       :yiaddr ,(dhcp-server:yiaddr x)))
+	   (prove:ok
+	    (dhcp-server:ip=? bcast-addr
+			      #(10 0 0 255)))
+	   (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr x) #(10 0 0 2)))
+	   (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr y) #(10 0 1 2)))
+	   (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr z) #(10 0 0 2)))
+	   )
+	 ))
 
       ;;(ok (not (find 4 '(1 2 3))))
       ;;(is 4 4)
-      -	;;(isnt 1 #\1)
+      ;;(isnt 1 #\1)
       )
     )
   )
@@ -61,7 +77,7 @@ exec ros -Q -- $0 "$@"
             :prove))
     (in-package :dhcp-test)
 
-    (prove:plan 3)
+    (prove:plan 4)
     (simple-allocation)
     (prove:finalize)
     )
