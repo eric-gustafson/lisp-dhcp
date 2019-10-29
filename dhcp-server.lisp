@@ -489,7 +489,7 @@
 					   (:dns-servers (8 8 8 8) (4 4 4 4)))
 					 )))
     (setf (options replyMsg) (encode-dhcp-options replyMsgOptions))
-    (format t "get-address: ~a~%" (numex:num->octets (yiaddr replyMsg)))
+    (alog (format nil "get-address: ~a~%" (numex:num->octets (yiaddr replyMsg))))
     replyMsg))
 
 (defmethod get-ack ((reqMsg dhcp))
@@ -597,7 +597,7 @@
 				 (deserialize-into-dhcp-from-buff! dhcpObj buff)
 				 (let* ((m (handle-dhcp-message dhcpObj))
 					(buff (response->buff m)))
-				   (alog "sending response:~a~%" (numex:num->octets (yiaddr m)))
+				   (alog (format nil "broadcasting offer:~a" (numex:num->octets (yiaddr m))))
 				   (setf (usocket:socket-option rsocket :broadcast) t)			     
 				   (let ((nbw (usocket:socket-send
 					       rsocket buff (length buff)
@@ -611,6 +611,7 @@
 				 (force-output *standard-output*)
 				 )
 			     (error (c)
+			       (alog (format nil "~&"))
 			       (let ((path (uiop/stream:with-temporary-file
 					    (:stream bout :pathname x :keep t :element-type '(unsigned-byte 8))
 					     (write-sequence buff bout)
