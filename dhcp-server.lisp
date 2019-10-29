@@ -596,13 +596,15 @@
 				 (setf *last* (copy-seq buff))
 				 (deserialize-into-dhcp-from-buff! dhcpObj buff)
 				 (let* ((m (handle-dhcp-message dhcpObj))
-					(buff (response->buff m)))
-				   (alog (format nil "broadcasting offer:~a" (numex:num->octets (yiaddr m))))
+					(buff (response->buff m))
+					(bcast (coerce (->octets (cidr-bcast (yiaddr m))) 'vector))
+					)
+				   (alog (format nil "broadcasting offer:~a on ~a" (numex:num->octets (yiaddr m))) bcast)
 				   (setf (usocket:socket-option rsocket :broadcast) t)			     
 				   (let ((nbw (usocket:socket-send
 					       rsocket buff (length buff)
 					       :port *dhcp-client-port*
-					       :host #(10 255 255 255)
+					       :host bcast
 					       ;;:host  (coerce (this-ip) 'vector)
 					       )))
 				     (alog (format nil "number of bytes sent:~a~%" nbw))
