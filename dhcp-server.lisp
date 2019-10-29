@@ -602,7 +602,7 @@
 				   (let ((nbw (usocket:socket-send
 					       rsocket buff (length buff)
 					       :port *dhcp-client-port*
-					       :host #(10 0 12 255)
+					       :host (cidr-bcast-addr (yiaddr m) (cidr-subnet *this-net*))
 					       ;;:host  (coerce (this-ip) 'vector)
 					       )))
 				     (alog (format nil "number of bytes sent:~a~%" nbw))
@@ -1035,7 +1035,7 @@
   (unless lparallel:*kernel*
     (setf lparallel:*kernel* (lparallel:make-kernel 4)))
   #+nil(handler-case 
-      (inferior-shell:run/s (format nil "/sbin/ip addr add ~a/24 brd + dev ~a" (numex:addr->dotted (this-ip)) (compute-wifi-interface)))
+	   (inferior-shell:run/s (format nil "/sbin/ip addr add ~a/24 brd + dev ~a" (numex:addr->dotted (this-ip)) (compute-wifi-interface)))
     (t (c)
       (format t "Error condition setting ip address.~&")
       (values nil c)
