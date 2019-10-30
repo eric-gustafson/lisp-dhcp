@@ -1,0 +1,6 @@
+[submodule "lisp-linux-sa-utils"]
+	path = lisp-linux-sa-utils
+	url = git@github.com:eric-gustafson/lisp-linux-sa-utils.git
+[submodule "numex"]
+	path = numex
+	url = git@github.com:eric-gustafson/numex.git

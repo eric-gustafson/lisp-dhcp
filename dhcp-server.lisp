@@ -403,55 +403,55 @@
     )
   )
 
-(defparameter *dhcp-nets* 
-     (numex:cidr-subnets
-      (first-ip *this-net*)
-      (cidr *this-net*)
-      (cidr-subnet *this-net*)
-      )
+(defparameter *dhcp-nets*
+  (serapeum:firstn 3
+		   (numex:cidr-subnets
+		    (first-ip *this-net*)
+		    (cidr *this-net*)
+		    (cidr-subnet *this-net*)
+		    )
+		   )
+  "Each of these map to a VLAN off a real network card."
   )
 
 (defun setup-dhcp-network-interfaces ()
+  ;; skip the first one, that's the physical interfaces ip address
+  (lsa:add-a
   (loop
-     :repeat 3
-     :for ipn in *dhcp-nets*
+     :for ipn in (cdr *dhcp-nets*)
      :do
-     (lsa:add-vnet (+ 1 ipn) 24))
+     (alexandria:when-let ((vid (lsa:add-vnet "wlan0" (+ 1 ipn) 24)))
+       (up-vlan vid))
+     )
   )
 
 (defun teardown-dhcp-network-interfaces ()
   (loop
-     :repeat 3
-     :for ipn in *dhcp-nets*
+     :for ipn in (cdr *dhcp-nets*)
      :do
      (lsa:del-vnet (+ 1 ipn) 24))
-  )
-
-(defun ip-net-lst ()
-  "This is the list of ip-nets that the dhcp-server will give out"
-  (serapeum:firstn 10 *dhcp-nets*)
   )
 
 
 ;;  "Search for an unallocated ip within the range defined in the cidr-net object."
 (defmethod dhcp-allocate-ip ((reqMsg dhcp) (net cidr-net))
   ;; TODO: Handle the case whe we run out of addresses
-  (or (dhcp-search-allocated-by-mac (mac reqMsg))
-      (loop
-	 :for ip :in *dhcp-nets*
-	 :repeat 3
-	 :do
-	 (incf ip 2)
-	 (unless (ip-allocated? net ip)
-	     (let ((addrObj (make-instance 'dhcp-address
-					   :ipnum ip
-					   :tla (get-universal-time)
-					   :mac (mac reqMsg)
-					   )))
-	       (push addrObj *dhcp-allocated-table*)
-	       (return-from dhcp-allocate-ip addrObj)))
-	 )
-      )
+  (alexandria:when-let* ((value (dhcp-search-allocated-by-mac (mac reqMsg))))
+    (return-from dhcp-allocate-ip value))
+  (loop
+     :repeat 3
+     :do
+     (incf ip 2)
+     (unless (ip-allocated? net ip)
+       (let ((addrObj (make-instance 'dhcp-address
+				     :ipnum ip
+				     :tla (get-universal-time)
+				     :mac (mac reqMsg)
+				     )))
+	 (push addrObj *dhcp-allocated-table*)
+	 (return-from dhcp-allocate-ip addrObj)))
+     )
+  (error "Out of ip addresses")
   )
 
 (defun deallocate-ip (net ip)
