@@ -201,6 +201,13 @@
   (coerce (numex:num->octets (first-ip *this-net*) :endian :net) 'list)
   )
 
+(defun compute-this-ip (client-addr)
+  "Get the router IP dddress for the subnet we share with the client address."
+  (coerce (numex:num->octets (+ 1 (numex:cidr-net client-addr (cidr-subnet *this-net*)))
+			     :endian :net) 'list)
+  )
+
+
 (defun cidr-mask (bits)
   "returns a netmask for the number of bits"
   )
@@ -470,7 +477,7 @@
 				  :secs (secs reqMsg)
 				  :flags (flags reqMsg)
 				  :yiaddr (ipnum new-addr)
-				  :siaddr  (this-ip)
+				  :siaddr  (compute-this-ip new-addr)
 				  :giaddr (giaddr reqMsg)
 				  :chaddr (chaddr reqMsg)
 				  :ciaddr (ciaddr reqMsg)
@@ -483,9 +490,9 @@
 					 :restof
 					 `(
 					   (:subnet 255 255 255 0)
-					   (:routers ,(this-ip))
+					   (:routers ,(compute-this-ip new-addr))
 					   (:lease-time 1800)
-					   (:dhcp-server ,@(this-ip))
+					   (:dhcp-server ,@(compute-this-ip new-addr))
 					   (:dns-servers (8 8 8 8) (4 4 4 4)))
 					 )))
     (setf (options replyMsg) (encode-dhcp-options replyMsgOptions))
@@ -512,7 +519,7 @@
 				 ;; They send 0.0.0.0 back ...
 				 ;;(yiaddr reqMsg) #+nil(numex:octets->num (numex:num->octets
 				 ;;(ipnum new-ip) :endian :net) :endian :net)
-				 :siaddr (numex:octets->num (this-ip) :endian :net)
+				 :siaddr (numex:octets->num (compute-this-ip new-ip) :endian :net)
 				 :giaddr (giaddr reqMsg)
 				 :chaddr (chaddr reqMsg)
 				 :ciaddr (ciaddr reqMsg)
@@ -525,9 +532,9 @@
 					:restof
 					`(
 					  (:subnet 255 255 255 0)
-					  (:routers ,(this-ip))
+					  (:routers ,(compute-this-ip new-ip))
 					  (:lease-time ,(* 3600 2))
-					  (:dhcp-server ,@(this-ip))
+					  (:dhcp-server ,@(compute-this-ip new-ip))
 					  (:dns-servers (8 8 8 8) (4 4 4 4)))
 					))
 	 )
