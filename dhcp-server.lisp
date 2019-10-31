@@ -508,7 +508,7 @@
 				 :xid (xid reqMsg)
 				 :secs (secs reqMsg)
 				 :flags (flags reqMsg)
-				 :yiaddr (numex:octets->num #(10 0 12 3) :endian :net)
+				 :yiaddr (ipnum new-addr)				 
 				 ;; They send 0.0.0.0 back ...
 				 ;;(yiaddr reqMsg) #+nil(numex:octets->num (numex:num->octets
 				 ;;(ipnum new-ip) :endian :net) :endian :net)
