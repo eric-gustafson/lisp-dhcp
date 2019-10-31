@@ -429,7 +429,7 @@
   (loop
      :for ipn in (cdr *dhcp-nets*)
      :do
-     (lsa:del-vnet (+ 1 ipn) 24))
+     (lsa:del-vlan (+ 1 ipn) 24))
   )
 
 
