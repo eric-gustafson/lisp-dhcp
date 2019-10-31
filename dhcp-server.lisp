@@ -572,7 +572,7 @@
     x)
   )
 
-(defun dhcp-handler (dhcpObj buff size client receive-port)
+(defun dhcp-handler (rsocket dhcpObj buff size client receive-port)
   (handler-case
       (progn
 	(alog "got request")
@@ -629,7 +629,7 @@
 		    (loop while (serve) do
 			 (multiple-value-bind (buff size client receive-port)
 			     (usocket:socket-receive rsocket buff 1024)
-			   (dhcp-handler dhcpObj buff size client receive-port)
+			   (dhcp-handler rsocket dhcpObj buff size client receive-port)
 			   ))
 		 ;;(usocket:socket-close ssocket)
 		 (usocket:socket-close rsocket)
