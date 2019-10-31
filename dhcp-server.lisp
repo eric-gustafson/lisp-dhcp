@@ -420,7 +420,7 @@
   (loop
      :for ipn in (cdr *dhcp-nets*)
      :do
-     (alexandria:when-let ((vid (lsa:add-vnet "wlan0" (+ 1 ipn) 24)))
+     (alexandria:when-let ((vid (lsa:add-vlan "wlan0" (+ 1 ipn) 24)))
        (lsa:up-vlan vid))
      )
   )
