@@ -416,12 +416,12 @@
 
 (defun setup-dhcp-network-interfaces ()
   ;; skip the first one, that's the physical interfaces ip address
-  (lsa:add-addr "wlan0" (car *dhcp-nets*) 24)
+  (lsa:add-addr "wlan0" (+ 1 (car *dhcp-nets*)) 24)
   (loop
      :for ipn in (cdr *dhcp-nets*)
      :do
      (alexandria:when-let ((vid (lsa:add-vnet "wlan0" (+ 1 ipn) 24)))
-       (up-vlan vid))
+       (lsa:up-vlan vid))
      )
   )
 
