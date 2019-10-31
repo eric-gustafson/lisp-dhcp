@@ -494,7 +494,11 @@
 
 (defmethod get-ack ((reqMsg dhcp))
   "return an dhcp packet to be broadcast that provides an IP address"
-  (format t "get-ack: ~a~%" (numex:num->octets (yiaddr reqMsg)))
+  (alog (format nil "get-ack: yiaddr:~a,siaddr:~a,ciaddr:~a~%"
+		(numex:num->octets (yiaddr reqMsg))
+		(numex:num->octets (siaddr reqMsg))
+		(numex:num->octets (ciaddr reqMsg))
+		))
   (let* ((new-ip (dhcp-allocate-ip reqMsg *this-net*))
 	 (replyMsg (make-instance 'dhcp
 				 :op 2
