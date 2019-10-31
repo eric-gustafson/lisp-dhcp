@@ -404,7 +404,7 @@
   )
 
 (defparameter *dhcp-nets*
-  (serapeum:firstn 3
+  (serapeum:firstn 4
 		   (numex:cidr-subnets
 		    (first-ip *this-net*)
 		    (cidr *this-net*)
@@ -439,7 +439,7 @@
   (alexandria:when-let* ((value (dhcp-search-allocated-by-mac (mac reqMsg))))
     (return-from dhcp-allocate-ip value))
   (loop
-     :repeat 3
+     :for ip in (cdr *dhcp-nets*)
      :do
      (incf ip 2)
      (unless (ip-allocated? net ip)
@@ -598,7 +598,7 @@
 	  )
 	)
     (error (c)
-      (alog (format nil "~&"))
+      (alog (format nil "We caught a condition: ~a~&" c))
       (let ((path (uiop/stream:with-temporary-file
 		      (:stream bout :pathname x :keep t :element-type '(unsigned-byte 8))
 		    (write-sequence buff bout)
