@@ -416,7 +416,7 @@
 
 (defun setup-dhcp-network-interfaces ()
   ;; skip the first one, that's the physical interfaces ip address
-  (lsa:add-a
+  (lsa:add-addr "wlan0" (car *dhcp-nets*) 24)
   (loop
      :for ipn in (cdr *dhcp-nets*)
      :do
