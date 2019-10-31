@@ -203,8 +203,14 @@
 
 (defun compute-this-ip (client-addr)
   "Get the router IP dddress for the subnet we share with the client address."
-  (coerce (numex:num->octets (+ 1 (numex:cidr-net client-addr (cidr-subnet *this-net*)))
-			     :endian :net) 'list)
+  (cond
+    ((typep dhcp-address (class-of client-addr))
+     (compute-this-ip (ipnum client-addr)))
+    ((numberp client-addr)
+     (coerce (numex:num->octets (+ 1 (numex:cidr-net client-addr (cidr-subnet *this-net*)))
+				:endian :net) 'list))
+    (t
+     (error "compute-this-ip -- unexpected parameter ~a" client-addr)))
   )
 
 
