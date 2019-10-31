@@ -585,7 +585,10 @@
 						 )
 			      'vector))
 	       )
-	  (alog (format nil "broadcasting offer:~a on ~a" (numex:num->octets (yiaddr m))) bcast)
+	  (alog (format nil
+			"broadcasting offer:~a on ~a"
+			(numex:num->octets (yiaddr m))
+			bcast))
 	  (setf (usocket:socket-option rsocket :broadcast) t)			     
 	  (let ((nbw (usocket:socket-send
 		      rsocket buff (length buff)
