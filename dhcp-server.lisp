@@ -204,7 +204,7 @@
 (defun compute-this-ip (client-addr)
   "Get the router IP dddress for the subnet we share with the client address."
   (cond
-    ((typep dhcp-address (class-of client-addr))
+    ((eq 'dhcp-address (type-of client-addr))
      (compute-this-ip (ipnum client-addr)))
     ((numberp client-addr)
      (coerce (numex:num->octets (+ 1 (numex:cidr-net client-addr (cidr-subnet *this-net*)))
@@ -433,7 +433,7 @@
   (loop
      :for ipn in (cdr *dhcp-nets*)
      :do
-     (alexandria:when-let ((vid (lsa:add-vlan "wlan0" (+ 1 ipn) 24)))
+     (alexandria:when-let ((vid (lsa:add-addr "wlan0" (+ 1 ipn) 24)))
        (lsa:up-vlan vid))
      )
   )
@@ -539,7 +539,7 @@
 					`(
 					  (:subnet 255 255 255 0)
 					  (:routers ,(compute-this-ip new-ip))
-					  (:lease-time ,(* 3600 2))
+					  (:lease-time 1800")
 					  (:dhcp-server ,@(compute-this-ip new-ip))
 					  (:dns-servers (8 8 8 8) (4 4 4 4)))
 					))
