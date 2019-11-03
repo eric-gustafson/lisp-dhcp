@@ -7,6 +7,8 @@
 	)
   (:export
 
+   :alog
+   
    :cidr-subnet
    :*this-net* 
    :dhcp

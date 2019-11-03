@@ -992,9 +992,14 @@
   "/etc/hostapd/hostapd.conf")
 
 (defun find-and-kill-wpa-supplicant ()
-  (inferior-shell:run/s "killall -9 wpa_supplicant")
+  (alog (format nil "killing wpa_supplicant"))
+  (handler-case
+      (inferior-shell:run "killall -9 wpa_supplicant")
+    (t (c)
+      (format t "find-and-kill-wpa-supplicant: ~a ~&" c)
+      (values nil c))
+    )
   )
-
 
 (defun setup-hostapd ()
   (serapeum:and-let*
@@ -1026,11 +1031,11 @@
     ))
 
 (defun unblock-wifi ()
-  ""
+  (alog "rfkill unblock all")
   (handler-case
       (inferior-shell:run/s "rfkill unblock all")
     (t (c)
-      (format t "We caught a condition.~&")
+      (format t "unblock-wifi: ~a ~&" c)
       (values nil c)))
   )
 
