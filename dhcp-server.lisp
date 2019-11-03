@@ -1044,7 +1044,7 @@
   (handler-case
       (progn
 	(inferior-shell:run "killall -9 hostapd" :on-error nil)
-	(inferior-shell:run (format nil "hostapd  ~a &" (hostapd-file)))
+	(inferior-shell:run (format nil "nohup /usr/sbin/hostapd  ~a &" (hostapd-file)))
 	)
     (t (c)
       (alog (format nil "Error running hostapd in background: ~a ~&" c))
