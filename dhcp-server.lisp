@@ -539,7 +539,7 @@
 					`(
 					  (:subnet 255 255 255 0)
 					  (:routers ,(compute-this-ip new-ip))
-					  (:lease-time 1800")
+					  (:lease-time 1800)
 					  (:dhcp-server ,@(compute-this-ip new-ip))
 					  (:dns-servers (8 8 8 8) (4 4 4 4)))
 					))
@@ -1070,6 +1070,7 @@
       (values nil c)
       ))
   (unblock-wifi)
+  (find-and-kill-wpa-supplicant)
   (run-hostapd-in-background)
   (nat-routing)
   ;;(network-watchdog)
