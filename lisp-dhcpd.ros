@@ -28,6 +28,8 @@ exec ros -Q -- $0 "$@"
     ;;(dhcp-server:configure-parent-router)
     ;;
       (dhcp-server:dhcpd)
+      (nat-routing)
+      (setup-dhcp-network-interfaces )
       (loop (sleep 60))
       )
     )

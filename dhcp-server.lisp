@@ -1040,26 +1040,29 @@
   )
 
 (defun run-hostapd-in-background ()
+  (alog "run-hostapd-in-background")
   (handler-case
       (progn
-	(inferior-shell:run/s "killall -9 hostapd")
-	(inferior-shell:run/s (format nil "hostapd  ~a &" (hostapd-file)))
+	(inferior-shell:run "killall -9 hostapd" :on-error nil)
+	(inferior-shell:run (format nil "hostapd  ~a &" (hostapd-file)))
 	)
     (t (c)
-      (format t "Error running hostapd in background: ~&")
+      (alog (format nil "Error running hostapd in background: ~a ~&" c))
       (values nil c)))
   )
 
 (defun nat-routing ()
   (handler-case
-      (loop :for cmd :in 
+      (loop :for cmd :in
 	 (list "echo 1 > /proc/sys/net/ipv4/ip_forward"
 	       "iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE"
 	       "iptables -A FORWARD -i wlan0 -j ACCEPT")
 	 :do
-	 (inferior-shell:run/s cmd))
+	 (progn
+	   (format t "~a~%" cmd)
+	   (inferior-shell:run cmd :on-error nil)))
     (t (c)
-      (format t "Error condition in nat-routing: ~&")
+      (alog (format nil  "Error condition in nat-routing: ~a ~&" c))
       (values nil c)
       )
     ))

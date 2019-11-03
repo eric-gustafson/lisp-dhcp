@@ -6,25 +6,24 @@
 	;;#:cl-syslog
 	)
   (:export
-
-   :alog
-   
-   :cidr-subnet
    :*this-net* 
+   :address-list
+   :alog
+   :broadcast-address
+   :ciaddr
+   :cidr-subnet
+   :configure-parent-router
    :dhcp
-   :dhcpd
    :dhcp-options
+   :dhcpd
    :encode-dhcp-options
    :handle-dhcp-message
    :ip=?
+   :nat-routing
    :options
-   :setup-prototype
+   :setup-dhcp-network-interfaces
    :setup-hostapd
-   :configure-parent-router
+   :setup-prototype
    :yiaddr
-   :ciaddr
-   
-   :address-list
-   :broadcast-address
    )
   )
