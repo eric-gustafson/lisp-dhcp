@@ -437,6 +437,8 @@
   (alog "setup-dhcp-network-interfaces")
   (let ((ac (addr-count)))
     (loop
+       :for max-count :from 10 :downto 0
+       :while (eq (addr-count) ac)
        :do
        (progn
 	 (alog "setup-dhcp-network-interfaces ~a" (addr-count))
@@ -445,10 +447,8 @@
 	    :do
 	    (alexandria:when-let ((vid (lsa:add-addr "wlan0" (+ 1 ipn) 24)))
 	      (lsa:up-vlan vid))
-	    ))
-       :for max-count :from 10 :downto 0
-       :while (eq (addr-count) ac)
-       :do (sleep 5))
+	    )
+	 (sleep 5)))
     (loop :for ipn in  *dhcp-nets* :do
        (loop :for ipA in *dhcp-nets* :do
 	  (unless (eq ipn ipA)
