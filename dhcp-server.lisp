@@ -441,7 +441,7 @@
        :while (eq (addr-count) ac)
        :do
        (progn
-	 (alog "setup-dhcp-network-interfaces ~a" (addr-count))
+	 (alog (format nil "setup-dhcp-network-interfaces ~a" (addr-count)))
 	 (loop
 	    :for ipn in  *dhcp-nets*
 	    :do
@@ -1013,7 +1013,7 @@
   "/etc/hostapd/hostapd.conf")
 
 (defun find-and-kill-wpa-supplicant ()
-  (alog (format nil "killing wpa_supplicant"))
+  (alog "killing wpa_supplicant")
   (handler-case
       (inferior-shell:run "killall -9 wpa_supplicant")
     (t (c)
