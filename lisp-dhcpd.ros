@@ -30,6 +30,7 @@ exec ros -Q -- $0 "$@"
       (dhcp-server:dhcpd)
       (dhcp-server:nat-routing)
       (dhcp-server:setup-dhcp-network-interfaces)
+      (dhcp-server:alog "appliance up")
       (loop (sleep 60))
       )
     )

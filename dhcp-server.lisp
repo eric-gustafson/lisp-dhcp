@@ -430,11 +430,19 @@
 (defun setup-dhcp-network-interfaces ()
   ;; skip the first one, that's the physical interfaces ip address
   ;;(lsa:add-addr "wlan0" (+ 1 (car *dhcp-nets*)) 24)
+  (alog "setup-dhcp-network-interfaces")
   (loop
      :for ipn in (cdr *dhcp-nets*)
      :do
      (alexandria:when-let ((vid (lsa:add-addr "wlan0" (+ 1 ipn) 24)))
        (lsa:up-vlan vid))
+     )
+  (loop :for ipn in (cdr *dhcp-nets*) :do
+     (loop :for ipA in (cdr *dhcp-nets*) :do
+	(unless (eq ipn ipA)
+	  (disable-xtalk ipn ipA (dhcp-server:cidr-subnet dhcp-server:*this-net*))
+	  )
+	)
      )
   )
 
@@ -1052,6 +1060,7 @@
   )
 
 (defun nat-routing ()
+  (alog "nat-routing")
   (handler-case
       (loop :for cmd :in
 	 (list "echo 1 > /proc/sys/net/ipv4/ip_forward"
