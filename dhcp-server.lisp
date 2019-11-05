@@ -427,23 +427,36 @@
   "Each of these map to a VLAN off a real network card."
   )
 
+(defun addr-count ()
+  (with-input-from-string (x (inferior-shell:run/s "ip addr | grep inet  | wc"))
+    (read x)))
+
 (defun setup-dhcp-network-interfaces ()
   ;; skip the first one, that's the physical interfaces ip address
   ;;(lsa:add-addr "wlan0" (+ 1 (car *dhcp-nets*)) 24)
   (alog "setup-dhcp-network-interfaces")
-  (loop
-     :for ipn in  *dhcp-nets*
-     :do
-     (alexandria:when-let ((vid (lsa:add-addr "wlan0" (+ 1 ipn) 24)))
-       (lsa:up-vlan vid))
-     )
-  (loop :for ipn in  *dhcp-nets* :do
-     (loop :for ipA in *dhcp-nets* :do
-	(unless (eq ipn ipA)
-	  (disable-xtalk ipn ipA (dhcp-server:cidr-subnet dhcp-server:*this-net*))
+  (let ((ac (addr-count)))
+    (loop
+       :do
+       (progn
+	 (alog "setup-dhcp-network-interfaces ~a" (addr-count))
+	 (loop
+	    :for ipn in  *dhcp-nets*
+	    :do
+	    (alexandria:when-let ((vid (lsa:add-addr "wlan0" (+ 1 ipn) 24)))
+	      (lsa:up-vlan vid))
+	    ))
+       :for max-count :from 10 :downto 0
+       :while (eq (addr-count) ac)
+       :do (sleep 5))
+    (loop :for ipn in  *dhcp-nets* :do
+       (loop :for ipA in *dhcp-nets* :do
+	  (unless (eq ipn ipA)
+	    (disable-xtalk ipn ipA (dhcp-server:cidr-subnet dhcp-server:*this-net*))
+	    )
 	  )
-	)
-     )
+       )
+    )
   )
 
 (defun teardown-dhcp-network-interfaces ()
