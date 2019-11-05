@@ -436,23 +436,18 @@
   ;;(lsa:add-addr "wlan0" (+ 1 (car *dhcp-nets*)) 24)
   (alog "setup-dhcp-network-interfaces")
   (let ((ac (addr-count)))
-    (loop
-       :for max-count :from 10 :downto 0
-       :while (eq (addr-count) ac)
-       :do
-       (progn
-	 (alog (format nil "setup-dhcp-network-interfaces ~a" (addr-count)))
-	 (loop
-	    :for ipn in  *dhcp-nets*
-	    :do
-	    (alexandria:when-let ((vid (lsa:add-addr "wlan0" (+ 1 ipn) 24)))
-	      (lsa:up-vlan vid))
-	    )
-	 (sleep 5)))
+    (progn
+      (alog (format nil "setup-dhcp-network-interfaces ~a" (addr-count)))
+      (loop
+	 :for ipn in  *dhcp-nets*
+	 :do
+	 (alexandria:when-let ((vid (lsa:add-addr "wlan0" (+ 1 ipn) 24)))
+	   (lsa:up-vlan vid))
+	 ))
     (loop :for ipn in  *dhcp-nets* :do
        (loop :for ipA in *dhcp-nets* :do
 	  (unless (eq ipn ipA)
-	    (disable-xtalk ipn ipA (dhcp-server:cidr-subnet dhcp-server:*this-net*))
+	    (lsa:disable-xtalk ipn ipA (dhcp-server:cidr-subnet dhcp-server:*this-net*))
 	    )
 	  )
        )
