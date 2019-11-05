@@ -27,9 +27,9 @@ exec ros -Q -- $0 "$@"
       (dhcp-server:setup-prototype)
     ;;(dhcp-server:configure-parent-router)
     ;;
-      (dhcp-server:dhcpd)
       (dhcp-server:nat-routing)
       (dhcp-server:setup-dhcp-network-interfaces)
+      (dhcp-server:dhcpd)
       (dhcp-server:alog "appliance up")
       (loop (sleep 60))
       )

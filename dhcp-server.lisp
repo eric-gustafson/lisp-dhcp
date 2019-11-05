@@ -1089,20 +1089,13 @@
       )
     ))
 
-  
+
 (defun setup-prototype ()
   (unless lparallel:*kernel*
-    (setf lparallel:*kernel* (lparallel:make-kernel 4)))
-  #+nil(handler-case 
-	   (inferior-shell:run/s (format nil "/sbin/ip addr add ~a/24 brd + dev ~a" (numex:addr->dotted (this-ip)) (compute-wifi-interface)))
-    (t (c)
-      (format t "Error condition setting ip address.~&")
-      (values nil c)
-      ))
+    (setf lparallel:*kernel* (lparallel:make-kernel 4)))  
   (unblock-wifi)
   (find-and-kill-wpa-supplicant)
   (run-hostapd-in-background)
-  (nat-routing)
   ;;(network-watchdog)
   ;;(configure-parent-router)
   )
