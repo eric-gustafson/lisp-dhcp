@@ -1019,7 +1019,8 @@
 
 (defun setup-hostapd ()
   (serapeum:and-let*
-      ((x (car (get-wifi-gateway-candidates)))
+      ((x (or (car (get-wifi-gateway-candidates))
+	      "wlan0")) ;; bad hack to move things along
        (filename (hostapd-file))
        (pathname (pathname filename)))
     (uiop:ensure-all-directories-exist (list pathname))
