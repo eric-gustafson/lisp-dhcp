@@ -1019,8 +1019,7 @@
 
 (defun setup-hostapd ()
   (serapeum:and-let*
-      ((x (or (car (get-wifi-gateway-candidates))
-	      "wlan0")) ;; bad hack to move things along
+      ( ;; bad hack to move things along
        (filename (hostapd-file))
        (pathname (pathname filename)))
     (uiop:ensure-all-directories-exist (list pathname))
@@ -1030,12 +1029,18 @@
 	      ;;:element-type :utf-8 ;;'(unsigned-byte 8)
 	      :if-exists :supersede
 	      :if-does-not-exist :create)
-      (princ
-       (lsa:hostapd (lsa:name x)
-		    "g3"
-		    "bustergus25")
-       out)
-      ))
+      (let ((ifn (trivia:match
+		     (get-wifi-gateway-candidates)
+		   ((cons first rest)
+		    (lsa:name first))
+		   (otherwise "wlan0"))))
+	(princ
+	 (lsa:hostapd ifn
+		      "g3"
+		      "bustergus25")
+	 out)
+	))
+    )
   )
 
 ;; wlx9cefd5fdd60e
