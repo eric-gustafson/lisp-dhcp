@@ -16,7 +16,7 @@
 ** Automated Xen network deployments
    
 *** Use cases
-    - Configure a new subnet with a router and 100 clients, where each client is a new Ubuntu
+  - Configure a new subnet with a router and 100 clients, where each client is a new Ubuntu
 
 
 ** Provide DHCP and routing services for a Xen Client
@@ -31,6 +31,7 @@
 * dhcp-discover
 ** give ip on staging network
    Low lease, very little bandwidth
+
 ** security challenge
    nmap device, get mac address, is there a profile for this device?
 
