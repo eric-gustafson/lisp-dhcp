@@ -3,6 +3,7 @@
 (defpackage #:dhcp-server
   (:use #:cl
 	#:numex
+	#:cl-who
 	;;#:cl-syslog
 	)
   (:export

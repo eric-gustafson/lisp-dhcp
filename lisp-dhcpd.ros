@@ -8,11 +8,27 @@ exec ros -Q -- $0 "$@"
   ;;#+quicklisp(ql:quickload '() :silent t)
   )
 
-(defpackage :ros.script.lisp-dhcpd.3767092429
-  (:use :cl ))
-(in-package :ros.script.lisp-dhcpd.3767092429)
 
 (ql:quickload :dhcp-server)
+(defpackage :ros.script.lisp-dhcpd.3767092429
+  (:use :cl :cl-who))
+(in-package :ros.script.lisp-dhcpd.3767092429)
+
+
+(hunchentoot:define-easy-handler (ndice-langs-handler :uri "/")
+    ()
+  (with-html-output
+      (*standard-output*)
+    (htm
+     (:html
+      (:body
+       (:h2 "Snot GUI")
+       (:p "That's America Man")
+       )
+      )
+     )
+    )
+  )
 
 (defun main (&rest argv)
   (declare (ignorable argv))
@@ -22,6 +38,7 @@ exec ros -Q -- $0 "$@"
     (dhcp-server:alog "starting dhcp server")
     (destructuring-bind (&key (sport 4010))
         (loop for x in argv collect (with-input-from-string (p x) (read p)))
+      (daemon:daemonize   :output #P"/var/log/sagent.log"   :error #P"/var/log/sagent-error.log"   :pidfile #P"/tmp/my.pid"   :exit-parent t)
       (swank:create-server :dont-close t :port sport)
       (dhcp-server:setup-hostapd)
       (dhcp-server:setup-prototype)
@@ -31,6 +48,7 @@ exec ros -Q -- $0 "$@"
       (dhcp-server:setup-dhcp-network-interfaces)
       (dhcp-server:dhcpd)
       (dhcp-server:alog "appliance up")
+      (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor :port 80))      
       (loop (sleep 60))
       )
     )

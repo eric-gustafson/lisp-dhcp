@@ -5,9 +5,9 @@
 
 ** Key Resources
  
-  | [[https://tools.ietf.org/html/rfc1531][RFC 1531]]                     |                              |
+  | [[https://tools.ietf.org/html/rfc1531][RFC 1531]]                                                          |                              |
   | [[https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol]] | WikiPedia DHCP               |
-  | [[https://tools.ietf.org/html/rfc2132][RFC 2132]]                     |                              |
+  | [[https://tools.ietf.org/html/rfc2132][RFC 2132]]                                                          |                              |
   | [[https://www.ietf.org/rfc/rfc1878.txt]]                              | Variable Length subnet table |
   | [[https://www.aelius.com/njh/subnet_sheet.html]]                      | Subnet mask cheat sheet      |
 

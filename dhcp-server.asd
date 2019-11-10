@@ -7,20 +7,30 @@
   :version "0.0.1"
   :serial t
   :depends-on (
+	       #:alexandria	       
 	       #:flexi-streams
 	       #:usocket
 	       #:swank
+	       #:closer-mop	       
 	       #:uiop
 	       #:lparallel   
-	       #:alexandria
 	       #:cl-ppcre
 	       #:trivia
+	       #:trivia.ppcre
+	       #:cl-interpol
+	       #:daemon	       	       
 	       #:serapeum
 	       #:inferior-shell
 	       #:numex
 	       #:lsa
 	       #:trivial-ssh
 	       #:cl-syslog
+	       #:hunchentoot
+	       #:parenscript
+	       #:postmodern
+               #:cl-ppcre
+               #:cl-who
+	       #:snot
 	       )
   :components ((:file "package")
 	       (:file "dhcp-bootp-fields")
