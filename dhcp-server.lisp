@@ -417,7 +417,7 @@
   )
 
 (defparameter *dhcp-nets*
-  (serapeum:firstn 4
+  (serapeum:firstn 32
 		   (numex:cidr-subnets
 		    (first-ip *this-net*)
 		    (cidr *this-net*)
