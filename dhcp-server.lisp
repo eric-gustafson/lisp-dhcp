@@ -1036,7 +1036,7 @@
 		   (otherwise "wlan0"))))
 	(princ
 	 (lsa:hostapd ifn
-		      "g3"
+		      (format nil "g-~a" (random 1000000000))
 		      "bustergus25")
 	 out)
 	))
