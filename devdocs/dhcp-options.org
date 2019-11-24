@@ -77,18 +77,6 @@
 - 1
 - 44
 
-* TODO Make a protocol module
-   (defproto x
-     (proto-matcher (:int16 len) (:int32 code) (:string name (- length (sizeof code))))
-     ...)
-
-
-   ;; creates  a function that returns nil or 3 values 
-   ;; need to handle byte order issues
-   ;; 
-
-** TODO subnet
-
 
 * TODO recreate the captured packets we have using encode function
 

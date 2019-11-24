@@ -39,8 +39,6 @@
 | [[file:./devdocs/dhcp-options-table.org]] |
 | [[file:./devdocs/dhcp.org]]               |
 | [[file:./devdocs/networks.org]]           |
-| [[file:./readme.org]]                     |
-| [[file:./work/plan.org]]                  |
 | [[file:./work/work.org]]                  |
 
 
