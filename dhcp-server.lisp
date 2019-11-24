@@ -798,7 +798,7 @@
    (ssh:with-connection
        (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
      (ssh:with-command
-	 (conn iostream (format nil "route del -net ~a gw ~a netmask ~a dev ~a" (numex:->dotted (dest rte)) (numex:->dotted (gw rte)) (numex:addr->dotted (mask rte)) (iface rte)))
+	 (conn iostream (format nil "route del -net ~a gw ~a netmask ~a dev ~a" (numex:->dotted (dest rte)) (numex:->dotted (gw rte)) (numex:->dotted (mask rte)) (iface rte)))
        (loop
 	  for l = (read-line iostream nil)
 	  while l
