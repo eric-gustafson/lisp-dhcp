@@ -651,9 +651,10 @@
 					  nil
 					  :protocol :datagram
 					  :element-type '(unsigned-byte 8) ;;char
-					  :local-host (local-host-addr)
+					  :local-host nil ;(local-host-addr)
 					  :local-port *dhcp-server-port*))
 	 )
+    (usocket:with-server-socket 
     (let ((bcast (usocket:socket-option rsocket :broadcast)))
       (alog (format nil "socket: ~a created, bcast=~a" rsocket bcast))
       (setf (usocket:socket-option rsocket :broadcast) t)
@@ -667,7 +668,7 @@
 		 (dhcp-handler rsocket dhcpObj buff size client receive-port)
 		 ))
 	(t (c)
-	  (alog (format nil "Error receiving dhcp request ~a ~&" c))
+	  (alog (format nil "Error processing dhcp request ~a ~&" c))
 	  (usocket:socket-close rsocket)
 	  (values nil c))
 	)))
