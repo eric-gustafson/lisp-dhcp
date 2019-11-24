@@ -15,6 +15,7 @@
    :cidr-subnet
    :configure-parent-router
    :dhcp
+   :run
    :dhcp-options
    :dhcpd
    :encode-dhcp-options
