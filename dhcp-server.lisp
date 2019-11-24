@@ -372,7 +372,6 @@
     )
   )
 
-
 (defmethod subnets ((net-obj cidr-net) &key cidr)
   (declare (integer subnet-num))
     (let ((f (first-ip net-obj))
@@ -417,7 +416,7 @@
   )
 
 (defparameter *dhcp-nets*
-  (serapeum:firstn 32
+  (serapeum:firstn 16
 		   (numex:cidr-subnets
 		    (first-ip *this-net*)
 		    (cidr *this-net*)
@@ -437,13 +436,14 @@
   (alog "setup-dhcp-network-interfaces")
   (let ((ac (addr-count)))
     (progn
-      (alog (format nil "setup-dhcp-network-interfaces ~a" (addr-count)))
+      (alog (format nil "Setup ~a networks" ac))
       (loop
 	 :for ipn in  *dhcp-nets*
 	 :do
 	 (alexandria:when-let ((vid (lsa:add-addr "wlan0" (+ 1 ipn) 24)))
 	   (lsa:up-vlan vid))
 	 ))
+    (alog "enforcing x-talk suppression")
     (loop :for ipn in  *dhcp-nets* :do
        (loop :for ipA in *dhcp-nets* :do
 	  (unless (eq ipn ipA)
@@ -658,13 +658,17 @@
 	       (alog (format nil "socket: ~a created" rsocket))
 	       (setf (usocket:socket-option rsocket :broadcast) t)
 	       (alog (format nil  "broadcast enabled"))
-	       (unwind-protect
-		    (loop while (serve) do
-			 (multiple-value-bind (buff size client receive-port)
-			     (usocket:socket-receive rsocket buff 1024)
-			   (dhcp-handler rsocket dhcpObj buff size client receive-port)
-			   ))
-		 (usocket:socket-close rsocket)
+	       (handler-case
+		   (loop while (serve) do
+			(multiple-value-bind (buff size client receive-port)
+			    (usocket:socket-receive rsocket buff 1024)
+			  (alog "dhcp request received")
+			  (dhcp-handler rsocket dhcpObj buff size client receive-port)
+			  ))
+		 (t (c)
+		   (alog (format nil "Error receiving dhcp request ~a ~&" c))
+		   (usocket:socket-close rsocket)
+		   (values nil c))
 		 ))))
     (run)))
 

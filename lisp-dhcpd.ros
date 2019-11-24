@@ -35,16 +35,14 @@ exec ros -Q -- $0 "$@"
   (let ((argv #+(or sbcl) (cdr sb-ext:*posix-argv*)
 	      #+(or ccl) ccl:*unprocessed-command-line-arguments*)
 	)
-    (dhcp-server:alog "starting dhcp server")
-    (destructuring-bind (&key (sport 4010) (fg nil))
+    (dhcp-server:alog "starting security appliance")
+    (destructuring-bind (&key (sport 4010) (bg nil))
         (loop for x in argv collect (with-input-from-string (p x) (read p)))
-      (unless fg
+      (when bg
 	(daemon:daemonize   :output #P"/var/log/sagent.log"   :error #P"/var/log/sagent-error.log"   :pidfile #P"/tmp/my.pid"   :exit-parent t))
       (swank:create-server :dont-close t :port sport)
       (dhcp-server:setup-hostapd)
       (dhcp-server:setup-prototype)
-    ;;(dhcp-server:configure-parent-router)
-    ;;
       (dhcp-server:nat-routing)
       (dhcp-server:setup-dhcp-network-interfaces)
       (dhcp-server:run)
