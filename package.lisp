@@ -27,5 +27,6 @@
    :setup-hostapd
    :setup-prototype
    :yiaddr
+   :wifi-ap-link
    )
   )
