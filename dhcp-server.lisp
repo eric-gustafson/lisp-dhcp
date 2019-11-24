@@ -655,22 +655,23 @@
 						     :local-host (local-host-addr)
 						     :local-port *dhcp-server-port*))
 		    )
-	       (format t "~a created~%" rsocket)
+	       (alog (format nil "socket: ~a created" rsocket))
 	       (setf (usocket:socket-option rsocket :broadcast) t)
-	       (format t "broadcast enabled~%")
+	       (alog (format nil  "broadcast enabled"))
 	       (unwind-protect
 		    (loop while (serve) do
 			 (multiple-value-bind (buff size client receive-port)
 			     (usocket:socket-receive rsocket buff 1024)
 			   (dhcp-handler rsocket dhcpObj buff size client receive-port)
 			   ))
-		 ;;(usocket:socket-close ssocket)
 		 (usocket:socket-close rsocket)
 		 ))))
     (run)))
 
 (defun run ()
-  (bt:make-thread #'dhcpd :name "dhcp thread"))
+  (alog "starting dhcp background thread")
+  (bt:make-thread #'dhcpd :name "dhcp thread")
+  )
 
 (defmethod print-object ((obj dhcp) stream)
   (print-unreadable-object
