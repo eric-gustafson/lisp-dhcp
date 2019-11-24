@@ -654,7 +654,6 @@
 					  :local-host nil ;(local-host-addr)
 					  :local-port *dhcp-server-port*))
 	 )
-    (usocket:with-server-socket 
     (let ((bcast (usocket:socket-option rsocket :broadcast)))
       (alog (format nil "socket: ~a created, bcast=~a" rsocket bcast))
       (setf (usocket:socket-option rsocket :broadcast) t)
