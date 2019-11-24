@@ -962,15 +962,15 @@
        *machine-class*)))
   )
 
+(defvar *wifi-ap-link* nil)
+
 (defun get-wifi-gateway-candidates ()
   "filter out localhost and ip address of the network we are bringing up"
   (serapeum:filter
    (trivia:lambda-match
      ((lsa:link :state sstate :name name)
-      (and
-       (or (ppcre:scan "wlx.*" name)
-	   (ppcre:scan "wlan" name))
-       (string-equal (string-upcase sstate) "DOWN"))
+      (or (ppcre:scan "wlx.*" name)
+	  (ppcre:scan "wlan" name))
       ))
    (lsa:ip-link-objs)
    )
@@ -1023,6 +1023,24 @@
     )
   )
 
+(defun ap-link ()
+  (let ((wifi-link-objs
+	 (get-wifi-gateway-candidates)))
+    (cond
+      ((and *wifi-ap-link*
+	    (member *wifi-ap-link* wifi-link-objs :key #'lsa:name))
+       *wifi-ap-link*)
+      (t
+       (trivia:match
+	   wifi-link-objs
+	 ((cons first rest)
+	  (lsa:name first))
+	 (otherwise "wlan0"))
+       )
+      )
+    )
+  )
+
 (defun setup-hostapd ()
   (serapeum:and-let*
       ( ;; bad hack to move things along
@@ -1035,11 +1053,7 @@
 	      ;;:element-type :utf-8 ;;'(unsigned-byte 8)
 	      :if-exists :supersede
 	      :if-does-not-exist :create)
-      (let ((ifn (trivia:match
-		     (get-wifi-gateway-candidates)
-		   ((cons first rest)
-		    (lsa:name first))
-		   (otherwise "wlan0"))))
+      (let ((ifn (ap-link)))
 	(princ
 	 (lsa:hostapd ifn
 		      (format nil "g-~a" (random 1000000000))

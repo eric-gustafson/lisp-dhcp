@@ -36,10 +36,12 @@ exec ros -Q -- $0 "$@"
 	      #+(or ccl) ccl:*unprocessed-command-line-arguments*)
 	)
     (dhcp-server:alog "starting security appliance")
-    (destructuring-bind (&key (sport 4010) (bg nil))
+    (destructuring-bind (&key (sport 4010) (bg nil) if)
         (loop for x in argv collect (with-input-from-string (p x) (read p)))
       (when bg
 	(daemon:daemonize   :output #P"/var/log/sagent.log"   :error #P"/var/log/sagent-error.log"   :pidfile #P"/tmp/my.pid"   :exit-parent t))
+      (when if
+	(setf *wifi-ap-link* if))
       (swank:create-server :dont-close t :port sport)
       (dhcp-server:setup-hostapd)
       (dhcp-server:setup-prototype)
