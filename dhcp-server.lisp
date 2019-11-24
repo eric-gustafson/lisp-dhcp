@@ -654,7 +654,7 @@
 						     :element-type '(unsigned-byte 8) ;;char
 						     :local-host (local-host-addr)
 						     :local-port *dhcp-server-port*))
-	0	    )
+		    )
 	       (format t "~a created~%" rsocket)
 	       (setf (usocket:socket-option rsocket :broadcast) t)
 	       (format t "broadcast enabled~%")
