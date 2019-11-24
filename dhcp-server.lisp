@@ -645,32 +645,33 @@
   )
   
 (defun dhcpd ()
-  (labels ((run ()
-	     (let* ((dhcpObj (make-instance 'dhcp))
-		    (buff (make-array 1024 :element-type '(unsigned-byte 8)))
-		    (rsocket (usocket:socket-connect nil
-						     nil
-						     :protocol :datagram
-						     :element-type '(unsigned-byte 8) ;;char
-						     :local-host (local-host-addr)
-						     :local-port *dhcp-server-port*))
-		    )
-	       (alog (format nil "socket: ~a created" rsocket))
-	       (setf (usocket:socket-option rsocket :broadcast) t)
-	       (alog (format nil  "broadcast enabled"))
-	       (handler-case
-		   (loop while (serve) do
-			(multiple-value-bind (buff size client receive-port)
-			    (usocket:socket-receive rsocket buff 1024)
-			  (alog "dhcp request received")
-			  (dhcp-handler rsocket dhcpObj buff size client receive-port)
-			  ))
-		 (t (c)
-		   (alog (format nil "Error receiving dhcp request ~a ~&" c))
-		   (usocket:socket-close rsocket)
-		   (values nil c))
-		 ))))
-    (run)))
+  (let* ((dhcpObj (make-instance 'dhcp))
+	 (buff (make-array 1024 :element-type '(unsigned-byte 8)))
+	 (rsocket (usocket:socket-connect nil
+					  nil
+					  :protocol :datagram
+					  :element-type '(unsigned-byte 8) ;;char
+					  :local-host (local-host-addr)
+					  :local-port *dhcp-server-port*))
+	 )
+    (let ((bcast (usocket:socket-option rsocket :broadcast)))
+      (alog (format nil "socket: ~a created, bcast=~a" rsocket bcast))
+      (setf (usocket:socket-option rsocket :broadcast) t)
+      (setf bcast (usocket:socket-option rsocket :broadcast))
+      (alog (format nil  "broadcast enabled :~a" bcast))
+      (handler-case
+	  (loop while (serve) do
+	       (multiple-value-bind (buff size client receive-port)
+		   (usocket:socket-receive rsocket buff 1024)
+		 (alog "dhcp request received")
+		 (dhcp-handler rsocket dhcpObj buff size client receive-port)
+		 ))
+	(t (c)
+	  (alog (format nil "Error receiving dhcp request ~a ~&" c))
+	  (usocket:socket-close rsocket)
+	  (values nil c))
+	)))
+  )
 
 (defun run ()
   (alog "starting dhcp background thread")
