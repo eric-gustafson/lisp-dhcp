@@ -1066,9 +1066,13 @@
   (alog "run-hostapd-in-background")
   (handler-case
       (progn
-	(and-let* ((str (inferior-shell:run/s "killall -9 hostapd" :on-error nil)))
+	(serapeum:and-let*
+	    ((str (inferior-shell:run "killall -9 hostapd" :output :string :on-error nil)))
 	  (alog str))
-	(and-let* ((str (inferior-shell:run/s (format nil "/usr/bin/nohup /usr/sbin/hostapd  ~a &" (hostapd-file)))))
+	(serapeum:and-let*
+	    ((str (inferior-shell:run (format nil "/usr/bin/nohup /usr/sbin/hostapd  ~a &" (hostapd-file))
+				      :output :string
+				      )))
 	  (alog str))
 	)
     (t (c)
