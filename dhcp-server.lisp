@@ -670,7 +670,7 @@
     (run)))
 
 (defun run ()
-  (bt:make-thread #'create-dhcpd-handler :name "dhcp thread"))
+  (bt:make-thread #'dhcpd :name "dhcp thread"))
 
 (defmethod print-object ((obj dhcp) stream)
   (print-unreadable-object

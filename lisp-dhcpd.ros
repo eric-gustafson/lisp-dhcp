@@ -46,7 +46,7 @@ exec ros -Q -- $0 "$@"
     ;;
       (dhcp-server:nat-routing)
       (dhcp-server:setup-dhcp-network-interfaces)
-      (dhcp-server:dhcpd)
+      (dhcp-server:run)
       (dhcp-server:alog "appliance up")
       (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor :port 80))      
       (loop (sleep 60))
