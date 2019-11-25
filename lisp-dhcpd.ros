@@ -14,22 +14,54 @@ exec ros -Q -- $0 "$@"
   (:use :cl :cl-who))
 (in-package :ros.script.lisp-dhcpd.3767092429)
 
+(defvar *wifi-info-buffer* nil)
 
-(hunchentoot:define-easy-handler (ndice-langs-handler :uri "/")
+(hunchentoot:define-easy-handler (secapp-main :uri "/")
     ()
-  (with-html-output
+  (hunchentoot:start-session)  
+  (with-html-output-to-string
       (*standard-output*)
-    (htm
-     (:html
-      (:body
-       (:h2 "Snot GUI")
-       (:p "That's America Man")
+    (cl-who:fmt "<!doctype html>~%")    
+    (:html
+     (:body
+      (:h2 "Snot GUI")
+      (:p "That's America Man")
+      (:table
+       (:tbody
+	(loop
+	   :for n :in dhcp-server::*dhcp-nets* :do
+	   (htm
+	    (:tr (:td
+		  (fmt "~a" (numex:->dotted n)))
+		 )
+	    )
+	   )
+	)
        )
+      (:a :href "/wifi/device/rawbuff"
+	  (str "Device Buffer"))
       )
      )
     )
   )
 
+(hunchentoot:define-easy-handler (wifi-device-raw-info :uri "/wifi/device/rawbuff")
+    ()
+  (hunchentoot:start-session)
+  (with-html-output-to-string
+      (*standard-output*)
+    (cl-who:fmt "<!doctype html>~%")    
+    (:html
+     (:body
+      (:h2 "iw list")
+      (:pre
+       (str *wifi-info-buffer*)
+       )
+      )
+     )
+    )
+  )
+  
 (defun main (&rest argv)
   (declare (ignorable argv))
   (let ((argv #+(or sbcl) (cdr sb-ext:*posix-argv*)
@@ -43,13 +75,15 @@ exec ros -Q -- $0 "$@"
       (when if
 	(setf *wifi-ap-link* if))
       (swank:create-server :dont-close t :port sport)
+      (setf *wifi-info-buffer* (inferior-shell:run/s "iw list"))
       (dhcp-server:setup-hostapd)
       (dhcp-server:setup-prototype)
       (dhcp-server:nat-routing)
       (dhcp-server:setup-dhcp-network-interfaces)
       (dhcp-server:run)
       (dhcp-server:alog "appliance up")
-      (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor :port 80))      
+      (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor :port 80))
+      (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor :port 8080))
       (loop (sleep 60))
       )
     )
