@@ -1,10 +1,10 @@
 ;;;; dhcp-server.asd
 
 (asdf:defsystem #:dhcp-server
-  :description "Describe dhcp-server here"
-  :author "Your Name <your.name@example.com>"
+  :description "DHCP client and server code"
+  :author "gus"
   :license  "Specify license here"
-  :version "0.0.1"
+  :version "0.0.2"
   :serial t
   :depends-on (
 	       #:alexandria	       
@@ -25,12 +25,7 @@
 	       #:lsa
 	       #:trivial-ssh
 	       #:cl-syslog
-	       #:hunchentoot
-	       #:parenscript
-	       #:postmodern
                #:cl-ppcre
-               #:cl-who
-	       #:snot
 	       )
   :components ((:file "package")
 	       (:file "dhcp-bootp-fields")

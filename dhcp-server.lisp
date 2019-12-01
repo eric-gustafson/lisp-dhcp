@@ -962,19 +962,6 @@
        *machine-class*)))
   )
 
-(defvar *wifi-ap-link* nil)
-
-(defun get-wifi-gateway-candidates ()
-  "filter out localhost and ip address of the network we are bringing up"
-  (serapeum:filter
-   (trivia:lambda-match
-     ((lsa:link :state sstate :name name)
-      (or (ppcre:scan "wlx.*" name)
-	  (ppcre:scan "wlan" name))
-      ))
-   (lsa:ip-link-objs)
-   )
-  )
 
 (defun calc-next-hop-ip (ip)
   (trivia:cmatch
@@ -1010,59 +997,11 @@
     )
   )  
 
-(defun hostapd-file ()
-  "/etc/hostapd/hostapd.conf")
-
-(defun find-and-kill-wpa-supplicant ()
-  (alog "killing wpa_supplicant")
-  (handler-case
-      (inferior-shell:run "killall -9 wpa_supplicant")
-    (t (c)
-      (format t "find-and-kill-wpa-supplicant: ~a ~&" c)
-      (values nil c))
-    )
-  )
-
-(defun ap-link ()
-  (let ((wifi-link-objs
-	 (get-wifi-gateway-candidates)))
-    (cond
-      ((and *wifi-ap-link*
-	    (member *wifi-ap-link* wifi-link-objs :key #'lsa:name))
-       *wifi-ap-link*)
-      (t
-       (trivia:match
-	   wifi-link-objs
-	 ((cons first rest)
-	  (lsa:name first))
-	 (otherwise "wlan0"))
-       )
-      )
-    )
-  )
 
 
-(defun setup-hostapd ()
-  (serapeum:and-let*
-      ( ;; bad hack to move things along
-       (filename (hostapd-file))
-       (pathname (pathname filename)))
-    (uiop:ensure-all-directories-exist (list pathname))
-    (with-open-file
-	(out  pathname
-	      :direction :output
-	      ;;:element-type :utf-8 ;;'(unsigned-byte 8)
-	      :if-exists :supersede
-	      :if-does-not-exist :create)
-      (let ((ifn (ap-link)))
-	(princ
-	 (lsa:hostapd ifn
-		      (format nil "g-~a" (random 1000000000))
-		      "bustergus25")
-	 out)
-	))
-    )
-  )
+
+
+
 
 ;; wlx9cefd5fdd60e
 (defun compute-wifi-interface ()
@@ -1073,32 +1012,6 @@
     
     ))
 
-(defun unblock-wifi ()
-  (alog "rfkill unblock all")
-  (handler-case
-      (inferior-shell:run/s "rfkill unblock all")
-    (t (c)
-      (format t "unblock-wifi: ~a ~&" c)
-      (values nil c)))
-  )
-
-(defun run-hostapd-in-background ()
-  (alog "run-hostapd-in-background")
-  (handler-case
-      (progn
-	(serapeum:and-let*
-	    ((str (inferior-shell:run "killall -9 hostapd" :output :string :on-error nil)))
-	  (alog str))
-	(serapeum:and-let*
-	    ((str (inferior-shell:run (format nil "/usr/bin/nohup /usr/sbin/hostapd  ~a &" (hostapd-file))
-				      :output :string
-				      )))
-	  (alog str))
-	)
-    (t (c)
-      (alog (format nil "Error running hostapd in background: ~a ~&" c))
-      (values nil c)))
-  )
 
 (defun nat-routing ()
   (alog "nat-routing")
@@ -1118,15 +1031,7 @@
     ))
 
 
-(defun setup-prototype ()
-  (unless lparallel:*kernel*
-    (setf lparallel:*kernel* (lparallel:make-kernel 4)))  
-  (unblock-wifi)
-  (find-and-kill-wpa-supplicant)
-  (run-hostapd-in-background)
-  ;;(network-watchdog)
-  ;;(configure-parent-router)
-  )
+
 
 (defun apply-configuration ()
   ;; macchager --mac oldmac+1

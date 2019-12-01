@@ -3,7 +3,6 @@
 (defpackage #:dhcp-server
   (:use #:cl
 	#:numex
-	#:cl-who
 	;;#:cl-syslog
 	)
   (:export
@@ -24,10 +23,6 @@
    :nat-routing
    :options
    :setup-dhcp-network-interfaces
-   :setup-hostapd
-   :setup-prototype
    :yiaddr
-   :wifi-ap-link
-   :cl-store
    )
   )
