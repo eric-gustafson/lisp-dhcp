@@ -28,5 +28,6 @@
    :setup-prototype
    :yiaddr
    :wifi-ap-link
+   :cl-store
    )
   )

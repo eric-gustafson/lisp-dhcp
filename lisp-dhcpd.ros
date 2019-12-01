@@ -16,15 +16,40 @@ exec ros -Q -- $0 "$@"
 
 (defvar *wifi-info-buffer* nil)
 
+(defvar *settings-path* #P"/home/root/secapp-settings")
+
+(defvar *settings* (if (fad:file-exists-p *settings-path*)
+		       (cl-store:restore *settings-path*)
+		       (serapeum:dict #'equalp)))
+
+(defun settings-store ()
+  "stores the settings hash to disk"
+  (cl-store:store *settings* *settings-path*))
+
 (hunchentoot:define-easy-handler (secapp-main :uri "/")
-    ()
-  (hunchentoot:start-session)  
+    ((app-name :parameter-type 'string))
+  (hunchentoot:start-session)
+  (when (not (equal (hunchentoot:session-value :app-name) app-name))
+    (setf (gethash :app-name *settings*) app-name)
+    (setf (hunchentoot:session-value :app-name) app-name)
+    (settings-store))
   (with-html-output-to-string
       (*standard-output*)
     (cl-who:fmt "<!doctype html>~%")    
     (:html
      (:body
-      (:h2 "Snot GUI")
+      (:h2 "Defense")
+      (:form
+       (:table
+	(:tr
+	 (:td (str "Name:")
+	      (:input :type "text"
+		      :length 20
+		      :value (or (gethash :app-name *settings*)
+				 "")
+		      )))
+	(:tr
+	 (:td (:input :type "submit")))))
       (:p "That's America Man")
       (:table
        (:tbody
@@ -44,6 +69,7 @@ exec ros -Q -- $0 "$@"
      )
     )
   )
+
 
 (hunchentoot:define-easy-handler (wifi-device-raw-info :uri "/wifi/device/rawbuff")
     ()
