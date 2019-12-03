@@ -12,6 +12,7 @@
    :broadcast-address
    :ciaddr
    :cidr-subnet
+   :*dhcp-nets*
    :configure-parent-router
    :dhcp
    :run

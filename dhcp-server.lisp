@@ -37,7 +37,7 @@
 	    (mac ipnum tla lease-time mac)
 	  obj
 	(format stream "~a,~a,~a,~a"
-		mac
+		(numex:octet-list->hexstr mac)
 		(when (numberp ipnum)
 		  (numex:num->dotted ipnum))
 		(- now tla) lease-time))
@@ -179,7 +179,7 @@
 
 (defparameter *this-net*
   (make-instance 'cidr-net
-		 :cidr 16
+		 :cidr 8
 		 :cidr-subnet 24
 		 :ipnum (numex:octets->num #(10 0 0 0))
 		 :mask (numex:octets->num #(255 255 0 0)))
@@ -430,18 +430,21 @@
   (with-input-from-string (x (inferior-shell:run/s "ip addr | grep inet  | wc"))
     (read x)))
 
-(defun setup-dhcp-network-interfaces ()
+
+(defun setup-dhcp-network-interfaces (&key (nif "wlan0"))
   ;; skip the first one, that's the physical interfaces ip address
   ;;(lsa:add-addr "wlan0" (+ 1 (car *dhcp-nets*)) 24)
   (alog "setup-dhcp-network-interfaces")
   (let ((ac (addr-count)))
     (progn
-      (alog (format nil "Setup ~a networks" ac))
+      (alog (format nil "Setup ~a ~a networks" nif ac))
       (loop
 	 :for ipn in  *dhcp-nets*
 	 :do
-	 (alexandria:when-let ((vid (lsa:add-addr "wlan0" (+ 1 ipn) 24)))
-	   (lsa:up-vlan vid))
+	 (lsa:add-addr nif (+ 1 ipn) 24)
+	 #+nil(alexandria:when-let ((vid ))
+	   (lsa:up-vlan vid)
+	   )
 	 ))
     (alog "enforcing x-talk suppression")
     (loop :for ipn in  *dhcp-nets* :do
@@ -454,11 +457,11 @@
     )
   )
 
-(defun teardown-dhcp-network-interfaces ()
+(defun teardown-dhcp-network-interfaces (iface)
   (loop
      :for ipn in (cdr *dhcp-nets*)
      :do
-     (lsa:del-vlan "wlan0" (+ 1 ipn) 24))
+     (lsa:del-vlan iface (+ 1 ipn) 24))
   )
 
 
@@ -1013,16 +1016,16 @@
     ))
 
 
-(defun nat-routing ()
+(defun nat-routing (iface)
   (alog "nat-routing")
   (handler-case
       (loop :for cmd :in
 	 (list "echo 1 > /proc/sys/net/ipv4/ip_forward"
 	       "iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE"
-	       "iptables -A FORWARD -i wlan0 -j ACCEPT")
+	       (format nil "iptables -A FORWARD -i ~a -j ACCEPT" iface))
 	 :do
 	 (progn
-	   (format t "~a~%" cmd)
+	   (alog "~a~%" cmd)
 	   (inferior-shell:run cmd :on-error nil)))
     (t (c)
       (alog (format nil  "Error condition in nat-routing: ~a ~&" c))
@@ -1031,11 +1034,9 @@
     ))
 
 
-
-
-(defun apply-configuration ()
+(defun apply-configuration (iface)
   ;; macchager --mac oldmac+1
-  (inferior-shell:run/lines "ifdown --force wlan0 && ifdown --force ap0")
+  (inferior-shell:run/lines (format "ifdown --force ~a && ifdown --force ap0" iface))
   (inferior-shell:run/lines "wpa_cli reconfigure")
   ;;(inferior-shell:run/lines "systemctl restart dnsmasq")
   ;;(inferior-shell:run/lines "systemctl restart hostapd") 
