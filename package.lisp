@@ -21,9 +21,7 @@
    :encode-dhcp-options
    :handle-dhcp-message
    :ip=?
-   :nat-routing
    :options
-   :setup-dhcp-network-interfaces
    :yiaddr
    )
   )

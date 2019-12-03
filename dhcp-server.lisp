@@ -431,32 +431,6 @@
     (read x)))
 
 
-(defun setup-dhcp-network-interfaces (&key (nif "wlan0"))
-  ;; skip the first one, that's the physical interfaces ip address
-  ;;(lsa:add-addr "wlan0" (+ 1 (car *dhcp-nets*)) 24)
-  (alog "setup-dhcp-network-interfaces")
-  (let ((ac (addr-count)))
-    (progn
-      (alog (format nil "Setup ~a ~a networks" nif ac))
-      (loop
-	 :for ipn in  *dhcp-nets*
-	 :do
-	 (lsa:add-addr nif (+ 1 ipn) 24)
-	 #+nil(alexandria:when-let ((vid ))
-	   (lsa:up-vlan vid)
-	   )
-	 ))
-    (alog "enforcing x-talk suppression")
-    (loop :for ipn in  *dhcp-nets* :do
-       (loop :for ipA in *dhcp-nets* :do
-	  (unless (eq ipn ipA)
-	    (lsa:disable-xtalk ipn ipA (dhcp-server:cidr-subnet dhcp-server:*this-net*))
-	    )
-	  )
-       )
-    )
-  )
-
 (defun teardown-dhcp-network-interfaces (iface)
   (loop
      :for ipn in (cdr *dhcp-nets*)
@@ -834,33 +808,9 @@
 	  collect (ppcre::split "\\s+" l))))
        ))
 
-(defparameter *firewall-reset-cmds* (list
-				     "/usr/sbin/iptables -P INPUT ACCEPT"
-				     "/usr/sbin/iptables -P FORWARD ACCEPT"
-				     "/usr/sbin/iptables -P OUTPUT ACCEPT"
-				     "/usr/sbin/iptables -t nat -F"
-				     "/usr/sbin/iptables -t mangle -F"
-				     "/usr/sbin/iptables -F"
-				     "/usr/sbin/iptables -X"))
 
-(defun generate-nat-commands (external-if internal-if)
-  (append
-   *firewall-reset-cmds*
-   (list
 
-    "echo 1 > /proc/sys/net/ipv4/ip_forward"
-    (format nil "/usr/sbin/iptables -t nat -F")
-    (format nil "/usr/sbin/iptables -t mangle -F")
-    ;;(format nil "/usr/sbin/iptables -t nat -A POSTROUTING -o ~a -j SNAT --to 192.168.1.8" external-if)
-    (format nil "/usr/sbin/iptables -t nat -A POSTROUTING -o ~a -j MASQUERADE" external-if)
-    ;;(format nil "/usr/sbin/iptables -A FORWARD -i ~a -o ~a -m state --state RELATED,ESTABLISHED -j ACCEPT" external-if internal-if)
-    ;;(format nil "/usr/sbin/iptables -A FORWARD -i ~a -o ~a -j ACCEPT" internal-if external-if)
-    ;;(format nil "/usr/sbin/iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT")
-    ;;(format nil "/usr/sbin/iptables -A FORWARD -i ~a -o ~a -j ACCEPT" internal-if external-if)
-    
-    )
-   )
-  )
+
 
 
 (defmacro catch/log (&body body)
@@ -878,21 +828,7 @@
   )
   
 
-(defun disable-firewall (external-if internal-if)
-  (catch/log
-    (ssh:with-connection
-       (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
-     (loop :for command :in (generate-nat-commands external-if internal-if)  :do
-	(catch/log
-	 (ssh:with-command
-	     (conn iostream command)
-	   (loop
-	      for l = (read-line iostream nil)
-	      while l
-	      do (print l *standard-output*))
-	   ))
-	)
-     )))
+
 
 (defun network-watchdog ()
   (let ((channel (lparallel:make-channel)))
@@ -973,38 +909,7 @@
      (vector a b c 1))))
 
 
-(defun configure-parent-router ()
-  ;; This is a primary use case.  Get this working and we can go
-  ;; to the next level of testing/developing.
-  (let* ((neo (get-ip-of-this-hosts-lan-card))
-	 (this-addr (numex:dotted->vector (lsa:addr neo)))
-	 (mesh-parent (calc-next-hop-ip this-addr))
-	 ;;(mesh-net (get-net-using-cidr mesh-parent))
-	 (r (make-instance 'remote-router-if
-			   :ipaddr mesh-parent
-			   :un "root"
-			   :pw "locutusofborg"
-			   :dest #(10 0 12 0)
-			   :gw this-addr ;; #(192 168 11 125)
-			   :mask #(255 255 255 0)
-			   ;; this is the interface on the router,
-			   ;; not this host
-			   :iface "br0" 
-			   )
-	   ))
-    (loop :for re in (cdr (get-routes)) :do
-       (if (equal '(10 0 12 0) (dest re))
-	   (remove-route re)))
-    (add-route r)
-    (disable-firewall "eth1" "br0")
-    )
-  )  
-
-
-
-
-
-
+  
 
 ;; wlx9cefd5fdd60e
 (defun compute-wifi-interface ()
@@ -1015,23 +920,6 @@
     
     ))
 
-
-(defun nat-routing (iface)
-  (alog "nat-routing")
-  (handler-case
-      (loop :for cmd :in
-	 (list "echo 1 > /proc/sys/net/ipv4/ip_forward"
-	       "iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE"
-	       (format nil "iptables -A FORWARD -i ~a -j ACCEPT" iface))
-	 :do
-	 (progn
-	   (alog "~a~%" cmd)
-	   (inferior-shell:run cmd :on-error nil)))
-    (t (c)
-      (alog (format nil  "Error condition in nat-routing: ~a ~&" c))
-      (values nil c)
-      )
-    ))
 
 
 (defun apply-configuration (iface)
