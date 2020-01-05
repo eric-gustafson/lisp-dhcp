@@ -438,6 +438,8 @@
      (lsa:del-vlan iface (+ 1 ipn) 24))
   )
 
+(defvar *hook-ip-allocated* nil
+  "Invoked when an IP address is allocated.  Has")
 
 ;;  "Search for an unallocated ip within the range defined in the cidr-net object."
 (defmethod dhcp-allocate-ip ((reqMsg dhcp) (net cidr-net))
@@ -455,6 +457,9 @@
 				     :mac (mac reqMsg)
 				     )))
 	 (push addrObj *dhcp-allocated-table*)
+	 (serapeum:run-hook dhcp-server:*hook-ip-allocated*
+			    (ipnum addrObj)
+			    (mac addrObj))
 	 (return-from dhcp-allocate-ip addrObj)))
      )
   (error "Out of ip addresses")
@@ -628,7 +633,9 @@
 					  nil
 					  :protocol :datagram
 					  :element-type '(unsigned-byte 8) ;;char
-					  :local-host nil ;(local-host-addr)
+					  :local-host
+					  #+(or sbcl)nil
+					  #+(or ccl)(local-host-addr)
 					  :local-port *dhcp-server-port*))
 	 )
     (let ((bcast (usocket:socket-option rsocket :broadcast)))
@@ -807,11 +814,6 @@
 	  while l
 	  collect (ppcre::split "\\s+" l))))
        ))
-
-
-
-
-
 
 (defmacro catch/log (&body body)
   ;; #+nil(handler-case

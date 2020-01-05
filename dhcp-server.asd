@@ -7,7 +7,8 @@
   :version "0.0.2"
   :serial t
   :depends-on (
-	       #:alexandria	       
+	       #:alexandria
+	       #:serapeum
 	       #:flexi-streams
 	       #:usocket
 	       #:swank
@@ -19,7 +20,6 @@
 	       #:trivia.ppcre
 	       #:cl-interpol
 	       #:daemon	       	       
-	       #:serapeum
 	       #:inferior-shell
 	       #:numex
 	       #:lsa

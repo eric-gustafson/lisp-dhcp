@@ -6,7 +6,8 @@
 	;;#:cl-syslog
 	)
   (:export
-   :*this-net* 
+   :*this-net*
+   :*hook-ip-allocated*
    :address-list
    :alog
    :broadcast-address
