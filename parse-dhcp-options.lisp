@@ -1,4 +1,4 @@
-(in-package :dhcp-server)
+(in-package :dhcp)
 
 
 (defclass dhcp-options ()

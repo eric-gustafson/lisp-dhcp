@@ -1,4 +1,31 @@
 
+* TODO create a dhcpdiscover message and get a reply back
+** TODO htype
+** TODO mtype
+
+#+BEGIN_SRC lisp
+  (setq 
+   oobj
+   (make-instance 'dhcp-options
+                  :mtype +MSG-TYPE-DHCPDISCOVER+
+                  :restof `((:hostname "athena")
+                            (:lease-time 300)))
+   )
+  (setq dhcp-obj
+        (make-instance 'dhcp 
+                       :op +MSG-TYPE-DHCPDISCOVER+
+                       :htype +HWT-ETHERNET-10MB+
+                       :hlen 6
+                       :options oobj
+                       ))
+
+  (response->buff dhcp-obj)
+
+#+END_SRC
+
+#+RESULTS:
+| 1 | 1 | 6 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 53 | 1 | 1 | 12 | 6 | 97 | 116 | 104 | 101 | 110 | 97 | 51 | 4 | 0 | 0 | 1 | 44 |
+
 
 * Ask my router for several IP addresses
 
@@ -10,40 +37,8 @@
 
   [[file:./tests]]
 
-#+BEGIN_SRC sh :results raw :dir tests
+#+BEGIN_SRC sh :results raw :dir tests :output raw
    make
 #+END_SRC
 
 #+RESULTS:
-ros macstable.ros | tee macstable.results
-To load "prove":
-  Load 1 ASDF system:
-    prove
-; Loading "prove"
-.
-To load "dhcp-server":
-  Load 1 ASDF system:
-    dhcp-server
-; Loading "dhcp-server"
-.......
-1..3
-
-dhcp discover received
-get-address: #(10 0 12 2)
-returning dhcp offer
-dhcp discover received
-get-address: #(10 0 12 3)
-returning dhcp offer
-dhcp discover received
-get-address: #(10 0 12 2)
-returning dhcp offer
-  [32m✓ [90mT is expected to be T[0m 
-[0m
-  [32m✓ [90mT is expected to be T[0m 
-[0m
-  [32m✓ [90mT is expected to be T[0m 
-[0m
-[32m✓ 3 tests completed[0m [90m(0ms)[0m
-echo "done;"
-done;
-

@@ -109,7 +109,7 @@ Application Options:
 	       (format nil "~x"  (broadcast obj))
 	       )
 	 )
-     (dhcp-server::subnets *this-net* :cidr 30)
+     (dhcp::subnets *this-net* :cidr 30)
      )
 #+end_src
 
@@ -180,7 +180,7 @@ Application Options:
 | (10 0 1 253) | A0001FF |
 
 #+begin_src lisp
-  (length (dhcp-server::subnets *this-net* 2))
+  (length (dhcp::subnets *this-net* 2))
 #+end_src
 
 #+RESULTS:
@@ -190,7 +190,7 @@ Application Options:
     (defvar *subnets* 
       (mapcar #'(lambda(ip)
 		  (cons ip (get-universal-time)))
-		  (dhcp-server::subnets *this-net* 2))
+		  (dhcp::subnets *this-net* 2))
       )
     (defparameter *cidr-subnets* 
       (mapcar #'(lambda(snip)
@@ -207,7 +207,7 @@ Application Options:
 : *CIDR-SUBNETS*
 
 #+begin_src lisp
-  (dhcp-server::subnet-info *this-net* 2)
+  (dhcp::subnet-info *this-net* 2)
 #+end_src
 
 #+RESULTS:

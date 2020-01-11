@@ -1,6 +1,6 @@
-;;;; dhcp-server.asd
+;;;; dhcp.asd
 
-(asdf:defsystem #:dhcp-server
+(asdf:defsystem #:dhcp
   :description "DHCP client and server code"
   :author "gus"
   :license  "Specify license here"
@@ -23,13 +23,15 @@
 	       #:inferior-shell
 	       #:numex
 	       #:lsa
-	       #:trivial-ssh
+	       ;;#:trivial-ssh
 	       #:cl-syslog
                #:cl-ppcre
 	       )
   :components ((:file "package")
 	       (:file "dhcp-bootp-fields")
 	       (:file "dhcp-options-table")
+	       (:file "dhcp-common")
+	       (:file "dhcp-client")
                (:file "dhcp-server")
 	       (:file "parse-dhcp-options")
 	       ))

@@ -1,8 +1,8 @@
 ;;;; dhcp-server.lisp
-(in-package #:dhcp-server)
+(in-package #:dhcp)
 
-(defvar *dhcp-server-port* 67)
-(defvar *dhcp-client-port* 68)
+(defconstant +dhcp-server-port+ 67)
+(defconstant +dhcp-client-port+ 68)
 
 (defmethod alog ((str string))
   (syslog:log "dhcp-server" :user :warning str))
@@ -60,7 +60,9 @@
                               :documentation description
                               :accessor (->symbol field)
                               :initarg (->keyword field)
-			      :initform nil
+			      :initform (if (equal type "int")
+					    0
+					    nil)
 			      ))))
 	      *dhcp-bootp-base-fields*)
      )
@@ -124,7 +126,7 @@
 				 (write-sequence (numex:num->octets value :length ,octets :endian :big) out))
 				(sequence
 				 (unless (eq (length value) ,octets)
-				   (error "integer sequence size mismatch"))
+				   (error "~a: integer sequence size mismatch" ,field))
 				 (write-sequence value out)))
 			      )
 			   )
@@ -457,7 +459,7 @@
 				     :mac (mac reqMsg)
 				     )))
 	 (push addrObj *dhcp-allocated-table*)
-	 (serapeum:run-hook dhcp-server:*hook-ip-allocated*
+	 (serapeum:run-hook dhcp:*hook-ip-allocated*
 			    (ipnum addrObj)
 			    (mac addrObj))
 	 (return-from dhcp-allocate-ip addrObj)))
@@ -554,14 +556,15 @@
 		(mtype options))))
     (trivia:match
 	sig
-      ((list 1 1 1) ;; dhcp discover
+      ((list +MSG-TYPE-DHCPDISCOVER+
+	     +HWT-ETHERNET-10MB+ 1) ;; dhcp discover
        ;; create a dhcp offer message
        (alog "dhcp discover received")
        (let ((offer (get-address obj)))
 	 (alog "returning dhcp offer")
 	 offer)
        )
-      ((list 1 1 3)
+      ((list 1 +HWT-ETHERNET-10MB+ 3)
        (alog "dhcp request received")
        ;; Send the ack
        (get-ack obj)
@@ -572,9 +575,22 @@
     )
   )
 
-(defmethod response->buff ((obj dhcp))
+(defmethod response->buff ((dhcp-obj dhcp))
   (flexi-streams:with-output-to-sequence (opp :element-type '(unsigned-byte 8))
-    (stream-serialize obj opp)))
+    (let ((options-obj (options dhcp-obj)))
+      (cond
+	((typep options-obj 'dhcp-options)
+	 (unwind-protect
+	      (progn
+		(setf (options dhcp-obj) (encode-dhcp-options options-obj))
+		(stream-serialize dhcp-obj opp))
+	   ;; Back the way we found it
+	   (setf (options dhcp-obj) options-obj)))
+	(t
+	 (stream-serialize dhcp-obj opp)))
+      )
+    )
+  )
 
 (defun local-host-addr ()
   #+(or ccl) (return-from local-host-addr "255.255.255.255")
@@ -596,7 +612,7 @@
 	(let* ((m (handle-dhcp-message dhcpObj))
 	       (buff (response->buff m))
 	       (bcast (coerce (numex:num->octets (cidr-bcast (yiaddr m)
-							     (dhcp-server:cidr-subnet dhcp-server:*this-net*))
+							     (dhcp:cidr-subnet dhcp-server:*this-net*))
 						 )
 			      'vector))
 	       )
@@ -749,7 +765,7 @@
 		   (equalp gw pgw))))
 	   *router-table*))
 
-(defun get-routes ()
+#+nil(defun get-routes ()
   (let ((results (catch/log
 		  (ssh:with-connection
 		      (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
@@ -783,7 +799,7 @@
   )
 
 
-(defmethod remove-route ((rte router-if))
+#+nil(defmethod remove-route ((rte router-if))
   (catch/log
    (ssh:with-connection
        (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
@@ -803,7 +819,7 @@
 			       (iface rte))
   )
 
-(defmethod add-route ((rte router-if))
+#+nil(defmethod add-route ((rte router-if))
   (catch/log
    (ssh:with-connection
        (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
@@ -887,7 +903,6 @@
 (defun connected-ip ()
   (get-ip-of-this-hosts-lan-card))
 
-
 (progn
   (defvar *machine-class* nil)
   (defun machine-class ()
@@ -903,15 +918,11 @@
        *machine-class*)))
   )
 
-
 (defun calc-next-hop-ip (ip)
   (trivia:cmatch
       ip
     ((vector a b c d)
      (vector a b c 1))))
-
-
-  
 
 ;; wlx9cefd5fdd60e
 (defun compute-wifi-interface ()

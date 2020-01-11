@@ -212,7 +212,7 @@ that was generated with the org-babel mode.
 
 
 #+BEGIN_SRC lisp :tangle "../dhcp-options-table.lisp"  :var ltable=dhcp-options
-  (in-package :dhcp-server)
+  (in-package :dhcp)
   (defparameter *dhcp-options-table* (cddr ltable))
   (defparameter *dhcp-options-table-id* (serapeum:dict))
   (loop :for row :in *dhcp-options-table* :do

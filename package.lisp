@@ -1,6 +1,6 @@
 ;;;; package.lisp
 
-(defpackage #:dhcp-server
+(defpackage #:dhcp
   (:use #:cl
 	#:numex
 	;;#:cl-syslog

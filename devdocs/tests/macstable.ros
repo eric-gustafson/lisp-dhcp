@@ -10,17 +10,17 @@ exec ros -Q -- $0 "$@"
 
 (ql:quickload :numex)
   (ql:quickload :prove)
-  (ql:quickload :dhcp-server)
+  (ql:quickload :dhcp)
 
 
   (defpackage :ros.script.mac-test.3770496090
-    (:use :cl :numex :dhcp-server))
+    (:use :cl :numex :dhcp))
   (in-package :ros.script.mac-test.3770496090)
 
 
 (defun simple-allocation ()
   (labels ((mreq (mac)
-	     (make-instance 'dhcp-server:dhcp 
+	     (make-instance 'dhcp:dhcp 
 			    :op 1 
 			    :htype 1
 			    :hlen 6
@@ -30,34 +30,34 @@ exec ros -Q -- $0 "$@"
     (let* ((rlst (list (mreq #(1 2 3 4 5 6))
 		      (mreq #(1 2 3 4 5 7))
 		      (mreq #(1 2 3 4 5 6))))
-	  (oobj (make-instance 'dhcp-server:dhcp-options
+	  (oobj (make-instance 'dhcp:dhcp-options
 			       :mtype 1
 			       :restof
 			       `((:lease-time 300) )))
 	   (results
 	    (loop :for obj :in rlst do
-	     (setf (dhcp-server:options obj) (dhcp-server:encode-dhcp-options oobj))
+	     (setf (dhcp:options obj) (dhcp:encode-dhcp-options oobj))
 	     :collect
-	     (dhcp-server:handle-dhcp-message obj)))
+	     (dhcp:handle-dhcp-message obj)))
 	   )
       (print results)
       (trivia:ematch
 	  results
 	((list x y z)
 	 (let ((bcast-addr
-		(coerce (numex:num->octets (cidr-bcast (dhcp-server:yiaddr x)
-						       (dhcp-server:cidr-subnet dhcp-server:*this-net*)
+		(coerce (numex:num->octets (cidr-bcast (dhcp:yiaddr x)
+						       (dhcp:cidr-subnet dhcp:*this-net*)
 						       )) 'vector)))
 	   (print `(
 		    :x ,x
 		       :bcast-addr ,bcast-addr
-		       :yiaddr ,(dhcp-server:yiaddr x)))
+		       :yiaddr ,(dhcp:yiaddr x)))
 	   (prove:ok
-	    (dhcp-server:ip=? bcast-addr
+	    (dhcp:ip=? bcast-addr
 			      #(10 0 0 255)))
-	   (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr x) #(10 0 0 2)))
-	   (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr y) #(10 0 1 2)))
-	   (prove:ok (dhcp-server:ip=? (dhcp-server:yiaddr z) #(10 0 0 2)))
+	   (prove:ok (dhcp:ip=? (dhcp:yiaddr x) #(10 0 0 2)))
+	   (prove:ok (dhcp:ip=? (dhcp:yiaddr y) #(10 0 1 2)))
+	   (prove:ok (dhcp:ip=? (dhcp:yiaddr z) #(10 0 0 2)))
 	   )
 	 ))
 
@@ -73,7 +73,7 @@ exec ros -Q -- $0 "$@"
 
     (in-package :cl-user)
     (defpackage dhcp-test
-      (:use :cl :dhcp-server
+      (:use :cl :dhcp
             :prove))
     (in-package :dhcp-test)
 

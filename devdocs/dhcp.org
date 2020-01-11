@@ -1,5 +1,5 @@
-#+title: dhcp protocol meta code
-
+#+title: DHCP protocol meta code
+#+author: Gus
 
 * DHCP Info
 
@@ -23,28 +23,30 @@
       
 #+tblname: dhcp-static-header
 #+results: dhcp-bootp-base-fields
-   | Field   | Octets | description                                                                                                                                            | type   | Notes                                                     |
-   |         |        | <40>                                                                                                                                                   |        | <40>                                                      |
-   |---------+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------+--------+-----------------------------------------------------------|
-   | op      |      1 | Message op code / message type. 1 = BOOTREQUEST, 2 = BOOTREPLY                                                                                         | int    |                                                           |
-   | htype   |      1 | Hardware address type, see ARP section in "Assigned Numbers" RFC; e.g., '1' = 10mb ethernet.                                                           | int    |                                                           |
-   | hlen    |      1 | Hardware address length (e.g. '6' for 10mb ethernet).                                                                                                  | int    |                                                           |
-   | hops    |      1 | Client sets to zero, optionally used by relay-agents when booting via a relay-agent.                                                                   | int    |                                                           |
-   | xid     |      4 | Transaction ID, a random number chosen by the client, used by the client and server to associate messages and responses between a client and a server. | int    |                                                           |
-   | secs    |      2 | Filled in by client, seconds elapsed since client started trying to boot.                                                                              | int    |                                                           |
-   | flags   |      2 | Flags (see figure 2).                                                                                                                                  | int    |                                                           |
-   | ciaddr  |      4 | Client IP address; filled in by client in DHCPREQUEST if verifying previously allocated configuration parameters.                                      | int    |                                                           |
-   | yiaddr  |      4 | 'your' (client) IP address.                                                                                                                            | int    |                                                           |
-   | siaddr  |      4 | IP address of next server to use in bootstrap; returned in DHCPOFFER, DHCPACK and DHCPNAK by server.                                                   | int    |                                                           |
-   | giaddr  |      4 | Relay agent IP address, used in booting via a relay-agent.                                                                                             | int    |                                                           |
-   | chaddr  |     16 | Client hardware address.                                                                                                                               | mac    | Ethernet: 6 octets (48 bits)                              |
-   | sname   |     64 | Optional server host name, null terminated string.                                                                                                     | string |                                                           |
-   | file    |    128 | Boot file name, null terminated string; "generic" name or null in DHCPDISCOVER, fully qualified directory-path name in DHCPOFFER.                      | string | I'm seeing the cookie at different places.  Search for it |
-   | mcookie |      4 | 0x63825363                                                                                                                                             | int    | Advance to the cookie and then parse                      |
-   | options |    312 | Optional parameters field.  See the options documents for a list of defined options.                                                                   | rest   |                                                           |
+   | Field   | Octets | description                              | type   | Notes                                    |
+   |         |        | <40>                                     |        | <40>                                     |
+   |---------+--------+------------------------------------------+--------+------------------------------------------|
+   | op      |      1 | Message op code / message type. 1 = BOOTREQUEST, 2 = BOOTREPLY | int    |                                          |
+   | htype   |      1 | Hardware address type, see ARP section in "Assigned Numbers" RFC; e.g., '1' = 10mb ethernet. | int    |                                          |
+   | hlen    |      1 | Hardware address length (e.g. '6' for 10mb ethernet). | int    |                                          |
+   | hops    |      1 | Client sets to zero, optionally used by relay-agents when booting via a relay-agent. | int    |                                          |
+   | xid     |      4 | Transaction ID, a random number chosen by the client, used by the client and server to associate messages and responses between a client and a server. | int    |                                          |
+   | secs    |      2 | Filled in by client, seconds elapsed since client started trying to boot. | int    |                                          |
+   | flags   |      2 | Flags (see figure 2).                    | int    |                                          |
+   | ciaddr  |      4 | Client IP address; filled in by client in DHCPREQUEST if verifying previously allocated configuration parameters. | int    |                                          |
+   | yiaddr  |      4 | 'your' (client) IP address.              | int    |                                          |
+   | siaddr  |      4 | IP address of next server to use in bootstrap; returned in DHCPOFFER, DHCPACK and DHCPNAK by server. | int    |                                          |
+   | giaddr  |      4 | Relay agent IP address, used in booting via a relay-agent. | int    |                                          |
+   | chaddr  |     16 | Client hardware address.                 | mac    | Ethernet: 6 octets (48 bits)             |
+   | sname   |     64 | Optional server host name, null terminated string. | string |                                          |
+   | file    |    128 | Boot file name, null terminated string; "generic" name or null in DHCPDISCOVER, fully qualified directory-path name in DHCPOFFER. | string | I'm seeing the cookie at different places.  Search for it |
+   | mcookie |      4 | 0x63825363                               | int    | Advance to the cookie and then parse     |
+   | options |    312 | Optional parameters field.  See the options documents for a list of defined options. | rest   |                                          |
 
 
-** DHCP Message Types
+* DHCP Message Types
+  This table is used to autogenerate lisp constants
+
 #+tblname: dhcp-message-types
    | Value | Message Type |
    |-------+--------------|
@@ -57,37 +59,108 @@
    |     7 | DHCPRELEASE  |
    |     8 | DHCPINFORM   |
 
-** Publish dhcp-protocol to global variable
+
+* ARP HW Types
+  This table is used to autogenerate lisp constants. 
+
+#+tblname: arp-hwtypes
+|     0 | Reserved                                      | [RFC5494]                   |
+|     1 | Ethernet (10Mb)                               | [Jon_Postel]                |
+|     2 | Experimental Ethernet (3Mb)                   | [Jon_Postel]                |
+|     3 | Amateur Radio AX.25                           | [Philip_Koch]               |
+|     4 | Proteon ProNET Token Ring                     | [Avri_Doria]                |
+|     5 | Chaos                                         | [Gill_Pratt]                |
+|     6 | IEEE 802 Networks                             | [Jon_Postel]                |
+|     7 | ARCNET                                        | [RFC1201]                   |
+|     8 | Hyperchannel                                  | [Jon_Postel]                |
+|     9 | Lanstar                                       | [Tom_Unger]                 |
+|    10 | Autonet Short Address                         | [Mike_Burrows]              |
+|    11 | LocalTalk                                     | [Joyce_K_Reynolds]          |
+|    12 | LocalNet (IBM PCNet or SYTEK LocalNET)        | [Joseph Murdock]            |
+|    13 | Ultra link                                    | [Rajiv_Dhingra]             |
+|    14 | SMDS                                          | [George_Clapp]              |
+|    15 | Frame Relay                                   | [Andy_Malis]                |
+|    16 | Asynchronous Transmission Mode (ATM)          | [JXB2]]                     |
+|    17 | HDLC                                          | [Jon_Postel]                |
+|    18 | Fibre Channel                                 | [RFC4338]                   |
+|    19 | Asynchronous Transmission Mode 2 (ATM)        | [RFC2225]                   |
+|    20 | Serial Line                                   | [Jon_Postel]                |
+|    21 | Asynchronous Transmission Mode 3 (ATM)        | [Mike_Burrows]              |
+|    22 | MIL-STD-188-220                               | [Herb_Jensen]               |
+|    23 | Metricom                                      | [Jonathan_Stone]            |
+|    24 | IEEE 1394.1995                                | [Myron_Hattig]              |
+|    25 | MAPOS                                         | [Mitsuru_Maruyama][RFC2176] |
+|    26 | Twinaxial                                     | [Marion_Pitts]              |
+|    27 | EUI-64                                        | [Kenji_Fujisawa]            |
+|    28 | HIPARP                                        | [Jean_Michel_Pittet]        |
+|    29 | IP and ARP over ISO 7816-3                    | [Scott_Guthery]             |
+|    30 | ARPSec                                        | [Jerome_Etienne]            |
+|    31 | IPsec tunnel                                  | [RFC3456]                   |
+|    32 | InfiniBand (TM)                               | [RFC4391]                   |
+|    33 | TIA-102 Project 25 Common Air Interface (CAI) |                             |
+|    34 | Wiegand Interface                             | [Scott_Guthery_2]           |
+|    35 | Pure IP                                       | [Inaky_Perez-Gonzalez]      |
+|    36 | HW_EXP1                                       | [RFC5494]                   |
+|    37 | HFI                                           | [Tseng-Hui_Lin]             |
+|   256 | HW_EXP2                                       | [RFC5494]                   |
+|   257 | AEthernet                                     | [Geoffroy_Gramaize]         |
+| 65535 | Reserved End                                  | [RFC5494                    |
+
+
+* COMMENT Publish dhcp-protocol to global variable
    Execute this code block to publish the dhcp-static.  Take not of the 'eval-when' This ensures that the global variable
    is published to the compiler system so that macro to generate code have access to this global variable before the
    runtime system is established.
 
-#+BEGIN_SRC lisp :var clazz=dhcp-static-header 
-  (with-open-file (*standard-output*
-                   #P"../dhcp-bootp-fields.lisp"
-                   :direction :output
-                   :if-exists :supersede
-                   :if-does-not-exist :create)
-    (format t ";; AUTOGENERATED FILE FROM DHCP.ORG USING ORG-MODE-BABEL.  
-  ;; DON'T EDIT HERE")
-    (pprint
-     `(in-package :dhcp-server))
-    (pprint
-     `(eval-when (:compile-toplevel :load-toplevel :execute)
-        ;; The eval-when makes this top-level form available at
-        ;; compile time to generate code from the table
-        ;; definition.
-        (defun ->symbol (str)
-          (intern (string-upcase str)))
-        
-        (defun ->keyword (str)
-          (intern (string-upcase str) :keyword))
-        
-        (defparameter *dhcp-bootp-base-fields* (quote ,(cddr clazz)))
-        )
-     )
+#+BEGIN_SRC lisp  :var ahtl=arp-hwtypes :results value table
+  (defun symstr-cleanup (str)
+    (cl-ppcre:regex-replace-all
+     "\\s+"
+     (string-downcase (cl-ppcre:regex-replace-all "[().]+" str ""))
+     "-")
     )
+  (mapcar #'(lambda(row) (let ((v (elt row 1))) (list v (symstr-cleanup (elt row 1))))) ahtl)
 #+END_SRC
+   
+
+
+#+BEGIN_SRC lisp :var clazz=dhcp-static-header  :var const-lst=dhcp-message-types :var ahtl=arp-hwtypes
+    (with-open-file (*standard-output*
+                     #P"../dhcp-bootp-fields.lisp"
+                     :direction :output
+                     :if-exists :supersede
+                     :if-does-not-exist :create)
+      (format t ";; AUTOGENERATED FILE FROM DHCP.ORG USING ORG-MODE-BABEL.  
+    ;; DON'T EDIT HERE ~%")
+      (pprint
+       `(in-package :dhcp))
+
+      (pprint
+       `(eval-when (:compile-toplevel :load-toplevel :execute)
+          ;; The eval-when makes this top-level form available at
+          ;; compile time to generate code from the table
+          ;; definition.
+          
+          (defun ->keyword (str)
+            (intern (string-upcase str) :keyword))
+          
+          ,@(loop :for (ival dhcp-msg-sym) :in const-lst :collect `(progn
+                                                                     (defconstant ,(intern (string-upcase  (format nil "+msg-type-~a+" dhcp-msg-sym))) ,ival)
+                                                                     (export (quote ,(intern (string-upcase  (format nil "+msg-type-~a+" dhcp-msg-sym)))) :dhcp)
+                                                                     ))
+           ,@(loop :for (ival name info) :in ahtl :collect `(progn
+                                                              (defconstant ,(intern (string-upcase  (format nil "+hwt-~a+" (symstr-cleanup name)))) ,ival)
+                                                              (export (quote ,(intern (string-upcase  (format nil "+hwt-~a+" (symstr-cleanup name))))) :dhcp)
+                                                              ))
+
+           (defparameter *dhcp-bootp-base-fields* (quote ,(cddr clazz)))
+           )
+       )
+      )
+#+END_SRC
+
+#+RESULTS:
+
 
 * Dev
 
