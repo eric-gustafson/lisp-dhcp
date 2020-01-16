@@ -1,11 +1,7 @@
-
-
-ldhcpd: lisp-dhcpd.ros
+dhcp: dhcp.ros
 	ros -Q build $^
 
 clean:
-	- rm lisp-dhcpd
+	- rm dhcp
 
 
-deploy:
-	cd .. && rsync -av lisp-dhcp/ $(TARGET):~/secapp/lisp-dhcp/

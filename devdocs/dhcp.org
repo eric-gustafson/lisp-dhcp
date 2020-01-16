@@ -121,6 +121,50 @@
     )
   (mapcar #'(lambda(row) (let ((v (elt row 1))) (list v (symstr-cleanup (elt row 1))))) ahtl)
 #+END_SRC
+
+#+RESULTS:
+| Reserved                                      | reserved                                    |
+| Ethernet (10Mb)                               | ethernet-10mb                               |
+| Experimental Ethernet (3Mb)                   | experimental-ethernet-3mb                   |
+| Amateur Radio AX.25                           | amateur-radio-ax25                          |
+| Proteon ProNET Token Ring                     | proteon-pronet-token-ring                   |
+| Chaos                                         | chaos                                       |
+| IEEE 802 Networks                             | ieee-802-networks                           |
+| ARCNET                                        | arcnet                                      |
+| Hyperchannel                                  | hyperchannel                                |
+| Lanstar                                       | lanstar                                     |
+| Autonet Short Address                         | autonet-short-address                       |
+| LocalTalk                                     | localtalk                                   |
+| LocalNet (IBM PCNet or SYTEK LocalNET)        | localnet-ibm-pcnet-or-sytek-localnet        |
+| Ultra link                                    | ultra-link                                  |
+| SMDS                                          | smds                                        |
+| Frame Relay                                   | frame-relay                                 |
+| Asynchronous Transmission Mode (ATM)          | asynchronous-transmission-mode-atm          |
+| HDLC                                          | hdlc                                        |
+| Fibre Channel                                 | fibre-channel                               |
+| Asynchronous Transmission Mode 2 (ATM)        | asynchronous-transmission-mode-2-atm        |
+| Serial Line                                   | serial-line                                 |
+| Asynchronous Transmission Mode 3 (ATM)        | asynchronous-transmission-mode-3-atm        |
+| MIL-STD-188-220                               | mil-std-188-220                             |
+| Metricom                                      | metricom                                    |
+| IEEE 1394.1995                                | ieee-13941995                               |
+| MAPOS                                         | mapos                                       |
+| Twinaxial                                     | twinaxial                                   |
+| EUI-64                                        | eui-64                                      |
+| HIPARP                                        | hiparp                                      |
+| IP and ARP over ISO 7816-3                    | ip-and-arp-over-iso-7816-3                  |
+| ARPSec                                        | arpsec                                      |
+| IPsec tunnel                                  | ipsec-tunnel                                |
+| InfiniBand (TM)                               | infiniband-tm                               |
+| TIA-102 Project 25 Common Air Interface (CAI) | tia-102-project-25-common-air-interface-cai |
+| Wiegand Interface                             | wiegand-interface                           |
+| Pure IP                                       | pure-ip                                     |
+| HW_EXP1                                       | hw_exp1                                     |
+| HFI                                           | hfi                                         |
+| HW_EXP2                                       | hw_exp2                                     |
+| AEthernet                                     | aethernet                                   |
+| Reserved End                                  | reserved-end                                |
+
    
 
 

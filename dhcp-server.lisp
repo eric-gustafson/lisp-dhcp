@@ -47,10 +47,31 @@
 
 (defparameter *dhcp-magic-cookie* '(99 130 83 99))
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun ->symbol (&rest stuff)
+    (alexandria:ensure-symbol
+     (string-upcase (with-output-to-string (port)
+		      (loop :for x :in stuff :do
+			 (princ x port))))
+     )
+    ))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun ->keyword (&rest stuff)
+    (alexandria:ensure-symbol
+     (string-upcase (with-output-to-string (port)
+		      (loop :for x :in stuff :do
+			 (princ x port))))
+     :keyword
+     )
+    )
+  )
+
+
 (defmacro clos-code (name)
   ;; Use the global dhcp symbol table, and create a CLOS class
   ;; for dhcp and bootp packets
-  `(defclass ,(intern (string-upcase (format nil "~a"  name)))
+  `(defclass ,(->symbol name)
        ()
      ,(mapcar #'(lambda(row)
 		  (trivia:match
@@ -575,7 +596,7 @@
     )
   )
 
-(defmethod response->buff ((dhcp-obj dhcp))
+(defmethod obj->pdu ((dhcp-obj dhcp))
   (flexi-streams:with-output-to-sequence (opp :element-type '(unsigned-byte 8))
     (let ((options-obj (options dhcp-obj)))
       (cond
@@ -610,9 +631,9 @@
 	(setf *last* (copy-seq buff))
 	(deserialize-into-dhcp-from-buff! dhcpObj buff)
 	(let* ((m (handle-dhcp-message dhcpObj))
-	       (buff (response->buff m))
+	       (buff (obj->pdu m))
 	       (bcast (coerce (numex:num->octets (cidr-bcast (yiaddr m)
-							     (dhcp:cidr-subnet dhcp-server:*this-net*))
+							     (dhcp:cidr-subnet dhcp:*this-net*))
 						 )
 			      'vector))
 	       )
@@ -652,7 +673,7 @@
 					  :local-host
 					  #+(or sbcl)nil
 					  #+(or ccl)(local-host-addr)
-					  :local-port *dhcp-server-port*))
+					  :local-port +dhcp-server-port+))
 	 )
     (let ((bcast (usocket:socket-option rsocket :broadcast)))
       (alog (format nil "socket: ~a created, bcast=~a" rsocket bcast))
