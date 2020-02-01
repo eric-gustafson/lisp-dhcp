@@ -54,7 +54,8 @@
 		     :options oobj
 		     :chaddr (ensure-length
 			      (numex:hexstring->octets (lsa:mac link-obj))
-			      16)
+			      16
+			      :pad-value 0)
 		     )))
   
   )

@@ -14,6 +14,7 @@
 	       #:uiop
 	       #:lparallel   
 	       #:cl-ppcre
+	       #:fiasco
 	       #:trivia
 	       #:trivia.ppcre
 	       #:cl-interpol

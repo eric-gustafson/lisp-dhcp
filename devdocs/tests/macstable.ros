@@ -36,7 +36,7 @@ exec ros -Q -- $0 "$@"
 			       `((:lease-time 300) )))
 	   (results
 	    (loop :for obj :in rlst do
-	     (setf (dhcp:options obj) (dhcp:encode-dhcp-options oobj))
+	     (setf (dhcp:options obj) (dhcp:encode-dhcp-optionso oobj))
 	     :collect
 	     (dhcp:handle-dhcp-message obj)))
 	   )
