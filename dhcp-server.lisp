@@ -2,7 +2,6 @@
 (in-package #:dhcp)
 
 (defconstant +dhcp-server-port+ 67)
-(defconstant +dhcp-client-port+ 68)
 
 (defmethod alog ((str string))
   (syslog:log "dhcp-server" :user :warning str))
@@ -76,15 +75,16 @@
      ,(mapcar #'(lambda(row)
 		  (trivia:match
 		      row
-                       ((list field octets description type notes)
-                        (list (->symbol field)
-                              :documentation description
-                              :accessor (->symbol field)
-                              :initarg (->keyword field)
-			      :initform (if (equal type "int")
-					    0
-					    nil)
-			      ))))
+		    ((list field octets description type _)
+		     (list (->symbol field)
+                           :documentation description
+                           :accessor (->symbol field)
+                           :initarg (->keyword field)
+			   :initform (if (equal type "int")
+					 0
+					 `(make-array ,octets :element-type `(unsigned-byte 8) :initial-element 0)
+					 )
+			   ))))
 	      *dhcp-bootp-base-fields*)
      )
   )
@@ -123,40 +123,88 @@
         )
   )
 
+(defun sequence-type (obj)
+  (etypecase
+   obj
+    (list 'list)
+    (string 'string)
+    (vector 'vector)
+    ))
+
+(defun ensure-length (seq n &key pad-value)
+  "make sure that a sequence matches a specified length"
+  (let ((l (length seq)))
+    (cond
+      ((= l n) seq)
+      ((< l n)
+       (let ((seqt (sequence-type seq))
+	     (x (- n l)))
+	 (concatenate seqt
+		      seq
+		      (make-sequence seqt x :initial-element (if (null pad-value)
+								 (elt (make-sequence seqt 1) 0)
+								 pad-value)))))
+      (t
+       (serapeum:take n seq)))))
+
 (defmacro gen-serialize-code (name)
-  `(defmethod ,(intern (string-upcase (format nil "stream-serialize" name))) ((obj ,name)  (out stream))
-     ,@(mapcar #'(lambda(row)
-		   (trivia:match 
-		       row
-		     ((list field octets descr da-type notes)
-		      (let ((type (intern (string-upcase da-type) :keyword)))
-			(cond
-			  ((eq type :mac)
-			   `(write-sequence (,(->symbol field) obj) out))
-			  ((eq type :rest)
-			   `(write-sequence (,(->symbol field) obj) out))
-			  ((eq type :string)
-			   `(write-sequence (,(->symbol field) obj) out))
-			  ((eq type :int)
-			   ;; support a number, or a list/vector octet in the field of the
-			   ;; object
-			   `(let ((value (,(->symbol field) obj)))
-			      (etypecase
-				  value
-				(integer
-				 (write-sequence (numex:num->octets value :length ,octets :endian :big) out))
-				(sequence
-				 (unless (eq (length value) ,octets)
-				   (error "~a: integer sequence size mismatch" ,field))
-				 (write-sequence value out)))
-			      )
-			   )
-			  (t
-			   (error "Unexpected type ~a" row))
-			  )))))
-	       *dhcp-bootp-base-fields*
-	       )
-     ))
+  (let (code
+	(clazz-name name))
+    (labels ((field-serialize-fn-name  (field)
+	       (intern (string-upcase (format nil "~a-~a-stream-serialize" clazz-name field))))
+	     (pf (field sexp)
+	       (push `(defmethod ,(field-serialize-fn-name field) ((obj ,clazz-name) (out stream))
+			,sexp)
+		     code)
+	       ))
+      ;; Generate a serialize function for each slo
+      (loop :for row :in *dhcp-bootp-base-fields* :do
+	   (trivia:match 
+	       row
+	     ((list field octets _ da-type _)
+	      (let ((type (intern (string-upcase da-type) :keyword)))
+		(pf field
+		    (cond
+		      ((eq type :mac)
+		       `(let ((value (,(->symbol field) obj)))
+			  (etypecase
+			      value
+			    (string (write-sequence (ensure-length value ,octets :pad-value #\nul) out))
+			    (t
+			     (write-sequence (ensure-length value ,octets :pad-value 0)  out)))))
+		      ((eq type :rest)
+		       `(write-sequence (,(->symbol field) obj) out))
+		      ((eq type :string)
+		       `(write-sequence (,(->symbol field) obj) out))
+		      ((eq type :int)
+		       ;; support a number, or a list/vector octet in the field of the
+		       ;; object
+		       `(let ((value (,(->symbol field) obj)))
+			  (etypecase
+			      value
+			    (integer
+			     (write-sequence (numex:num->octets value :length ,octets :endian :big) out))
+			    (sequence
+			     (unless (eq (length value) ,octets)
+			       (error "~a: integer sequence size mismatch" ,field))
+			     (write-sequence value out)))
+			  )
+		       )
+		      (t
+		       (error "Unexpected type ~a" row))
+		      ))))))
+      `(progn
+	 ,@code	 
+	 (defmethod ,(intern (string-upcase "stream-serialize")) ((obj ,name)  (out stream))
+	   ,@(mapcar #'(lambda(row)
+			 `(,(field-serialize-fn-name (car row)) obj out))
+		     *dhcp-bootp-base-fields*)
+	   )
+	 )
+      )
+    )
+  )
+		   
 
 
 (clos-code dhcp)
@@ -568,6 +616,20 @@
     (setf (options replyMsg) (encode-dhcp-options replyMsgOptions))
     replyMsg))
 
+(defmethod dhcp->list ((obj dhcp))
+  "used just for testing"
+  (list (op obj)
+	(htype obj)
+	(hlen obj)
+	(chaddr obj)
+	))
+
+(defmethod dhcp-msg-sig ((obj dhcp))
+  (let* ((options (decode-dhcp-options (options obj) :debug t)))
+    (list (op obj)
+	  (htype obj)
+	  (mtype options))
+    ))
 
 (defmethod handle-dhcp-message ((obj dhcp))
   (let* ((options (decode-dhcp-options (options obj)))
@@ -625,74 +687,105 @@
   )
 
 (defun dhcp-handler (rsocket dhcpObj buff size client receive-port)
-  (handler-case
-      (progn
-	(alog "got request")
-	(setf *last* (copy-seq buff))
-	(deserialize-into-dhcp-from-buff! dhcpObj buff)
-	(let* ((m (handle-dhcp-message dhcpObj))
-	       (buff (obj->pdu m))
-	       (bcast (coerce (numex:num->octets (cidr-bcast (yiaddr m)
-							     (dhcp:cidr-subnet dhcp:*this-net*))
-						 )
-			      'vector))
-	       )
-	  (alog (format nil
-			"broadcasting offer:~a on ~a"
-			(numex:num->octets (yiaddr m))
-			bcast))
-	  (setf (usocket:socket-option rsocket :broadcast) t)			     
-	  (let ((nbw (usocket:socket-send
-		      rsocket buff (length buff)
-		      :port *dhcp-client-port*
-		      :host bcast
-		      ;;:host  (coerce (this-ip) 'vector)
-		      )))
-	    (alog (format nil "number of bytes sent:~a~%" nbw))
-	    )
-	  )
-	)
-    (error (c)
-      (alog (format nil "We caught a condition: ~a~&" c))
-      (let ((path (uiop/stream:with-temporary-file
-		      (:stream bout :pathname x :keep t :element-type '(unsigned-byte 8))
-		    (write-sequence buff bout)
-		    x)))
-	(alog (format nil "Error parsing or processing dhcp message ~a" path))
-	(values nil c)))
+  (alog "got request")
+  (setf *last* (copy-seq buff))
+  (deserialize-into-dhcp-from-buff! dhcpObj buff)
+  (let* ((m (handle-dhcp-message dhcpObj))
+	 (buff (obj->pdu m))
+	 (bcast (coerce (numex:num->octets (cidr-bcast (yiaddr m)
+						       (dhcp:cidr-subnet dhcp:*this-net*))
+					   )
+			'vector))
+	 )
+    (alog (format nil
+		  "broadcasting offer:~a on ~a"
+		  (numex:num->octets (yiaddr m))
+		  bcast))
+    (setf (usocket:socket-option rsocket :broadcast) t)			     
+    (let ((nbw (usocket:socket-send
+		rsocket buff (length buff)
+		:port *dhcp-client-port*
+		:host bcast
+		;;:host  (coerce (this-ip) 'vector)
+		)))
+      (alog (format nil "number of bytes sent:~a~%" nbw))
+      )
     )
   )
-  
-(defun dhcpd ()
+
+(defvar *server-socket-table* (serapeum:dict))
+
+(defun server-socket (&key (port +dhcp-client-port+))
+  "Returns a server socket for the given port. It's a singleton on the port number.  Asking for the same port gets you the same object"
+  (alexandria:ensure-gethash
+   port
+   *server-socket-table*
+   (let ((sock-obj (usocket:socket-connect nil
+					   nil
+					   :protocol :datagram
+					   :element-type '(unsigned-byte 8) ;;char
+					   :local-host
+					   #+(or sbcl)nil
+					   #+(or ccl)(local-host-addr)
+					   :local-port port)))
+     (setf (usocket:socket-option sock-obj :broadcast) t)
+     sock-obj))
+  )
+
+(defvar *buff* (make-array 1024 :element-type '(unsigned-byte 8)))
+(defun poll/async-inbound-dhcp-pdu (rsocket obj-thunk)
+  "using cl-async to poll the socket for an in-bound pdu.  Returns an async poller"
+  #+(or sbcl)(return-from
+	      poll/async-inbound-dhcp-pdu
+	       (cl-async:poll
+		(sb-bsd-sockets:socket-file-descriptor (usocket:socket rsocket))
+		#'(lambda(event-named)
+		    (let ((buff )					
+			  (inbound-dhcp-obj (make-instance 'dhcp))
+			  )
+		      (multiple-value-bind (buff n client receive-port)
+			  (usocket:socket-receive rsocket *buff* (array-total-size *buff*))
+			(funcall obj-thunk  (subseq  buff 0 n))
+			)
+		      )
+		    )
+		:poll-for '(:readable)
+		:socket t		
+		)
+	       )
+  (error "poll4-inbound-pdu error")
+  1)
+
+
+(defun dhcpd (&key (port +dhcp-server-port+))
+  "Listen on port for dhcp client requests"
   (let* ((dhcpObj (make-instance 'dhcp))
 	 (buff (make-array 1024 :element-type '(unsigned-byte 8)))
-	 (rsocket (usocket:socket-connect nil
-					  nil
-					  :protocol :datagram
-					  :element-type '(unsigned-byte 8) ;;char
-					  :local-host
-					  #+(or sbcl)nil
-					  #+(or ccl)(local-host-addr)
-					  :local-port +dhcp-server-port+))
+	 (rsocket (dhcp-server-socket :port port)))
 	 )
     (let ((bcast (usocket:socket-option rsocket :broadcast)))
       (alog (format nil "socket: ~a created, bcast=~a" rsocket bcast))
-      (setf (usocket:socket-option rsocket :broadcast) t)
-      (setf bcast (usocket:socket-option rsocket :broadcast))
-      (alog (format nil  "broadcast enabled :~a" bcast))
-      (handler-case
-	  (loop while (serve) do
+      #+nil(setf bcast (usocket:socket-option rsocket :broadcast))
+      #+nil(alog (format nil  "broadcast enabled :~a" bcast))
+      (loop :while (serve)
+	 :do
+	   (handler-case
 	       (multiple-value-bind (buff size client receive-port)
 		   (usocket:socket-receive rsocket buff 1024)
 		 (alog "dhcp request received")
 		 (dhcp-handler rsocket dhcpObj buff size client receive-port)
-		 ))
-	(t (c)
-	  (alog (format nil "Error processing dhcp request ~a ~&" c))
-	  (usocket:socket-close rsocket)
-	  (values nil c))
-	)))
-  )
+		 )
+	     (t (c)
+	       (alog (format nil "Error processing dhcp request ~a ~&" c))
+	       (usocket:socket-close rsocket)
+	       (let ((path (uiop/stream:with-temporary-file
+			       (:stream bout :pathname x :keep t :element-type '(unsigned-byte 8))
+			     (write-sequence buff bout)
+			     x)))
+		 (alog (format nil "saving dhcp message ~s" path))
+		 nil))
+	     )))
+    )
 
 (defun run ()
   (alog "starting dhcp background thread")

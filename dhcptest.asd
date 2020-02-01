@@ -1,10 +1,8 @@
-;;;; dhcp.asd
-
-(asdf:defsystem #:dhcp
-  :description "DHCP client and server code"
+(asdf:defsystem #:dhcptest
+  :description "DHCP client and server unit testing code"
   :author "gus"
   :license  "Specify license here"
-  :version "0.0.2"
+  :version "0.0.1"
   :serial t
   :depends-on (
 	       #:alexandria
@@ -23,16 +21,12 @@
 	       #:inferior-shell
 	       #:numex
 	       #:lsa
-	       ;;#:trivial-ssh
 	       #:cl-syslog
                #:cl-ppcre
 	       #:cl-async
+	       #:dhcp
 	       )
-  :components ((:file "dhcp-package")
-	       (:file "dhcp-bootp-fields")
-	       (:file "dhcp-options-table")
-	       (:file "dhcp-common")
-	       (:file "dhcp-client")
-               (:file "dhcp-server")
-	       (:file "parse-dhcp-options")
+  :components ((:file "dhcptest-package")
+	       (:file "dhcp-ut")
 	       ))
+

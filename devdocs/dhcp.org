@@ -20,7 +20,6 @@
        1. CLOS object
        2. serialization code from streams, sequences, json, text, ..
   
-      
 #+tblname: dhcp-static-header
 #+results: dhcp-bootp-base-fields
    | Field   | Octets | description                              | type   | Notes                                    |
@@ -43,6 +42,132 @@
    | mcookie |      4 | 0x63825363                               | int    | Advance to the cookie and then parse     |
    | options |    312 | Optional parameters field.  See the options documents for a list of defined options. | rest   |                                          |
 
+
+   | ?  | It seems that all dhcp PDU's must be the same size   Is this true?  Calculate the size |
+   |----+----------------------------------------------------------------------------------------|
+   | NO | This is not what the packet captures seem to indicate                                  |
+#+name: dhcp-size
+#+BEGIN_SRC elisp :var pt=dhcp-static-header
+  (apply #'+ (mapcar #'cadr (cddr pt)))
+#+END_SRC
+
+#+RESULTS: dhcp-size
+: 552
+
+#+name: codegen-transform-table
+#+BEGIN_SRC elisp :var pt=dhcp-static-header
+  (cons 
+   (list "Field" "serialize" "deserialize")
+   (cons
+    'hline
+    (mapcar #'(lambda(row)
+		(list (car row) t t)
+		)
+	    (cddr pt))
+    )
+   )
+#+END_SRC
+
+#+RESULTS: codegen-transform-table
+| Field   | serialize | deserialize |
+|---------+-----------+-------------|
+| op      | t         | t           |
+| htype   | t         | t           |
+| hlen    | t         | t           |
+| hops    | t         | t           |
+| xid     | t         | t           |
+| secs    | t         | t           |
+| flags   | t         | t           |
+| ciaddr  | t         | t           |
+| yiaddr  | t         | t           |
+| siaddr  | t         | t           |
+| giaddr  | t         | t           |
+| chaddr  | t         | t           |
+| sname   | t         | t           |
+| file    | t         | t           |
+| mcookie | t         | t           |
+| options | t         | t           |
+
+
+* TODO COMMENT freeform
+  DEADLINE: <2020-02-01 Sat>
+  - what if we have two classes
+
+    low level buffer like 'class/methods'.  It's a sequence, with
+    functions that call subseq.  This is the 'packet' level
+    functionality.  We also then need a higher level 'user/programmer'
+    set of libraries that translate into this buffer.
+
+  - Low Level
+    - Examples:
+      - (dhcp-pdu-op seq) : returns a single octet
+      - (dhcp-pdu-op-set! seq op) ;; set's single octet.  We can 'type
+        check' based on length of seq
+
+  - High Level
+    Maps the types to octets, so maybe use defmethod? 
+    
+    How do we 'override' behaviour.  For example, how do we handle
+    chaddr, and enforce the hlen? 
+    - What if we generate code base on type, and then we are free
+      simply add a new functions if & when we need them.
+
+      #+BEGIN_SRC lisp
+	(defmethod dhcp-op ((pdu sequence ) (obj int))
+	  (dhcp-pdu-op-set! pdu (num->octets 4 :endian :net)) 
+	  )
+      #+END_SRC
+
+      Can we make getf/setf work with the sequence, using the indicatore
+      #+BEGIN_SRC lisp
+	(defmethod (setf dhcp-op) (value (pdu vector))
+	  (etypecase
+	      value
+	    (number
+	     (setf (elt pdu 0) value))
+	    (vector
+	     (setf (subseq pdu 0 1) value)))
+	  )
+      #+END_SRC
+
+      #+RESULTS:
+      : #<STANDARD-METHOD (COMMON-LISP:SETF DHCPTEST::DHCP-OP) (T VECTOR) {1007B21A23}>
+
+  Do we cache the information? [NO!]
+
+  - P/C
+      | Pros               | Cons |
+      |--------------------+------|
+      | equal works on pdu |      |
+
+    
+
+* TODO serialize/deserialize issue
+  slot access issue.
+
+  A user wants to deal with vectors and string when it comes to something like a mac address.  That needs to turn
+  into a sequence htat is hlen long.  How do we do this in a generic fashion?
+
+  This is a slot level obj->seq seq->obj method?   The table above defines the order.  We need to bridge.  
+  What if we make the ordering of this a first class object?   We should be able to see it, interact with it.
+
+  class-serialize-seq => (op->seq htype->seq ...)
+
+  In the stream-serialize, I'm doing something kind of interesting.  I'm switching off of the slots type
+  (ETYPECASE VALUE
+      (INTEGER (WRITE-SEQUENCE (NUM->OCTETS VALUE :LENGTH 4 :ENDIAN :BIG) OUT))
+      (SEQUENCE
+       (UNLESS (EQ (LENGTH VALUE) 4)
+         (ERROR "~a: integer sequence size mismatch" "giaddr"))
+       (WRITE-SEQUENCE VALUE OUT)))
+
+  Proposed fix
+    1. mac address (chaddr) needs to write out 16 octets 
+       - pad seq
+       - trim seq
+     I've written an ensure-length function. It would be better if I can figure out 
+
+   
 
 * DHCP Message Types
   This table is used to autogenerate lisp constants

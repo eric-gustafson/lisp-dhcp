@@ -6,6 +6,14 @@
 	;;#:cl-syslog
 	)
   (:export
+
+   :server-socket
+   :client-socket
+   :poll/async-inbound-dhcp-pdu
+   :request-client-address
+   :deserialize-into-dhcp-from-buff!
+   :dhcp->list
+   
    :*this-net*
    :*hook-ip-allocated*
    :address-list
@@ -14,7 +22,7 @@
    :ciaddr
    :cidr-subnet
    :*dhcp-nets*
-   :configure-parent-router
+   ;;:configure-parent-router
    :dhcp
    :run
    :dhcp-options
@@ -24,5 +32,6 @@
    :ip=?
    :options
    :yiaddr
+   :obj->pdu
    )
   )

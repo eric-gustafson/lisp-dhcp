@@ -1,8 +1,0 @@
-#+title: networks
-
-  Command to add a network to the interface.
-
-
-#+BEGIN_SRC sh
-  sudo ip addr add 192.168.2.105/24 dev enp0s3
-#+END_SRC
