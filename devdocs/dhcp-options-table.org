@@ -211,12 +211,14 @@ that was generated with the org-babel mode.
 | 147-149 | Unassigned                               |        |                                          | [RFC3942]             |
 
 
-#+BEGIN_SRC lisp :tangle "../dhcp-options-table.lisp"  :var ltable=dhcp-options
-  (in-package :dhcp)
-  (defparameter *dhcp-options-table* (cddr ltable))
-  (defparameter *dhcp-options-table-id* (serapeum:dict))
-  (loop :for row :in *dhcp-options-table* :do
-     (setf (gethash (car row) *dhcp-options-table-id*) row))
+#+BEGIN_SRC lisp :var ltable=dhcp-options :tangle "../dhcp-options-table.lisp"  
+    (in-package :dhcp)
+    (eval-when (:COMPILE-TOPLEVEL :LOAD-TOPLEVEL :EXECUTE)
+      (defparameter *dhcp-options-table* (cddr ltable))
+      (defparameter *dhcp-options-table-id* (serapeum:dict))
+      (loop :for row :in *dhcp-options-table* :do
+	   (setf (gethash (car row) *dhcp-options-table-id*) row))
+      )
 #+END_SRC
 
 #+RESULTS:

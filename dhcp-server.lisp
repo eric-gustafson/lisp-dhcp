@@ -300,7 +300,6 @@
 	)
   )
 
-
 (defmethod dhcp-addresses ((net-obj cidr-net))
   "returns a list of ip addresses that will be dished out by the system"
   (let ((net-increment (logand #xffffffff (lognot (mask net-obj)))))
@@ -365,11 +364,11 @@
     (setf *dhcp-allocated-table* (delete ip *dhcp-allocated-table* :key #'ipnum :test #'equalp)))
 
 
-(defmethod get-address ((reqMsg dhcp))
-  "return an dhcp packet to be broadcast that provides an IP address"
+(defmethod make-dhcp-offer ((reqMsg udhcp))
+  "return an DHCP 'offer' to be broadcast that provides an IP address"
   (let* ((new-addr (dhcp-allocate-ip reqMsg *this-net*))
-	 (replyMsg (make-instance 'dhcp
-				  :op 2
+	 (replyMsg (make-instance 'udhcp
+				  :op +MSG-TYPE-DHCPOFFER+
 				  :htype (htype reqMsg)				    
 				  :hlen (hlen reqMsg)
 				  :hops (hops reqMsg)
@@ -384,19 +383,17 @@
 				  :mcookie (mcookie reqMsg)
 				  :file (file reqMsg)
 				  :sname (sname reqMsg)
-				  ))
-	 (replyMsgOptions (make-instance 'dhcp-options
-					 :mtype 2
-					 :restof
-					 `(
-					   (:subnet 255 255 255 0)
-					   (:routers ,(compute-this-ip new-addr))
-					   (:lease-time 1800)
-					   (:dhcp-server ,@(compute-this-ip new-addr))
-					   (:dns-servers (8 8 8 8) (4 4 4 4)))
-					 )))
-    (setf (options replyMsg) (encode-dhcp-options replyMsgOptions))
-    (alog (format nil "get-address: ~a~%" (numex:num->octets (yiaddr replyMsg))))
+				  :options-obj (make-instance 'dhcp-options
+							      :mtype +MSG-TYPE-DHCPOFFER+
+							      :restof
+							      `(
+								(:subnet 255 255 255 0)
+								(:routers ,(compute-this-ip new-addr))
+								(:lease-time 1800)
+								(:dhcp-server ,@(compute-this-ip new-addr))
+								(:dns-servers (8 8 8 8) (4 4 4 4)))
+							      ))))
+    (alog (format nil "make-dhcp-offer: ~a~%" (numex:num->octets (yiaddr replyMsg))))
     replyMsg))
 
 (defmethod get-ack ((reqMsg dhcp))
@@ -407,7 +404,7 @@
 		(numex:num->octets (ciaddr reqMsg))
 		))
   (let* ((new-ip (dhcp-allocate-ip reqMsg *this-net*))
-	 (replyMsg (make-instance 'dhcp
+	 (replyMsg (make-instance 'udhcp
 				 :op 2
 				 :htype (htype reqMsg)				    
 				 :hlen (hlen reqMsg)
@@ -426,60 +423,32 @@
 				 :mcookie (mcookie reqMsg)
 				 :file (file reqMsg)
 				 :sname (sname reqMsg)
-				 ))
-	 (replyMsgOptions (make-instance 'dhcp-options
-					:mtype 5
-					:restof
-					`(
-					  (:subnet 255 255 255 0)
-					  (:routers ,(compute-this-ip new-ip))
-					  (:lease-time 1800)
-					  (:dhcp-server ,@(compute-this-ip new-ip))
-					  (:dns-servers (8 8 8 8) (4 4 4 4)))
-					))
-	 )
-    (setf (options replyMsg) (encode-dhcp-options replyMsgOptions))
+				 :options-obj (make-instance 'dhcp-options
+							     :mtype 5
+							     :restof
+							     `(
+							       (:subnet 255 255 255 0)
+							       (:routers ,(compute-this-ip new-ip))
+							       (:lease-time 1800)
+							       (:dhcp-server ,@(compute-this-ip new-ip))
+							       (:dns-servers (8 8 8 8) (4 4 4 4)))
+							     ))))
     replyMsg))
 
-(defmethod dhcp->list ((obj dhcp))
-  "used just for testing"
-  (list (op obj)
-	(htype obj)
-	(hlen obj)
-	(chaddr obj)
-	))
-
-(defmethod dhcp-msg-sig ((obj dhcp))
-  (let* ((options (decode-dhcp-options (options obj) :debug t)))
-    (list (op obj)
-	  (htype obj)
-	  (mtype options))
-    ))
-
-(defmethod handle-dhcp-message ((obj dhcp))
-  (let* ((options (decode-dhcp-options (options obj)))
-	 (sig
-	  (list (op obj)
-		(htype obj)
-		(mtype options))))
-    (trivia:match
-	sig
-      ((list (= +MSG-TYPE-DHCPDISCOVER+)
-	     (= +HWT-ETHERNET-10MB+)
-	     (= +MSG-TYPE-DHCPDISCOVER+)) ;; dhcp discover
-       ;; create a dhcp offer message
-       (alog "dhcp discover received")
-       (let ((offer (get-address obj)))
-	 (alog "returning dhcp offer")
-	 offer)
+(defmethod handle-dhcpd-message ((client-msg-dhcp-obj udhcp))
+   ;;"handle dhcp server messages.  dished out an ip address, which is embedded in the return message"
+  (let* ((options (options-obj client-msg-dhcp-obj)))
+    (ecase
+	(msg-type client-msg-dhcp-obj)
+      (:discover
+       (make-dhcp-offer client-msg-dhcp-obj))
+      (:ack   (get-ack client-msg-dhcp-obj))
+      (:nack
+       (alog "dhcp nack")
        )
-      ((list 1 (= +HWT-ETHERNET-10MB+) 3)
-       (alog "dhcp request received")
-       ;; Send the ack
-       (get-ack obj)
+      (:info
+       (alog "dhcp info")
        )
-      (otherwise
-       (error "handle-network-message - Unimplemented functionality ~a" sig))
       )
     )
   )
@@ -499,7 +468,7 @@
   (alog "got request")
   (setf *last* (copy-seq buff))
   (deserialize-into-dhcp-from-buff! dhcpObj buff)
-  (let* ((m (handle-dhcp-message dhcpObj))
+  (let* ((m (handle-dhcpd-message dhcpObj))
 	 (buff (obj->pdu m))
 	 (bcast (coerce (numex:num->octets (cidr-bcast (yiaddr m)
 						       (dhcp:cidr-subnet dhcp:*this-net*))
@@ -524,7 +493,7 @@
 
 (defvar *server-socket-table* (serapeum:dict))
 
-(defun server-socket (&key (port +dhcp-client-port+))
+(defun server-socket (&key (port +dhcp-server-port+))
   "Returns a server socket for the given port. It's a singleton on the port number.  Asking for the same port gets you the same object"
   (alexandria:ensure-gethash
    port
@@ -549,8 +518,7 @@
 	       (cl-async:poll
 		(sb-bsd-sockets:socket-file-descriptor (usocket:socket rsocket))
 		#'(lambda(event-named)
-		    (let ((buff )					
-			  (inbound-dhcp-obj (make-instance 'dhcp))
+		    (let ((inbound-dhcp-obj (make-instance 'dhcp))
 			  )
 		      (multiple-value-bind (buff n client receive-port)
 			  (usocket:socket-receive rsocket *buff* (array-total-size *buff*))
@@ -564,6 +532,7 @@
 	       )
   (error "poll4-inbound-pdu error")
   1)
+
 
 
 (defun dhcpd (&key (port +dhcp-server-port+))

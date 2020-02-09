@@ -13,6 +13,17 @@
    :request-client-address
    :deserialize-into-dhcp-from-buff!
    :dhcp->list
+   :receive/as-pdu
+   :decode-dhcp-options
+   :restof
+   :as-wait-for-dhcp
+   :pdu-seq->udhcp
+   
+   :msg-type
+   :msg-type!
+   
+   :handle-dhcpc-message
+   :handle-dhcpd-message
    
    :*this-net*
    :*hook-ip-allocated*
@@ -24,8 +35,8 @@
    :*dhcp-nets*
    ;;:configure-parent-router
    :dhcp
-   :run
    :dhcp-options
+   :run
    :dhcpd
    :encode-dhcp-options
    :handle-dhcp-message

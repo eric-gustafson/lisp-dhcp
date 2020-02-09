@@ -28,7 +28,7 @@
       (obj stream :type t)
     (with-slots (mtype restof)
 	obj
-      (format stream "mtype=~a,restof=~X" mtype restof))
+      (format stream "mtype=~a,restof=~a" mtype restof))
     )
   )
 

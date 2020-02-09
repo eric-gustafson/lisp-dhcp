@@ -29,10 +29,10 @@
 	       #:cl-async
 	       )
   :components ((:file "dhcp-package")
+	       (:file "parse-dhcp-options")
 	       (:file "dhcp-bootp-fields")
 	       (:file "dhcp-options-table")
 	       (:file "dhcp-common")
 	       (:file "dhcp-client")
                (:file "dhcp-server")
-	       (:file "parse-dhcp-options")
 	       ))

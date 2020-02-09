@@ -30,9 +30,9 @@
 (defun rand-xid ()
   (random 1000000))
 
-;;    TODO Make this work with snot as well
+;;
 (defun request-client-address (&key iface-name)
-  "Send out a broadcast for a dhcp address"
+  "create a dhcp object for DHCPDISCOVER message"
   (unless (stringp iface-name)
     (error "iface name must be given an be a string"))
   (let ((link-obj (find iface-name (lsa:/sys->link-obj) :key #'lsa:name :test #'equal)))
@@ -41,7 +41,7 @@
 				:mtype +MSG-TYPE-DHCPDISCOVER+
 				:restof `((:hostname "athena")
 					  (:lease-time 300)))))
-      (make-instance 'dhcp 
+      (make-instance 'udhcp 
 		     :op +MSG-TYPE-DHCPDISCOVER+
 		     :htype (or (lsa:hwtype link-obj)
 				+HWT-ETHERNET-10MB+)
@@ -51,13 +51,84 @@
 			       6)
 		     :hops 0
 		     :xid (rand-xid)
-		     :options oobj
+		     :options-obj oobj
 		     :chaddr (ensure-length
 			      (numex:hexstring->octets (lsa:mac link-obj))
 			      16
 			      :pad-value 0)
 		     )))
-  
   )
 
+(defmethod handle-dhcpc-message ((msg-from-server dhcp))
+  ;; This a deserialized PDU
+  #+nil"handle dhcp client messages.  dished out an ip address, which is embedded in the return message"
+  (let* ((options (decode-dhcp-options (options msg-from-server))))
+    (ecase
+	(msg-type msg-from-server)
+      (:offer
+       ;; we are going to accept the first offer we get
+       ;; TODO: We'LL compute what we want to do based on policy...
+       (msg-type! msg-from-server options :request)
+       (values msg-from-server options)
+       )
+      (:ack
+       (values :done)
+       )
+      )
+    )
+  )
 
+(defvar *cs* nil)
+
+(defun  dhcp-client-socket-up! ()
+  (setf *cs*   (server-socket :port *client-portn*))
+  )
+
+(defun dhcp-client-socket-down! ()
+  (when *cs*
+    (usocket:socket-close *cs*)
+    (setf *cs* nil))
+  )
+
+(defmethod client-snd-pdu (socket (dhcpobj dhcp))
+  (let ((pdu (obj->pdu dhcpObj)))
+    (usocket:socket-send *cs*
+			 pdu 
+			 (length pdu)
+			 :port +DHCP-SERVER-PORT+
+			 :host #(255 255 255 255)
+			 )
+    ))
+
+
+;;
+(defun cl-async-call-with-dhcp-address (dhcp-answer-proc &key (iface-name "wlo1"))
+  "A function that can be called on/in an cl-async thread loop to send and receive dhcp client messages"
+  (let* (
+	 (dhcpReq (request-client-address :iface-name iface-name))
+	 (pdu (obj->pdu dhcpReq))
+	 )
+    (dhcp-client-socket-up!)
+    (setf (usocket:socket-option *cs* :broadcast) t)
+    (client-snd-pdu *cs* dhcpReq)
+    ;; Wait for an offer
+    ;; send out a request
+    ;; wait for an ack
+    (as-wait-for-dhcp
+	:offer
+	(*cs* server-dhcp-obj)
+      ;; Set the type to request
+      (msg-type! server-dhcp-obj :request)
+      (client-snd-pdu *cs* server-dhcp-obj)
+      ;;send request
+      (as-wait-for-dhcp
+	  :ack
+	  (*cs* sack-dhcpobj)
+	(let ((ip (numex:num->octets (yiaddr sack-dhcpobj) :endian :net)))
+	  (dhcp-client-socket-down!)
+	  (funcall dhcp-answer-proc ip)
+	  )
+	)
+      )
+    )
+  )

@@ -15,15 +15,11 @@
 
 
 #+begin_src lisp
-(mapcar
-     #'->dotted
-     (numex:cidr-subnets
-      (first-ip *this-net*)
-      (cidr *this-net*)
-      (cidr-subnet *this-net*)
-      )
-     )
+  (send-and-receive-dhcp-pdu-simple)
 #+end_src
+
+#+RESULTS:
+: 1
 
 
   Remote slime

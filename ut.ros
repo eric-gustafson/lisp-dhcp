@@ -5,28 +5,15 @@ exec ros -Q -- $0 "$@"
 |#
 (progn ;;init forms
   (ros:ensure-asdf)
-  #+quicklisp(ql:quickload '(cffi serapeum alexandria fiasco cl-async dhcp dhcptest) :silent t)
+  #+quicklisp(ql:quickload '(cffi serapeum alexandria fiasco cl-async swap-bytes dhcp dhcptest) :silent t)
   )
 
-
-#+nil(defpackage #:dhcptest
-  (:use #:cl #:dhcp #:serapeum))
-
-#+nil(fiasco:define-test-package #:dhcptest
-  (:use #:cl #:dhcp #:serapeum))
 (in-package #:dhcptest)
-
-
-
-#+nil(rove:deftest
-    iface-tst
-    (let ((objs (lsa:/sys->link-obj)))
-      (rove:ok (eq 1 objs)))
-    )
 
 
 (defun main (&rest argv)
   (declare (ignorable argv))
   (fiasco:run-package-tests)
   )
+
 ;;; vim: set ft=lisp lisp:

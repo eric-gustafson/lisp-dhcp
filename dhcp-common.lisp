@@ -174,30 +174,115 @@
 
 (gen-deserialize-code dhcp)
 
+(defclass udhcp (dhcp)
+  (
+   (options-obj
+    :accessor options-obj
+    :initarg :options-obj
+    :initform nil
+    :documentation "An object that maps to the dhcp.options octets")
+   )
+  )
+
 (defmethod deserialize-into-dhcp-from-buff! ((dhcpObj dhcp) (buff sequence))
   (flexi-streams:with-input-from-sequence (inport buff)
     (stream-deserialize dhcpObj inport))
   dhcpObj)
 
+(defmethod pdu-seq->udhcp ((buff sequence))
+  (let ((obj (make-instance 'udhcp)))
+    (flexi-streams:with-input-from-sequence (inport buff)
+      (stream-deserialize obj inport)
+      (setf (options-obj obj) (decode-dhcp-options (options obj)))
+      obj
+      )
+    )
+  )
+
 (defmethod mac ((dhcpObj dhcp))
   (let ((len (hlen dhcpObj)))
     (subseq (chaddr dhcpObj) 0 len)))
 
-
-
-(defmethod obj->pdu ((dhcp-obj dhcp))
+(defmethod obj->pdu ((dhcp-obj udhcp))
   (flexi-streams:with-output-to-sequence (opp :element-type '(unsigned-byte 8))
-    (let ((options-obj (options dhcp-obj)))
-      (cond
-	((typep options-obj 'dhcp-options)
-	 (unwind-protect
-	      (progn
-		(setf (options dhcp-obj) (encode-dhcp-options options-obj))
-		(stream-serialize dhcp-obj opp))
-	   ;; Back the way we found it
-	   (setf (options dhcp-obj) options-obj)))
-	(t
-	 (stream-serialize dhcp-obj opp)))
+    (let ((oobj (options-obj dhcp-obj)))
+      (setf (options dhcp-obj) (encode-dhcp-options oobj))
+      (stream-serialize dhcp-obj opp)
       )
     )
+  )
+
+(defmethod dhcp-msg-sig ((obj udhcp))
+  "Reurns a list which the key parts needed to determine what kind of message the pdu is."
+  (list (op obj)
+	(mtype (options-obj obj)))
+  )
+
+;; 
+(defmethod msg-type ((dhcp-msg-obj udhcp))
+  ;"returns a symbol [:release :ack :request :offer  :discover] designating what kind of dhcp pdu"
+  (let ((sig (dhcp-msg-sig dhcp-msg-obj)))
+    (cond
+      ((equalp sig (list +MSG-TYPE-DHCPDISCOVER+  +MSG-TYPE-DHCPDISCOVER+)) :discover) ;; 1 1
+      ((equalp sig (list +MSG-TYPE-DHCPOFFER+  +MSG-TYPE-DHCPOFFER+)) :offer)
+      ((equalp sig (list +MSG-TYPE-DHCPDISCOVER+  +MSG-TYPE-DHCPREQUEST+)) :request)
+      ((equalp sig (list +MSG-TYPE-DHCPOFFER+   +MSG-TYPE-DHCPACK+)) :ack)
+      )
+    )
+  )
+
+(defmethod msg-type! ((dhcp-msg-obj udhcp) stype)
+  (let ((options (options-obj dhcp-msg-obj)))
+    (ecase
+	stype
+      (:discover
+       (setf (op dhcp-msg-obj) +MSG-TYPE-DHCPDISCOVER+)
+       (setf (mtype options)  +MSG-TYPE-DHCPDISCOVER+)
+       )
+      (:offer
+       (setf (op dhcp-msg-obj) +MSG-TYPE-DHCPOFFER+)
+       (setf (mtype options)  +MSG-TYPE-DHCPDISCOVER+)     
+       )
+      (:request
+       (setf (op dhcp-msg-obj) +MSG-TYPE-DHCPDISCOVER+)
+       (setf (mtype options)  +MSG-TYPE-DHCPDISCOVER+)
+       )
+      (:ack
+       (setf (op dhcp-msg-obj) +MSG-TYPE-DHCPOFFER+)
+       (setf (mtype options)  +MSG-TYPE-DHCPDISCOVER+)     
+       )
+      )
+  ))
+
+(defmacro as-wait-for-dhcp (type (rsocket recv-obj-var-name) &body body)
+  (let ((async-obj (gensym))
+	(pdu-var-name (gensym))
+	(msg-type-var (gensym)))
+    `(let ((,async-obj
+	    (cl-async:poll
+	     (sb-bsd-sockets:socket-file-descriptor (usocket:socket ,rsocket))
+	     #'(lambda(event-named)
+		 (declare (ignore event-named))
+		 (let ((gbuff (make-array 2048 :element-type '(unsigned-byte 8) ))
+		       )
+		   (multiple-value-bind (buff n)
+		       (usocket:socket-receive ,rsocket gbuff (array-total-size gbuff))
+		     (let* ((,pdu-var-name (subseq  buff 0 n))
+			    (,recv-obj-var-name 
+			     (pdu-seq->udhcp ,pdu-var-name))
+			    )
+		       (let ((,msg-type-var (msg-type ,recv-obj-var-name)))
+			 (unless (eq  ,msg-type-var type)
+			   (error "as-wait-for-dhcp -- unexpected dhcp message type ~a" ,msg-type-var))
+			 ,@body
+			 )
+		       )
+		     )
+		   )
+		 )
+	     :poll-for '(:readable)
+	     :socket t		
+	     )
+	     ))
+       ,async-obj))
   )

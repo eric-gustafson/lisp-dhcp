@@ -20,11 +20,13 @@
 	       #:cl-interpol
 	       #:daemon	       	       
 	       #:inferior-shell
+	       #:nibbles
 	       #:numex
 	       #:lsa
 	       #:cl-syslog
                #:cl-ppcre
 	       #:cl-async
+	       #:swap-bytes
 	       #:dhcp
 	       )
   :components ((:file "dhcptest-package")
