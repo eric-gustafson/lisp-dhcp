@@ -62,17 +62,17 @@
 (defmethod handle-dhcpc-message ((msg-from-server dhcp))
   ;; This a deserialized PDU
   #+nil"handle dhcp client messages.  dished out an ip address, which is embedded in the return message"
-  (let* ((options (decode-dhcp-options (options msg-from-server))))
+  (let* ((options (options-obj msg-from-server)))
     (ecase
 	(msg-type msg-from-server)
       (:offer
        ;; we are going to accept the first offer we get
        ;; TODO: We'LL compute what we want to do based on policy...
-       (msg-type! msg-from-server options :request)
-       (values msg-from-server options)
+       (msg-type! msg-from-server :request)
+       msg-from-server
        )
       (:ack
-       (values :done)
+       :done
        )
       )
     )

@@ -168,7 +168,7 @@
 		  (let ((their-message (pdu-seq->udhcp pdu)))
 		    ;; handle-dhcpd-message handles [:offer :ack :nack :info] messages
 		    (let* ((server-rmesg (handle-dhcpd-message their-message))
-			   (oobj (decode-dhcp-options (options server-rmesg)))		       
+			   (oobj (options-obj server-rmesg))
 			   (buff (obj->pdu server-rmesg)))
 		      (setf *our-response*  server-rmesg) ;; for interactive debugging
 		      ;; send the message to the client
@@ -214,8 +214,8 @@
 		      (setf *offer-received* server-offer)		      
 		      (fiasco:is (eq (msg-type server-offer) :offer))
 		      (let ((ack-reply  (handle-dhcpc-message server-offer)))
-			(format t "~a~%" ack-reply)
-			(fiasco:is (eq (msg-type dhcpObj) :request))
+			(format t "ack:~a~%" ack-reply)
+			(fiasco:is (eq (msg-type ack-reply) :request))
 			(done)
 			(let ((ip (numex:num->octets (yiaddr server-offer) :endian :net)))
 			  ;;(format t "~a ~a~%" dhcpObj dhcpOptionsObj)
@@ -248,7 +248,7 @@
 	  (let ((nb (read-sequence buff ip :start 0 :end 1024)))
 	    (setf *pdu-seq* (subseq buff 0 nb))
 	    (let ((pduObj (pdu-seq->udhcp *pdu-seq*)))
-	      (cons file (options-obj pduObj)))
+	      (cons file (dhcp:options-obj pduObj)))
 	    )
 	  )
 	)

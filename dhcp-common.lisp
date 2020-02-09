@@ -236,23 +236,16 @@
     (ecase
 	stype
       (:discover
-       (setf (op dhcp-msg-obj) +MSG-TYPE-DHCPDISCOVER+)
-       (setf (mtype options)  +MSG-TYPE-DHCPDISCOVER+)
-       )
+       (setf (op dhcp-msg-obj) +MSG-TYPE-DHCPDISCOVER+  (mtype options)  +MSG-TYPE-DHCPDISCOVER+))
       (:offer
-       (setf (op dhcp-msg-obj) +MSG-TYPE-DHCPOFFER+)
-       (setf (mtype options)  +MSG-TYPE-DHCPDISCOVER+)     
-       )
+       (setf (op dhcp-msg-obj) +MSG-TYPE-DHCPOFFER+ (mtype options)  +MSG-TYPE-DHCPOFFER+))
       (:request
-       (setf (op dhcp-msg-obj) +MSG-TYPE-DHCPDISCOVER+)
-       (setf (mtype options)  +MSG-TYPE-DHCPDISCOVER+)
-       )
+       (setf (op dhcp-msg-obj) +MSG-TYPE-DHCPDISCOVER+ (mtype options)  +MSG-TYPE-DHCPREQUEST+))
       (:ack
-       (setf (op dhcp-msg-obj) +MSG-TYPE-DHCPOFFER+)
-       (setf (mtype options)  +MSG-TYPE-DHCPDISCOVER+)     
-       )
+       (setf (op dhcp-msg-obj) +MSG-TYPE-DHCPOFFER+ (mtype options)  +MSG-TYPE-DHCPACK+))
       )
-  ))
+    )
+  )
 
 (defmacro as-wait-for-dhcp (type (rsocket recv-obj-var-name) &body body)
   (let ((async-obj (gensym))

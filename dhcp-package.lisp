@@ -18,6 +18,7 @@
    :restof
    :as-wait-for-dhcp
    :pdu-seq->udhcp
+   :options-obj
    
    :msg-type
    :msg-type!
