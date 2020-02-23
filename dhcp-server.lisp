@@ -513,7 +513,7 @@
 (defvar *buff* (make-array 1024 :element-type '(unsigned-byte 8)))
 (defun poll/async-inbound-dhcp-pdu (rsocket obj-thunk)
   "using cl-async to poll the socket for an in-bound pdu.  Returns an async poller"
-  #+(or sbcl)(return-from
+  #+(or ccl sbcl)(return-from
 	      poll/async-inbound-dhcp-pdu
 	       (cl-async:poll
 		(sb-bsd-sockets:socket-file-descriptor (usocket:socket rsocket))
@@ -539,8 +539,7 @@
   "Listen on port for dhcp client requests"
   (let* ((dhcpObj (make-instance 'dhcp))
 	 (buff (make-array 1024 :element-type '(unsigned-byte 8)))
-	 (rsocket (dhcp-server-socket :port port)))
-	 )
+	 (rsocket (server-socket :port port)))
     (let ((bcast (usocket:socket-option rsocket :broadcast)))
       (alog (format nil "socket: ~a created, bcast=~a" rsocket bcast))
       #+nil(setf bcast (usocket:socket-option rsocket :broadcast))
@@ -564,6 +563,7 @@
 		 nil))
 	     )))
     )
+  )
 
 (defun run ()
   (alog "starting dhcp background thread")
