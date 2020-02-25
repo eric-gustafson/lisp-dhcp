@@ -542,26 +542,32 @@
 	 (rsocket (server-socket :port port)))
     (let ((bcast (usocket:socket-option rsocket :broadcast)))
       (alog (format nil "socket: ~a created, bcast=~a" rsocket bcast))
-      #+nil(setf bcast (usocket:socket-option rsocket :broadcast))
+      ;; GUS: 2020-02-23: Testing on a real network, turning  broadcast back on
+      (setf bcast (usocket:socket-option rsocket :broadcast))
       #+nil(alog (format nil  "broadcast enabled :~a" bcast))
-      (loop :while (serve)
-	 :do
-	   (handler-case
-	       (multiple-value-bind (buff size client receive-port)
-		   (usocket:socket-receive rsocket buff 1024)
-		 (alog "dhcp request received")
-		 (dhcp-handler rsocket dhcpObj buff size client receive-port)
-		 )
-	     (t (c)
-	       (alog (format nil "Error processing dhcp request ~a ~&" c))
-	       (usocket:socket-close rsocket)
-	       (let ((path (uiop/stream:with-temporary-file
-			       (:stream bout :pathname x :keep t :element-type '(unsigned-byte 8))
-			     (write-sequence buff bout)
-			     x)))
-		 (alog (format nil "saving dhcp message ~s" path))
-		 nil))
-	     )))
+      (unwind-protect
+	   (loop :while (serve)
+	      :do
+		(handler-case
+		    (multiple-value-bind (buff size client receive-port)
+			(usocket:socket-receive rsocket buff 1024)
+		      (alog "dhcp request received")
+		      (dhcp-handler rsocket dhcpObj buff size client receive-port)
+		      )
+		  (t (c)
+		    (alog (format nil "Error processing dhcp request ~a ~&" c))
+		    (let ((path (uiop/stream:with-temporary-file
+				    (:stream bout :pathname x :keep t :element-type '(unsigned-byte 8))
+				  (write-sequence buff bout)
+				  x)))
+		      (alog (format nil "saving dhcp message ~s" path))
+		      nil))
+		  ))
+	(progn
+	  (usocket:socket-close rsocket)
+	  )
+	)
+      )
     )
   )
 
