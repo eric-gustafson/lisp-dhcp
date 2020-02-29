@@ -396,6 +396,22 @@
     (alog (format nil "make-dhcp-offer: ~a~%" (numex:num->octets (yiaddr replyMsg))))
     replyMsg))
 
+(defmethod handle-dhcp-request ((reqMsg udhcp))
+  ;; From Wikipedia
+  ;; 
+  ;; In response to the DHCP offer, the client replies with a
+  ;; DHCPREQUEST message, broadcast to the server,[a] requesting the
+  ;; offered address. A client can receive DHCP offers from multiple
+  ;; servers, but it will accept only one DHCP offer. Based on
+  ;; required server identification option in the request and
+  ;; broadcast messaging, servers are informed whose offer the client
+  ;; has accepted.[10]:Section 3.1, Item 3 When other DHCP servers
+  ;; receive this message, they withdraw any offers that they have
+  ;; made to the client and return the offered IP address to the pool
+  ;; of available addresses.
+  1
+  )
+  
 (defmethod get-ack ((reqMsg dhcp))
   "return an dhcp packet to be broadcast that provides an IP address"
   (alog (format nil "get-ack: yiaddr:~a,siaddr:~a,ciaddr:~a~%"
@@ -442,7 +458,9 @@
 	(msg-type client-msg-dhcp-obj)
       (:discover
        (make-dhcp-offer client-msg-dhcp-obj))
-      (:ack   (get-ack client-msg-dhcp-obj))
+      (:request
+       (handle-dhcp-request client-msg-dhcp-obj)
+       (get-ack client-msg-dhcp-obj))
       (:nack
        (alog "dhcp nack")
        )
@@ -465,12 +483,13 @@
   )
 
 (defun dhcp-handler (rsocket ;;dhcpObj
-		     buff size client
+		     buff
+		     size
+		     client
 		     receive-port)
-  (alog "got request")
+  (alog "dhcp-server-pdu-handler")
   (setf *last* (copy-seq buff))
   (let* ((dhcpObj (pdu-seq->udhcp buff))
-	 ;;(deserialize-into-dhcp-from-buff! dhcpObj buff)
 	 (m (handle-dhcpd-message dhcpObj))
 	 (buff (obj->pdu m))
 	 (bcast (coerce (numex:num->octets (cidr-bcast (yiaddr m)
@@ -554,7 +573,7 @@
 		(handler-case
 		    (multiple-value-bind (buff size client receive-port)
 			(usocket:socket-receive rsocket buff 1024)
-		      (alog "dhcp request received")
+		      (alog "dhcp pdu received")
 		      (dhcp-handler rsocket  buff size client receive-port)
 		      )
 		  (t (c)
