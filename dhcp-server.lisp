@@ -499,10 +499,8 @@
 	 (buff (obj->pdu m))
 	 (destination-address
 	  (coerce
-	   (if (eq response-type :ack)
-	       (numex:num->octets (yiaddr m))
-	       (numex:num->octets (cidr-bcast (yiaddr m)
-					      (dhcp:cidr-subnet dhcp:*this-net*))))
+	   (numex:num->octets (cidr-bcast (yiaddr m)
+					  (dhcp:cidr-subnet dhcp:*this-net*)))
 	   'vector))
 	 )
     ;; TODO: We shouldn't need to broadcast if it's of type :ack, :nak
@@ -511,13 +509,11 @@
 		  response-type
 		  (numex:num->octets (yiaddr m))
 		  destination-address))
-    (when (eq response-type :ack)
-      (setf (usocket:socket-option rsocket :broadcast) t))
+    (setf (usocket:socket-option rsocket :broadcast) t)
     (let ((nbw (usocket:socket-send
 		rsocket buff (length buff)
 		:port +dhcp-client-port+
 		:host destination-address
-		;;:host  (coerce (this-ip) 'vector)
 		)))
       (alog (format nil "number of bytes sent:~a~%" nbw))
       )
