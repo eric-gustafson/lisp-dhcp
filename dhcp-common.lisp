@@ -31,7 +31,15 @@
     (vector 'vector)
     ))
 
-
+(defun load-packet-from-file (path)
+  "Returns a pdu in a vector from a file"
+  (let* ((rpath (probe-file path)))
+    (with-open-file (bin-port rpath :element-type '(unsigned-byte 8))
+      (let ((obj (make-instance 'dhcp)))
+	(stream-deserialize obj bin-port)	
+	obj
+	)))
+  )
 
 (defun ensure-length (seq n &key pad-value)
   "make sure that a sequence matches a specified length"

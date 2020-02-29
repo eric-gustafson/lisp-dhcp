@@ -464,11 +464,13 @@
     x)
   )
 
-(defun dhcp-handler (rsocket dhcpObj buff size client receive-port)
+(defun dhcp-handler (rsocket ;;dhcpObj
+		     buff size client receive-port)
   (alog "got request")
   (setf *last* (copy-seq buff))
-  (deserialize-into-dhcp-from-buff! dhcpObj buff)
-  (let* ((m (handle-dhcpd-message dhcpObj))
+  (let* ((dhcpObj (pdu-seq->udhcp buff))
+    ;;(deserialize-into-dhcp-from-buff! dhcpObj buff)
+	 (m (handle-dhcpd-message dhcpObj))
 	 (buff (obj->pdu m))
 	 (bcast (coerce (numex:num->octets (cidr-bcast (yiaddr m)
 						       (dhcp:cidr-subnet dhcp:*this-net*))
@@ -537,7 +539,7 @@
 
 (defun dhcpd (&key (port +dhcp-server-port+))
   "Listen on port for dhcp client requests"
-  (let* ((dhcpObj (make-instance 'dhcp))
+  (let* (;;(dhcpObj (make-instance 'dhcp))
 	 (buff (make-array 1024 :element-type '(unsigned-byte 8)))
 	 (rsocket (server-socket :port port)))
     (let ((bcast (usocket:socket-option rsocket :broadcast)))
@@ -552,7 +554,8 @@
 		    (multiple-value-bind (buff size client receive-port)
 			(usocket:socket-receive rsocket buff 1024)
 		      (alog "dhcp request received")
-		      (dhcp-handler rsocket dhcpObj buff size client receive-port)
+		      (dhcp-handler rsocket ;;dhcpObj
+				    buff size client receive-port)
 		      )
 		  (t (c)
 		    (alog (format nil "Error processing dhcp request ~a ~&" c))
