@@ -35,9 +35,10 @@
   "Returns a pdu in a vector from a file"
   (let* ((rpath (probe-file path)))
     (with-open-file (bin-port rpath :element-type '(unsigned-byte 8))
-      (let ((obj (make-instance 'dhcp)))
-	(stream-deserialize obj bin-port)	
-	obj
+      (let* ((n (file-length bin-port))
+	     (buff (make-array n :element-type '(unsigned-byte 8)))
+	     (pdu (read-sequence buff bin-port :end n)))
+	(pdu-seq->udhcp buff)
 	)))
   )
 

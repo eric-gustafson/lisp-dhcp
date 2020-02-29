@@ -465,11 +465,12 @@
   )
 
 (defun dhcp-handler (rsocket ;;dhcpObj
-		     buff size client receive-port)
+		     buff size client
+		     receive-port)
   (alog "got request")
   (setf *last* (copy-seq buff))
   (let* ((dhcpObj (pdu-seq->udhcp buff))
-    ;;(deserialize-into-dhcp-from-buff! dhcpObj buff)
+	 ;;(deserialize-into-dhcp-from-buff! dhcpObj buff)
 	 (m (handle-dhcpd-message dhcpObj))
 	 (buff (obj->pdu m))
 	 (bcast (coerce (numex:num->octets (cidr-bcast (yiaddr m)
@@ -484,7 +485,7 @@
     (setf (usocket:socket-option rsocket :broadcast) t)			     
     (let ((nbw (usocket:socket-send
 		rsocket buff (length buff)
-		:port *dhcp-client-port*
+		:port +dhcp-client-port+
 		:host bcast
 		;;:host  (coerce (this-ip) 'vector)
 		)))
@@ -554,8 +555,7 @@
 		    (multiple-value-bind (buff size client receive-port)
 			(usocket:socket-receive rsocket buff 1024)
 		      (alog "dhcp request received")
-		      (dhcp-handler rsocket ;;dhcpObj
-				    buff size client receive-port)
+		      (dhcp-handler rsocket  buff size client receive-port)
 		      )
 		  (t (c)
 		    (alog (format nil "Error processing dhcp request ~a ~&" c))
