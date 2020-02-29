@@ -351,7 +351,7 @@
 				     :mac (mac reqMsg)
 				     )))
 	 (push addrObj *dhcp-allocated-table*)
-	 (serapeum:run-hook dhcp:*hook-ip-allocated*
+	 (serapeum:run-hook 'dhcp:*hook-ip-allocated*
 			    (ipnum addrObj)
 			    (mac addrObj))
 	 (return-from dhcp-allocate-ip addrObj)))
