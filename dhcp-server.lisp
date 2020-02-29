@@ -500,7 +500,7 @@
 	 (destination-address
 	  (coerce
 	   (if (eq response-type :ack)
-	       (yiaddr m)
+	       (numex:num->octets (yiaddr m))
 	       (numex:num->octets (cidr-bcast (yiaddr m)
 					      (dhcp:cidr-subnet dhcp:*this-net*))))
 	   'vector))
@@ -511,8 +511,8 @@
 		  response-type
 		  (numex:num->octets (yiaddr m))
 		  destination-address))
-    (if (eq response-type :ack)
-	(setf (usocket:socket-option rsocket :broadcast) t))
+    (when (eq response-type :ack)
+      (setf (usocket:socket-option rsocket :broadcast) t))
     (let ((nbw (usocket:socket-send
 		rsocket buff (length buff)
 		:port +dhcp-client-port+
