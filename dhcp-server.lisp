@@ -5,7 +5,6 @@
 
 (defmethod alog ((str string))
   (syslog:log "dhcp-server" :user :warning str))
-  
 
 (defclass cidr-net ()
   ;; A network defined using cidr notation
@@ -410,6 +409,9 @@
   ;; made to the client and return the offered IP address to the pool
   ;; of available addresses.
   1
+  ;; TODO: look @ the mac address, and the parameters.
+  ;; If the client did not accept our offer, then don't
+  ;; send the ack, and don't
   )
   
 (defmethod get-ack ((reqMsg dhcp))
@@ -453,9 +455,11 @@
 
 (defmethod handle-dhcpd-message ((client-msg-dhcp-obj udhcp))
    ;;"handle dhcp server messages.  dished out an ip address, which is embedded in the return message"
-  (let* ((options (options-obj client-msg-dhcp-obj)))
+  (let* (#+nil(options (options-obj client-msg-dhcp-obj))
+	 (dhcp-type (msg-type client-msg-dhcp-obj)))
+    (alog (format nil "dhcpd msg type ~a" dhcp-type))
     (ecase
-	(msg-type client-msg-dhcp-obj)
+	dhcp-type
       (:discover
        (make-dhcp-offer client-msg-dhcp-obj))
       (:request
@@ -491,14 +495,17 @@
   (setf *last* (copy-seq buff))
   (let* ((dhcpObj (pdu-seq->udhcp buff))
 	 (m (handle-dhcpd-message dhcpObj))
+	 (response-type (msg-type m))
 	 (buff (obj->pdu m))
 	 (bcast (coerce (numex:num->octets (cidr-bcast (yiaddr m)
 						       (dhcp:cidr-subnet dhcp:*this-net*))
 					   )
 			'vector))
 	 )
+    ;; TODO: We shouldn't need to broadcast if it's of type :ack, :nak
     (alog (format nil
-		  "broadcasting offer:~a on ~a"
+		  "broadcasting pdu type=~a,~a on ~a"
+		  response-type
 		  (numex:num->octets (yiaddr m))
 		  bcast))
     (setf (usocket:socket-option rsocket :broadcast) t)			     
@@ -764,9 +771,6 @@
      ,@body
      )
   )
-  
-
-
 
 (defun network-watchdog ()
   (let ((channel (lparallel:make-channel)))
