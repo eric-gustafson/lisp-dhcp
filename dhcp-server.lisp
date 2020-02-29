@@ -497,22 +497,26 @@
 	 (m (handle-dhcpd-message dhcpObj))
 	 (response-type (msg-type m))
 	 (buff (obj->pdu m))
-	 (bcast (coerce (numex:num->octets (cidr-bcast (yiaddr m)
-						       (dhcp:cidr-subnet dhcp:*this-net*))
-					   )
-			'vector))
+	 (destination-address
+	  (coerce
+	   (if (eq response-type :ack)
+	       (yiaddr m)
+	       (numex:num->octets (cidr-bcast (yiaddr m)
+					      (dhcp:cidr-subnet dhcp:*this-net*))))
+	   'vector))
 	 )
     ;; TODO: We shouldn't need to broadcast if it's of type :ack, :nak
     (alog (format nil
-		  "broadcasting pdu type=~a,~a on ~a"
+		  "sending pdu type:~a, to addr: ~a via ~a"
 		  response-type
 		  (numex:num->octets (yiaddr m))
-		  bcast))
-    (setf (usocket:socket-option rsocket :broadcast) t)			     
+		  destination-address))
+    (if (eq response-type :ack)
+	(setf (usocket:socket-option rsocket :broadcast) t))
     (let ((nbw (usocket:socket-send
 		rsocket buff (length buff)
 		:port +dhcp-client-port+
-		:host bcast
+		:host destination-address
 		;;:host  (coerce (this-ip) 'vector)
 		)))
       (alog (format nil "number of bytes sent:~a~%" nbw))
