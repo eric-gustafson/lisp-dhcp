@@ -1,5 +1,4 @@
 
-
 (in-package #:dhcptest)
 
 (defun as-close-out (obj)
