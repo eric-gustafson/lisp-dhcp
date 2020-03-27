@@ -75,7 +75,8 @@
   (let ((async-obj (gensym)))
     `(let ((,async-obj
 	    (cl-async:poll
-	     (sb-bsd-sockets:socket-file-descriptor (usocket:socket ,rsocket))
+	     #+sbcl(sb-bsd-sockets:socket-file-descriptor (usocket:socket ,rsocket))
+	     #+ccl(openmcl-socket:socket-os-fd (usocket:socket ,rsocket))	     
 	     #'(lambda(event-named)
 		 (declare (ignore event-named))
 		 (format t "receive/as-pdu~%")

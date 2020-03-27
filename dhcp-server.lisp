@@ -545,7 +545,8 @@
   #+(or ccl sbcl)(return-from
 	      poll/async-inbound-dhcp-pdu
 	       (cl-async:poll
-		(sb-bsd-sockets:socket-file-descriptor (usocket:socket rsocket))
+		#+sbcl(sb-bsd-sockets:socket-file-descriptor (usocket:socket rsocket))
+		#+ccl(openmcl-socket:socket-os-fd (usocket:socket rsocket))		
 		#'(lambda(event-named)
 		    (let ((inbound-dhcp-obj (make-instance 'dhcp))
 			  )
