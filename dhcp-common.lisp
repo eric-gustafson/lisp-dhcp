@@ -262,7 +262,7 @@
 	(msg-type-var (gensym)))
     `(let ((,async-obj
 	    (cl-async:poll
-	     (sb-bsd-sockets:socket-file-descriptor (usocket:socket ,rsocket))
+	     #+sbcl(sb-bsd-sockets:socket-file-descriptor (usocket:socket ,rsocket))
 	     #'(lambda(event-named)
 		 (declare (ignore event-named))
 		 (let ((gbuff (make-array 2048 :element-type '(unsigned-byte 8) ))
