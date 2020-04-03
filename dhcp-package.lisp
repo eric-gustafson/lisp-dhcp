@@ -45,5 +45,8 @@
    :options
    :yiaddr
    :obj->pdu
+
+   :cl-async-call-with-dhcp-address
+   :call-with-dhcp-address
    )
   )

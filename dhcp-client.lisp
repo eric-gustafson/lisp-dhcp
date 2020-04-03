@@ -132,3 +132,13 @@
       )
     )
   )
+
+(defun call-with-dhcp-address (thunk &key (iface-name "wlan0"))
+  (cl-async:with-event-loop ()
+    (cl-async-call-with-dhcp-address #'(lambda(ip)
+					 (format t "dhcp-addr: ~a" ip)
+					 (funcall thunk ip)
+					 )
+				     :iface-name iface-name)
+    )
+  )
