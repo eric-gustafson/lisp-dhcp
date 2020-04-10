@@ -1,7 +1,4 @@
-
-
 (in-package #:dhcp)
-
 
 (defconstant +dhcp-client-port+ 68)
 
@@ -81,7 +78,7 @@
 (defvar *cs* nil)
 
 (defun  dhcp-client-socket-up! ()
-  (setf *cs*   (server-socket :port *client-portn*))
+  (setf *cs*   (server-socket :port +dhcp-client-port+))
   )
 
 (defun dhcp-client-socket-down! ()
@@ -99,7 +96,6 @@
 			 :host #(255 255 255 255)
 			 )
     ))
-
 
 ;;
 (defun cl-async-call-with-dhcp-address (dhcp-answer-proc &key (iface-name "wlo1"))
