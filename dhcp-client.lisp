@@ -129,7 +129,7 @@
     )
   )
 
-(defun call-with-dhcp-address (thunk &key (iface-name "wlan0"))
+(defun call-with-dhcp-address/as (thunk &key (iface-name "wlan0"))
   (cl-async:with-event-loop ()
     (cl-async-call-with-dhcp-address #'(lambda(ip)
 					 (format t "dhcp-addr: ~a" ip)
@@ -138,3 +138,36 @@
 				     :iface-name iface-name)
     )
   )
+
+(defun call-with-dhcp-address (thunk &key (iface-name "wlan0"))
+  "Traditional socket, with waits.  You probably want to call this one
+on a thread"
+  (let* (
+	 (dhcpReq (request-client-address :iface-name iface-name))
+	 (pdu (obj->pdu dhcpReq))
+	 )
+    (dhcp-client-socket-up!)
+    (setf (usocket:socket-option *cs* :broadcast) t)
+    (client-snd-pdu *cs* dhcpReq)
+    (unwind-protect
+	 (loop 
+	    :do
+	      (handler-case
+		  (multiple-value-bind (buff size client receive-port)
+		      (usocket:socket-receive rsocket buff 1024)
+		    (let ((server-offer (subseq  buff 0 n)))
+		    
+		    (alog "dhcp pdu received")
+		    (dhcp-handler rsocket  buff size client receive-port)
+		    )
+		  (t (c)
+		    (alog (format nil "Error processing dhcp request ~a ~&" c))
+		    (let ((path (uiop/stream:with-temporary-file
+				    (:stream bout :pathname x :keep t :element-type '(unsigned-byte 8))
+				  (write-sequence buff bout)
+				  x)))
+		      (alog (format nil "saving dhcp message ~s" path))
+		      nil))
+		  ))
+    
+
