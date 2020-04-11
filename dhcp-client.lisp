@@ -29,14 +29,14 @@
 
 ;;
 (defun request-client-address (&key iface-name)
-  "create a dhcp object for DHCPDISCOVER message"
+  "Create a dhcp object for DHCPDISCOVER message. Returns a udhcp object"
   (unless (stringp iface-name)
     (error "iface name must be given an be a string"))
   (let ((link-obj (find iface-name (lsa:/sys->link-obj) :key #'lsa:name :test #'equal)))
     (unless link-obj (error (format nil "No interface found for ~a" iface-name)))
     (let* ((oobj (make-instance 'dhcp-options
 				:mtype +MSG-TYPE-DHCPDISCOVER+
-				:restof `((:hostname "athena")
+				:restof `((:hostname ,(uiop:hostname))
 					  (:lease-time 300)))))
       (make-instance 'udhcp 
 		     :op +MSG-TYPE-DHCPDISCOVER+
@@ -147,6 +147,9 @@
     )
   )
 
+(defmethod clog ((str string))
+  (syslog:log "dhcp-client" :user :warning str))
+
 (defun call-with-dhcp-address (thunk &key (iface-name "wlan0"))
   "Traditional socket, with waits.  You probably want to call this one
 on a thread"
@@ -157,32 +160,44 @@ on a thread"
 	 )
     (dhcp-client-socket-up!)
     (setf (usocket:socket-option *cs* :broadcast) t)
+    (clog "sending dhcp request")
     (client-snd-pdu *cs* dhcpReq)
+    (clog "waiting for dhcp offers")
     (handler-case
-	(multiple-value-bind (buff n client receive-port)
-	    (usocket:socket-receive rsocket buff 1024)
+	(multiple-value-bind (buff n remote-addr remote-port)
+	    (usocket:socket-receive *cs* buff 1024)
 	  (let* ((pdu (subseq  buff 0 n))
 		 (server-offer (pdu-seq->udhcp pdu))
 		 (request (handle-dhcpc-message server-offer)))
-	    (client-snd-pdu *cs* request)
-	    (multiple-value-bind (buff n client receive-port)
-		(usocket:socket-receive rsocket buff 1024)
-	      (let* ((pdu (subseq  buff 0 n))
-		     (server-ack (pdu-seq->udhcp pdu)))
-		;; checks the type and returns done
-		(handle-dhcpc-message server-ack)
-		;; TODO: get the ip address send only that
-		(format t "~a" server-ack)
-		(funcall thunk server-ack)
-		)
-	      )))
+	    (optima:match
+		request
+	      ((equal :done) ;;We got an ack right away
+	       (clog (format nil "~a" server-offer))
+	       )
+	      ((type dhcp)
+	       (clog (format nil "~a" (msg-type server-offer)))
+	       (clog (format nil "sending dhcp-ip request - we've picked a winner ~a" (type-of request)))
+	       (client-snd-pdu *cs* request)
+	       (multiple-value-bind (buff n remote-addr remote-port)
+		   (usocket:socket-receive *cs* buff 1024)
+		 (let* ((pdu (subseq  buff 0 n))
+			(server-ack (pdu-seq->udhcp pdu)))
+		   ;; checks the type and returns done
+		   (handle-dhcpc-message server-ack)
+		   ;; TODO: get the ip address send only that
+		   (format t "~a" server-ack)
+		   (funcall thunk server-ack)
+		   )
+		 )))
+	    )
+	  )
       (t (c)
-	(alog (format nil "Error processing dhcp request ~a ~&" c))
+	(clog (format nil "!!~a ~&" c))
 	(let ((path (uiop/stream:with-temporary-file
 			(:stream bout :pathname x :keep t :element-type '(unsigned-byte 8))
 		      (write-sequence buff bout)
 		      x)))
-	  (alog (format nil "saving dhcp message ~s" path))
+	  (clog (format nil "saving dhcp message ~s" path))
 	  nil))
       )
     )
