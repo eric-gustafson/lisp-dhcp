@@ -56,9 +56,17 @@
 		     )))
   )
 
+(defgeneric handle-dhcpc-message (obj)
+  (:documentation "Handles dhcp client messages.  This doens't send or
+  receive messages, rather just handles the accounting needed in the
+  return value to send back to the server.  It handles two types of
+  message, {offer,ack}.  address, which is embedded in the return
+  message")
+  ;;(error "Not implemented")
+  )
+
 (defmethod handle-dhcpc-message ((msg-from-server dhcp))
   ;; This a deserialized PDU
-  #+nil"handle dhcp client messages.  dished out an ip address, which is embedded in the return message"
   (let* ((options (options-obj msg-from-server)))
     (ecase
 	(msg-type msg-from-server)
@@ -149,25 +157,34 @@ on a thread"
     (dhcp-client-socket-up!)
     (setf (usocket:socket-option *cs* :broadcast) t)
     (client-snd-pdu *cs* dhcpReq)
-    (unwind-protect
-	 (loop 
-	    :do
-	      (handler-case
-		  (multiple-value-bind (buff size client receive-port)
-		      (usocket:socket-receive rsocket buff 1024)
-		    (let ((server-offer (subseq  buff 0 n)))
-		    
-		    (alog "dhcp pdu received")
-		    (dhcp-handler rsocket  buff size client receive-port)
-		    )
-		  (t (c)
-		    (alog (format nil "Error processing dhcp request ~a ~&" c))
-		    (let ((path (uiop/stream:with-temporary-file
-				    (:stream bout :pathname x :keep t :element-type '(unsigned-byte 8))
-				  (write-sequence buff bout)
-				  x)))
-		      (alog (format nil "saving dhcp message ~s" path))
-		      nil))
-		  ))
+    (handler-case
+	(multiple-value-bind (buff n client receive-port)
+	    (usocket:socket-receive rsocket buff 1024)
+	  (let* ((pdu (subseq  buff 0 n))
+		 (server-offer (pdu-seq->udhcp pdu))
+		 (request (handle-dhcpc-message server-offer)))
+	    (client-snd-pdu *cs* request)
+	    (multiple-value-bind (buff n client receive-port)
+		(usocket:socket-receive rsocket buff 1024)
+	      (let* ((pdu (subseq  buff 0 n))
+		     (server-ack (pdu-seq->udhcp pdu)))
+		;; checks the type and returns done
+		(handle-dhcpc-message server-ack)
+		;; TODO: get the ip address send only that
+		(format t "~a" server-ack)
+		(funcall thunk server-ack)
+		)
+	      )))
+      (t (c)
+	(alog (format nil "Error processing dhcp request ~a ~&" c))
+	(let ((path (uiop/stream:with-temporary-file
+			(:stream bout :pathname x :keep t :element-type '(unsigned-byte 8))
+		      (write-sequence buff bout)
+		      x)))
+	  (alog (format nil "saving dhcp message ~s" path))
+	  nil))
+      )
+    )
+  )
     
 
