@@ -581,7 +581,7 @@
 		(handler-case
 		    (multiple-value-bind (buff size client receive-port)
 			(usocket:socket-receive rsocket buff 1024)
-		      (alog "dhcp pdu received")
+		      (alog (format nil "dhcp pdu received from ~a:~a" client receive-port))
 		      (dhcp-handler rsocket  buff size client receive-port)
 		      )
 		  (t (c)
