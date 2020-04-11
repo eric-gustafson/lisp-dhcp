@@ -153,6 +153,7 @@ on a thread"
   (let* (
 	 (dhcpReq (request-client-address :iface-name iface-name))
 	 (pdu (obj->pdu dhcpReq))
+	 (buff (make-array 1024 :element-type '(unsigned-byte 8)))
 	 )
     (dhcp-client-socket-up!)
     (setf (usocket:socket-option *cs* :broadcast) t)
