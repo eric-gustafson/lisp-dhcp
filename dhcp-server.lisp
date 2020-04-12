@@ -486,6 +486,10 @@
     x)
   )
 
+(defmethod compute-destination-net-addresses-for-dhcp-response ((m dhcp))
+  "Compute a list of network addresses to send the dhcp-response"
+  )
+
 (defun dhcp-handler (rsocket ;;dhcpObj
 		     buff
 		     size
