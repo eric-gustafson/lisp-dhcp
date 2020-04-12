@@ -97,7 +97,7 @@
   )
 
 (defun compute-this-ip (client-addr)
-  "Get the router IP dddress for the subnet we share with the client address."
+  "Get the router IP address for the subnet we share with the client address."
   (cond
     ((eq 'dhcp-address (type-of client-addr))
      (compute-this-ip (ipnum client-addr)))
@@ -453,10 +453,18 @@
 							     ))))
     replyMsg))
 
+(defun local-host-addr ()
+  #+(or ccl) (return-from local-host-addr "255.255.255.255")
+  (numex:->dotted (this-ip)))
+
+
+(defmethod compute-destination-net-addresses-for-dhcp-response ((m dhcp))
+  "Compute a list of network addresses to send the dhcp-response"
+  )
+
 (defmethod handle-dhcpd-message ((client-msg-dhcp-obj udhcp))
    ;;"handle dhcp server messages.  dished out an ip address, which is embedded in the return message"
-  (let* (#+nil(options (options-obj client-msg-dhcp-obj))
-	 (dhcp-type (msg-type client-msg-dhcp-obj)))
+  (let* ((dhcp-type (msg-type client-msg-dhcp-obj)))
     (alog (format nil "dhcpd msg type ~a" dhcp-type))
     (ecase
 	dhcp-type
@@ -475,26 +483,8 @@
     )
   )
 
-(defun local-host-addr ()
-  #+(or ccl) (return-from local-host-addr "255.255.255.255")
-  (numex:->dotted (this-ip)))
-
-(defun test-tmp-file ()
-  (uiop/stream:with-temporary-file
-      (:stream bout :pathname x :keep t :element-type '(unsigned-byte 8) :directory "/home/root")
-    (write-sequence (map 'array #'char-code "how do u like me now?")  bout)
-    x)
-  )
-
-(defmethod compute-destination-net-addresses-for-dhcp-response ((m dhcp))
-  "Compute a list of network addresses to send the dhcp-response"
-  )
-
-(defun dhcp-handler (rsocket ;;dhcpObj
-		     buff
-		     size
-		     client
-		     receive-port)
+(defun dhcp-handler (rsocket buff size client receive-port)
+  "A dhcp message was received"
   (alog "dhcp-server-pdu-handler")
   (setf *last* (copy-seq buff))
   (let* ((dhcpObj (pdu-seq->udhcp buff))
@@ -507,7 +497,6 @@
 					  (dhcp:cidr-subnet dhcp:*this-net*)))
 	   'vector))
 	 )
-    ;; TODO: We shouldn't need to broadcast if it's of type :ack, :nak
     (alog (format nil
 		  "sending pdu type:~a, to addr: ~a via ~a"
 		  response-type
@@ -566,8 +555,6 @@
 	       )
   (error "poll4-inbound-pdu error")
   1)
-
-
 
 (defun dhcpd (&key (port +dhcp-server-port+))
   "Listen on port for dhcp client requests"
