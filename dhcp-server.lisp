@@ -517,20 +517,17 @@
 
 (defun server-socket (&key (port +dhcp-server-port+))
   "Returns a server socket for the given port. It's a singleton on the port number.  Asking for the same port gets you the same object"
-  (alexandria:ensure-gethash
-   port
-   *server-socket-table*
-   (let ((sock-obj (usocket:socket-connect nil
-					   nil
-					   :protocol :datagram
-					   :element-type '(unsigned-byte 8) ;;char
-					   :local-host
-					   #+(or sbcl)nil
-					   #+(or ccl)(local-host-addr)
-					   :local-port port)))
-     (setf (usocket:socket-option sock-obj :broadcast) t)
-     sock-obj))
-  )
+  (let ((sock-obj (usocket:socket-connect nil
+					  nil
+					  :protocol :datagram
+					  :element-type '(unsigned-byte 8) ;;char
+					       :local-host
+					       #+(or sbcl)nil
+					       #+(or ccl)(local-host-addr)
+					       :local-port port)))
+	 (setf (usocket:socket-option sock-obj :broadcast) t)
+	 sock-obj))
+
 
 (defvar *buff* (make-array 1024 :element-type '(unsigned-byte 8)))
 (defun poll/async-inbound-dhcp-pdu (rsocket obj-thunk)
@@ -592,9 +589,18 @@
     )
   )
 
+(defun catch-and-log (thunk)
+  #'(lambda()
+      (handler-case
+	  (funcall thunk)
+	(t (c)
+	  (alog (format nil "~a~&" c))
+	  nil))))
+
+
 (defun run ()
   (alog "starting dhcp background thread")
-  (bt:make-thread #'dhcpd :name "dhcp thread")
+  (bt:make-thread (catch-and-log #'dhcpd) :name "dhcp thread")
   )
 
 (defmethod print-object ((obj dhcp) stream)
