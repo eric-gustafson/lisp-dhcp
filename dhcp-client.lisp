@@ -85,14 +85,18 @@
 
 (defvar *cs* nil)
 
-(defun  dhcp-client-socket-up! ()
-  (setf *cs*   (server-socket :port +dhcp-client-port+))
-  )
+(defun dhcp-client-socket-up! ()
+  (serapeum:synchronized(*cs*)
+    (unless *cs*
+      (setf *cs*   (server-socket :port +dhcp-client-port+)))
+    ))
 
 (defun dhcp-client-socket-down! ()
-  (when *cs*
-    (usocket:socket-close *cs*)
-    (setf *cs* nil))
+  (serapeum:synchronized(*cs*)  
+    (when *cs*
+      (usocket:socket-close *cs*)
+      (setf *cs* nil))
+    )
   )
 
 (defmethod client-snd-pdu (socket (dhcpobj dhcp))
