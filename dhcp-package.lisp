@@ -7,6 +7,8 @@
 	)
   (:export
 
+   :update-dhcps-iface-ip-addresses
+   
    :server-socket
    :client-socket
    :poll/async-inbound-dhcp-pdu

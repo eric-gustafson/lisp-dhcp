@@ -483,6 +483,18 @@
     )
   )
 
+(defvar *dhcp-iface-ip-addresses* '()
+  "We broadcast DHCP messages only to interfaces that have these IPs. These values are cidr-net objects from the numex package")
+
+(defun update-dhcps-iface-ip-addresses (ip-list)
+  "The DHCP communicates via network broadcasts, since the clients to this service do not have IP addresses.  We only send/respond to interfaces that have an IP address and that have been 'marked'"
+  (loop :for ip :in ip-list :do
+       (unless (equal (type-of ip) 'numex:cidr-net)
+	 (error "Illegal parameter type ~a" ip)))
+  (serapeum:synchronized (*dhcp-iface-ip-addresses*)
+    (setf *dhcp-iface-ip-addresses* ip-list))
+  )
+		   
 (defun dhcp-handler (rsocket buff size client receive-port)
   "A dhcp message was received"
   (alog "dhcp-server-pdu-handler")
@@ -491,25 +503,31 @@
 	 (m (handle-dhcpd-message dhcpObj))
 	 (response-type (msg-type m))
 	 (buff (obj->pdu m))
-	 (destination-address
-	  (coerce
-	   (numex:num->octets (cidr-bcast (yiaddr m)
-					  (dhcp:cidr-subnet dhcp:*this-net*)))
-	   'vector))
+	 (destination-address '())
 	 )
-    (alog (format nil
-		  "sending pdu type:~a, to addr: ~a via ~a"
-		  response-type
-		  (numex:num->octets (yiaddr m))
-		  destination-address))
-    (setf (usocket:socket-option rsocket :broadcast) t)
-    (let ((nbw (usocket:socket-send
-		rsocket buff (length buff)
-		:port +dhcp-client-port+
-		:host destination-address
-		)))
-      (alog (format nil "number of bytes sent:~a~%" nbw))
-      )
+    (when (null *dhcp-iface-ip-addresses*)
+      (alog "dhcp-handler - no interfaces marked for dhcps"))
+    (loop :for destination-nets :in *dhcp-iface-ip-addresses* :do
+	 (let ((destination-address
+		(coerce
+		 (numex:num->octets (cidr-bcast (yiaddr m)
+						(dhcp:cidr-subnet destination-nets)))
+		 'vector)))
+	   (alog (format nil
+			 "sending pdu type:~a, to addr: ~a via ~a"
+			 response-type
+			 (numex:num->octets (yiaddr m))
+			 destination-address))
+	   (setf (usocket:socket-option rsocket :broadcast) t)
+	   (let ((nbw (usocket:socket-send
+		       rsocket buff (length buff)
+		       :port +dhcp-client-port+
+		       :host destination-address
+		       )))
+	     (alog (format nil "number of bytes sent:~a~%" nbw))
+	     )
+	   )
+	 )
     )
   )
 
