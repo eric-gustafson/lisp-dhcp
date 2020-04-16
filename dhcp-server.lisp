@@ -224,18 +224,16 @@
 (defmethod total-ips ((obj cidr-net))
   (1+ (- (last-ip obj) (first-ip obj))))
 
-(defparameter *dhcp-allocated-table* (list
-				      (make-instance 'dhcp-address
-						     :ipnum (first-ip *this-net*)
-						     :lease-time nil))
-  )
+(defparameter *dhcp-allocated-table* (serapeum:dict #'equal))
 
 (defun ip-allocated? (net ip)
   (declare (ignore net))
-  (find ip *dhcp-allocated-table*  :key #'ipnum))
+  (gethash ip *dhcp-allocated-table*)
+  ;;(find ip *dhcp-allocated-table*  :key #'ipnum))
+  )
 						     
 (defun dhcp-search-allocated-by-mac (mac)
-  (let ((x (find mac *dhcp-allocated-table* :key #'mac :test #'equalp)))
+  (let ((x (gethash mac *dhcp-allocated-table*)))
     (when x
       (setf (tla x) (get-universal-time))
       x)
@@ -324,7 +322,8 @@ and it's always allocated untile the server is restarted."
 				       :tla (get-universal-time)
 				       :mac mac
 				       )))
-	   (push addrObj *dhcp-allocated-table*)
+	   (setf (gethash (ipnum addrObj) *dhcp-allocated-table*) addrObj)
+	   (setf (gethash (mac addrObj) *dhcp-allocated-table*) addrObj)
 	   (serapeum:run-hook 'dhcp:*hook-ip-allocated*
 			      (ipnum addrObj)
 			      (mac addrObj))
@@ -347,7 +346,11 @@ and it's always allocated untile the server is restarted."
   )
 
 (defun deallocate-ip (net ip)
-    (setf *dhcp-allocated-table* (delete ip *dhcp-allocated-table* :key #'ipnum :test #'equalp)))
+  (let ((obj (gethash ip *dhcp-allocated-table*)))
+    (remhash (mac obj) *dhcp-allocated-table*)
+    (remhash (ipnum obj) *dhcp-allocated-table*)
+    ;;(setf *dhcp-allocated-table* (delete ip *dhcp-allocated-table* :key #'ipnum :test #'equalp))
+    ))
 
 (defmethod make-dhcp-offer ((net-obj cidr-net) (reqMsg udhcp))
   "return an DHCP 'offer' to be broadcast that provides an IP address"
@@ -473,15 +476,22 @@ and it's always allocated untile the server is restarted."
   "We broadcast DHCP messages only to interfaces that have these
   IPs. These values are cidr-net objects from the numex package")
 
-(defun update-dhcps-iface-ip-addresses (cidr-net-list)
+(defun update-dhcps-iface-ip-addresses! (cidr-net-list)
   "The DHCP communicates via network broadcasts, since the clients to
 this service do not have IP addresses.  We only send/respond to
 interfaces that have an IP address and that have been 'marked'"
-  (loop :for ip :in ip-list :do
-       (unless (equal (type-of ip) 'cidr-net)
-	 (error "Illegal parameter type ~a" ip)))
+  (loop :for cidr :in cidr-net-list :do
+       (unless (equal (type-of cidr) 'cidr-net)
+	 (error "Illegal parameter type ~a" cidr)))
   (serapeum:synchronized (*dhcp-iface-ip-addresses*)
-    (setf *dhcp-iface-ip-addresses* ip-list))
+    (setf *dhcp-iface-ip-addresses* cidr-net-list)
+    (loop :for cdir :in cidr-net-list :do
+	 (let ((ipnum (first-ip cdir)))
+	   (setf (gethash ipnum *dhcp-allocated-table*)
+		 (make-instance 'dhcp-address
+				:ipnum ipnum
+				:lease-time nil))))
+    )
   )
 		   
 (defun dhcp-handler (rsocket buff size client receive-port)

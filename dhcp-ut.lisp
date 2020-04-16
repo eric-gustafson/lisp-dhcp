@@ -37,7 +37,7 @@
 
 
 (fiasco:deftest dhcp-allocate-test ()
-  (setf dhcp::*dhcp-allocated-table* '())
+  (clrhash dhcp::*dhcp-allocated-table*)
   (fiasco:is
    (equalp
     (numex:num->octets (dhcp:ipnum (dhcp:dhcp-generate-ip "0:1:2:3:4:5" cnet-10.2)))

@@ -7,7 +7,7 @@
 	)
   (:export
 
-   :update-dhcps-iface-ip-addresses
+   :update-dhcps-iface-ip-addresses!
 
    :compute-servers-ip-for-address
    
