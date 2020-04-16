@@ -44,15 +44,6 @@
   )
 
 
-;;(dhcp-bootp-base-fields-code-gen)
-
-
-
-;;                              code generation                               ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
 (defun serve ()
   t)
 
@@ -80,17 +71,6 @@
 		 :mask (numex:octets->num #(255 255 0 0)))
   )
 
-(defparameter *nets* (serapeum:dict))
-
-(defun init-nets! ()
-  (loop :for net in (subnets *this-net* :cidr 30)))
-
-(defparameter *pnet* ;; parent's network
-  (make-instance 'cidr-net
-		 :cidr 24
-		 :ipnum (numex:octets->num #(10 0 1 0))
-		 :mask (numex:octets->num #(255 255 255 0)))
-  )
 
 (defun this-ip ()
   (coerce (numex:num->octets (first-ip *this-net*) :endian :net) 'list)
@@ -106,11 +86,6 @@
 				:endian :net) 'list))
     (t
      (error "compute-this-ip -- unexpected parameter ~a" client-addr)))
-  )
-
-
-(defun cidr-mask (bits)
-  "returns a netmask for the number of bits"
   )
 
 (defun ip-cidrn (bits)
@@ -534,17 +509,21 @@
 (defvar *server-socket-table* (serapeum:dict))
 
 (defun server-socket (&key (port +dhcp-server-port+))
-  "Returns a server socket for the given port. It's a singleton on the port number.  Asking for the same port gets you the same object"
-  (let ((sock-obj (usocket:socket-connect nil
-					  nil
-					  :protocol :datagram
+  "Returns a server socket for the given port. It's a singleton on the
+port number.  Asking for the same port gets you the same object"
+  (serapeum:ensure
+      (gethash port *server-socket-table*)
+    (let ((sock-obj (usocket:socket-connect nil
+					    nil
+					    :protocol :datagram
 					  :element-type '(unsigned-byte 8) ;;char
-					       :local-host
-					       #+(or sbcl)nil
-					       #+(or ccl)(local-host-addr)
-					       :local-port port)))
-	 (setf (usocket:socket-option sock-obj :broadcast) t)
-	 sock-obj))
+					  :local-host
+					  #+(or sbcl)nil
+					  #+(or ccl)(local-host-addr)
+					  :local-port port)))
+      (setf (usocket:socket-option sock-obj :broadcast) t)
+      sock-obj))
+  )
 
 
 (defvar *buff* (make-array 1024 :element-type '(unsigned-byte 8)))
@@ -708,51 +687,6 @@
 		   (equalp gw pgw))))
 	   *router-table*))
 
-#+nil(defun get-routes ()
-  (let ((results (catch/log
-		  (ssh:with-connection
-		      (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
-		    (ssh:with-command
-			(conn iostream "cat /proc/net/route")
-		      (loop
-			 for l = (read-line iostream nil)
-			 while l
-			 collect (ppcre::split "\\s+" l)))))))
-    (cons
-     (car results)
-     (mapcar
-      (trivia:lambda-match
-	((list iface dest gate flags refcnt use metric mask mtu window irtt)
-	 (make-instance 'router-if
-			:iface iface
-			:dest (numex:string->octet-list dest)
-			:gw (numex:string->octet-list gate)
-			:flags flags
-			:refcnt refcnt
-			:use use
-			:metric metric
-			:mask (numex:string->octet-list mask)
-			:mtu mtu
-			:window window
-			:irtt irtt
-			:tlm (get-universal-time))
-	 ))
-      (cdr results))
-     ))
-  )
-
-
-#+nil(defmethod remove-route ((rte router-if))
-  (catch/log
-   (ssh:with-connection
-       (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
-     (ssh:with-command
-	 (conn iostream (format nil "route del -net ~a gw ~a netmask ~a dev ~a" (numex:->dotted (dest rte)) (numex:->dotted (gw rte)) (numex:->dotted (mask rte)) (iface rte)))
-       (loop
-	  for l = (read-line iostream nil)
-	  while l
-	  collect (ppcre::split "\\s+" l))))
-       ))
 
 (defmethod route-add-cmd ((rte router-if))
   (format nil "route add -net ~a gw ~a netmask ~a dev ~a"
@@ -760,32 +694,6 @@
 			       (numex:->dotted (gw rte))
 			       (numex:->dotted (mask rte))
 			       (iface rte))
-  )
-
-#+nil(defmethod add-route ((rte router-if))
-  (catch/log
-   (ssh:with-connection
-       (conn "10.0.1.1" (ssh:pass "root" "locutusofborg"))
-     (ssh:with-command
-	 (conn iostream (route-add-cmd rte))
-       (loop
-	  for l = (read-line iostream nil)
-	  while l
-	  collect (ppcre::split "\\s+" l))))
-       ))
-
-(defmacro catch/log (&body body)
-  ;; #+nil(handler-case
-  ;;      (progn
-  ;; 	 ,@body)
-  ;;    (error (c)
-  ;;      (format *standard-output*
-  ;; 	       "We caught a condition. ~&")
-  ;;      (force-output *standard-output*)
-  ;;      (values nil c)))
-  `(progn
-     ,@body
-     )
   )
 
 (defun network-watchdog ()
@@ -796,31 +704,6 @@
 	(lparallel:try-receive-result channel :timeout (* 1 600))
 	)))
   )
-
-;;(defvar *hostapd-proc-obj* '())
-
-#+nil(defun hostapd (iface)
-  ;; Geneate and save hostapd file
-  (with-open-file (hfile #P"/tmp/hostapd.conf"
-			 :direction :output
-			 :if-exists :overwrite
-			 :if-does-not-exist :create
-			 ;;:element-type 'character ;'(unsigned-byte 8)
-			 :external-format :utf-8
-			 )
-    (princ (lsa:hostapd iface) hfile))
-  (setf *hostapd-proc-obj*
-	(uiop:launch-program "/usr/sbin/hostapd -d /tmp/hostapd.conf"
-			     :output :interactive :error-output :interactive))
-  )
-
-;; (defun hostapd-down ()
-;;   (when *hostapd-proc-obj*
-;;     (uiop:terminate-process *hostapd-proc-obj* :urgent t)
-;;     (uiop:wait-process *hostapd-proc-obj*)
-;;     (setf *hostapd-proc-obj* nil)
-;;     )
-;;   )
 
 (defun not-local-host-ip-addr-objs ()
   (serapeum:filter
