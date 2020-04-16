@@ -35,7 +35,11 @@
 			    )
   )
 
-(defparameter dhcp-req-msg (dhcp:request-client-address :iface-name "wlo1"))
+
+(defparameter dhcp-req-msg (dhcp:request-client-address
+			    :iface-name
+			    (lsa:name (find "link/ether" (lsa:ip-addr-objs) :key #'lsa:ltype :test #'string-equal))
+			    ))
 
 ;;
 
@@ -44,6 +48,12 @@
   (fiasco:is (handle-dhcpd-message cnet-10.2 dhcp-req-msg))
   )
 
+(fiasco:deftest dhcp-multiple-requests-from-same-mac ()
+  (fiasco:is (equalp
+	      (dhcp:dhcp-allocate-ip dhcp-req-msg cnet-10.2)
+	      (dhcp:dhcp-allocate-ip dhcp-req-msg cnet-10.2)))
+  )
+  
 (fiasco:deftest dhcp-allocate-test ()
   (clrhash dhcp::*dhcp-allocated-table*)
   (fiasco:is

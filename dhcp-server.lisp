@@ -224,7 +224,7 @@
 (defmethod total-ips ((obj cidr-net))
   (1+ (- (last-ip obj) (first-ip obj))))
 
-(defparameter *dhcp-allocated-table* (serapeum:dict #'equal))
+(defparameter *dhcp-allocated-table* (make-hash-table :test #'equalp))
 
 (defun ip-allocated? (net ip)
   (declare (ignore net))
@@ -305,7 +305,7 @@
   "Invoked when an IP address is allocated.  Has")
 
 
-(defmethod dhcp-generate-ip ((mac string) (net cidr-net))
+(defmethod dhcp-generate-ip ((mac list) (net cidr-net))
   ;; TODO: Handle the case whe we run out of addresses
   "For prototyping, we allocate an IP address 1 time to a mac-address,
 and it's always allocated untile the server is restarted."
@@ -340,7 +340,7 @@ and it's always allocated untile the server is restarted."
   (alexandria:when-let* ((value (dhcp-search-allocated-by-mac (mac reqMsg))))
     (return-from dhcp-allocate-ip value))
   (or
-   (dhcp-generate-ip (numex:octet-list->hexstr/colons (mac reqMsg)) net)
+   (dhcp-generate-ip (mac reqMsg) net)
    (error "Out of ip addresses")
    )
   )
