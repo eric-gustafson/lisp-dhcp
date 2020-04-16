@@ -55,7 +55,7 @@
 	       (format nil "~a"  (numex:num->octets (broadcast obj))
 	       (format nil "~x"  (broadcast obj))
 	       )
-	 )
+	 ))
      (dhcp::subnets *this-net* :cidr 30)
      )
 #+end_src

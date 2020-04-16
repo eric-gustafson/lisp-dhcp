@@ -121,7 +121,7 @@
 			  (etypecase
 			      value
 			    (integer
-			     (write-sequence (numex:num->octets value :length ,octets :endian :big) out))
+			     (write-sequence (numex:num->octets value :length ,octets :octets-endian :big) out))
 			    (sequence
 			     (unless (eq (length value) ,octets)
 			       (error "~a: integer sequence size mismatch" ,field))
@@ -166,7 +166,7 @@
 		     `(setf (,(->symbol field) obj)
 			    (loop :for i :below ,octets :collect (read-byte input-stream))))
 		    ((eq type :int)
-		     `(setf (,(->symbol field) obj) (numex:octets->num (numex:read-octets ,octets input-stream) :endian :big)))
+		     `(setf (,(->symbol field) obj) (numex:octets->num (numex:read-octets ,octets input-stream) :octets-endian :big)))
 		    (t
 		     (error "Unexpected type ~a" st-row))
 		    ))))))

@@ -21,7 +21,7 @@
 (defclass dhcp-address ()
   (
    (mac		:accessor mac :initarg :mac :initform #())
-   (ipnum	:accessor ipnum :initarg :ipnum :initform 0)
+   (ipnum	:accessor ipnum :initarg :ipnum :initform 0 :documentation "A machine number representing an IP address")
    (tla		:accessor tla :initarg :tla :initform (get-universal-time))
    (lease-time	:accessor lease-time :initarg :lease-time :initform  300)
    )
@@ -73,17 +73,17 @@
 
 
 (defun this-ip ()
-  (coerce (numex:num->octets (first-ip *this-net*) :endian :net) 'list)
+  (coerce (numex:num->octets (first-ip *this-net*) :octets-endian :net) 'list)
   )
 
 (defmethod compute-servers-ip-for-address ((net cidr-net) client-addr)
-  "Get the router IP address for the subnet we share with the client address."
+  "Get the router IP address (as a list in network byte order) for the subnet we share with the client address."
   (cond
     ((eq 'dhcp-address (type-of client-addr))
      (compute-servers-ip-for-address net (ipnum client-addr)))
     ((numberp client-addr)
      (coerce (numex:num->octets (+ 1 (numex:cidr-net client-addr (cidr-subnet *this-net*)))
-				:endian :net) 'list))
+				:octets-endian :net) 'list))
     (t
      (error "compute-servers-ip-for-address -- unexpected parameter ~a" client-addr)))
   )
@@ -99,7 +99,7 @@
   )
 
 (defun ip-cidrn-octets (num)
-  (loop :for o :across (numex:num->octets num :endian :net)
+  (loop :for o :across (numex:num->octets num :octets-endian :net)
      :while (> o 0)
      :summing 8))
 
@@ -260,13 +260,10 @@
     )
 
 (defmethod addresses ((net-obj cidr-net))
-  "returns a list of all of the addreses in the cidr-net"
+  ;;"returns a list of all of the addreses in the cidr-net"
   (loop :for ip :from (first-ip net-obj) :upto (last-ip net-obj) :collect ip)
   )
 
-(defmethod broadcast ((net-obj cidr-net))
-  "returns the broadcast address of the cidr-net"
-  )
 
 (defmethod subnet-info ((net-obj cidr-net) subnet-num)
   "f=ma like stuff"
@@ -285,13 +282,12 @@
   )
 
 (defparameter *dhcp-nets*
-  (serapeum:firstn 16
-		   (numex:cidr-subnets
-		    (first-ip *this-net*)
-		    (cidr *this-net*)
-		    (cidr-subnet *this-net*)
-		    )
-		   )
+  (numex:cidr-subnets
+   (first-ip *this-net*)
+   (cidr *this-net*)
+   ;;(cidr-subnet *this-net*)
+   :n 16
+   )
   ""
   )
 
@@ -310,33 +306,48 @@
 (defvar *hook-ip-allocated* nil
   "Invoked when an IP address is allocated.  Has")
 
+
+(defmethod dhcp-generate-ip ((mac string) (net cidr-net))
+  ;; TODO: Handle the case whe we run out of addresses
+  "For prototyping, we allocate an IP address 1 time to a mac-address,
+and it's always allocated untile the server is restarted."
+  (loop
+     :for ip in (numex:cidr-subnets
+		 (first-ip net)
+		 (cidr net)
+		 :n 16)
+     :do
+       (incf ip 2)
+       (unless (ip-allocated? net ip)
+	 (let ((addrObj (make-instance 'dhcp-address
+				       :ipnum ip
+				       :tla (get-universal-time)
+				       :mac mac
+				       )))
+	   (push addrObj *dhcp-allocated-table*)
+	   (serapeum:run-hook 'dhcp:*hook-ip-allocated*
+			      (ipnum addrObj)
+			      (mac addrObj))
+	   (return-from dhcp-generate-ip addrObj)))
+       )
+  nil)
+
+
 ;;  "Search for an unallocated ip within the range defined in the cidr-net object."
 (defmethod dhcp-allocate-ip ((reqMsg dhcp) (net cidr-net))
   ;; TODO: Handle the case whe we run out of addresses
+  "For prototyping, we allocate an IP address 1 time to a mac-address,
+and it's always allocated untile the server is restarted."
   (alexandria:when-let* ((value (dhcp-search-allocated-by-mac (mac reqMsg))))
     (return-from dhcp-allocate-ip value))
-  (loop
-     :for ip in (cdr *dhcp-nets*)
-     :do
-     (incf ip 2)
-     (unless (ip-allocated? net ip)
-       (let ((addrObj (make-instance 'dhcp-address
-				     :ipnum ip
-				     :tla (get-universal-time)
-				     :mac (mac reqMsg)
-				     )))
-	 (push addrObj *dhcp-allocated-table*)
-	 (serapeum:run-hook 'dhcp:*hook-ip-allocated*
-			    (ipnum addrObj)
-			    (mac addrObj))
-	 (return-from dhcp-allocate-ip addrObj)))
-     )
-  (error "Out of ip addresses")
+  (or
+   (dhcp-generate-ip (mac reqMsg) net)
+   (error "Out of ip addresses")
+   )
   )
 
 (defun deallocate-ip (net ip)
     (setf *dhcp-allocated-table* (delete ip *dhcp-allocated-table* :key #'ipnum :test #'equalp)))
-
 
 (defmethod make-dhcp-offer ((net-obj cidr-net) (reqMsg udhcp))
   "return an DHCP 'offer' to be broadcast that provides an IP address"
@@ -409,7 +420,7 @@
 				 ;; They send 0.0.0.0 back ...
 				 ;;(yiaddr reqMsg) #+nil(numex:octets->num (numex:num->octets
 				 ;;(ipnum new-ip) :endian :net) :endian :net)
-				 :siaddr (numex:octets->num (compute-servers-ip-for-address net-obj new-ip) :endian :net)
+				 :siaddr (compute-servers-ip-for-address net-obj new-ip) 
 				 :giaddr (giaddr reqMsg)
 				 :chaddr (chaddr reqMsg)
 				 :ciaddr (ciaddr reqMsg)
@@ -611,10 +622,10 @@ port number.  Asking for the same port gets you the same object"
       (format stream "op=~a,ciaddr=~a,yiaddr=~a,chaddr=~X"
 	      op
 	      (or (and (numberp ciaddr)
-		       (numex:num->octets ciaddr :endian :net))
+		       (numex:num->octets ciaddr :octets-endian :net))
 		  nil)
 	      (or (and (numberp yiaddr)
-		       (numex:num->octets yiaddr :endian :net))
+		       (numex:num->octets yiaddr :octets-endian :net))
 		  nil)
 	      chaddr))
     )

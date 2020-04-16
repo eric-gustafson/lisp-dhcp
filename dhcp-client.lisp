@@ -134,7 +134,7 @@ host is nil, then we broadcast the message"
       (as-wait-for-dhcp
 	  :ack
 	  (*cs* sack-dhcpobj)
-	(let ((ip (numex:num->octets (yiaddr sack-dhcpobj) :endian :net)))
+	(let ((ip (numex:num->octets (yiaddr sack-dhcpobj) :octets-endian :net)))
 	  (dhcp-client-socket-down!)
 	  (funcall dhcp-answer-proc ip)
 	  )

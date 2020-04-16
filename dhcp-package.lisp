@@ -53,5 +53,15 @@
 
    :cl-async-call-with-dhcp-address
    :call-with-dhcp-address
+
+   :dhcp-allocate-ip
+   :dhcp-generate-ip
+   
+   :first-ip
+   :ipnum
+   :cidr
+   :cidr-subnet
+   :mask
+   :broadcast
    )
   )

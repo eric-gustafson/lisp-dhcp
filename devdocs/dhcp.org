@@ -120,7 +120,7 @@
 
       #+BEGIN_SRC lisp
 	(defmethod dhcp-op ((pdu sequence ) (obj int))
-	  (dhcp-pdu-op-set! pdu (num->octets 4 :endian :net)) 
+	  (dhcp-pdu-op-set! pdu (num->octets 4 :octets-endian :net)) 
 	  )
       #+END_SRC
 

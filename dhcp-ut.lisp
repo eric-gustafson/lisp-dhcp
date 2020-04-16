@@ -15,29 +15,48 @@
   )
 
 (defparameter cnet-10.1 (make-instance 'dhcp:cidr-net
-				       :cidr 8
-				       :cidr-subnet 24
+				       :cidr 24
+				       :cidr-subnet 8
 				       :ipnum (numex:octets->num #(10 1 0 0))
 				       :mask (numex:octets->num #(255 255 0 0))))
 
 (defparameter cnet-10.2 (make-instance 'dhcp:cidr-net
-				       :cidr 8
-				       :cidr-subnet 24
+				       :cidr 24
+				       :cidr-subnet 8
 				       :ipnum (numex:octets->num #(10 2 0 0))
 				       :mask (numex:octets->num #(255 255 0 0))))
 
 
+(defparameter *dhcp-nets*  (numex:cidr-subnets
+			    (first-ip *this-net*)
+			    (cidr *this-net*)
+			    ;;(cidr-subnet *this-net*)
+			    :n 4
+			    )
+  )
+
+
 (fiasco:deftest dhcp-allocate-test ()
-  (fiasco:is (eq 1 2))
+  (setf dhcp::*dhcp-allocated-table* '())
+  (fiasco:is
+   (equalp
+    (numex:num->octets (dhcp:ipnum (dhcp:dhcp-generate-ip "0:1:2:3:4:5" cnet-10.2)))
+    #(10 2 0 2)))
+  (fiasco:is
+   (equalp
+    (numex:num->octets (dhcp:ipnum (dhcp:dhcp-generate-ip "0:1:2:3:4:5" cnet-10.2)))
+    #(10 2 1 2))
+   )
   )
 
 (fiasco:deftest compute-servers ()
   (fiasco:is
-   (dhcp:compute-servers-ip-for-address cnet-10.1 (numex:octets->num #(10 2 0 (random 255))))
-   #(10 1 0 1))
+   (equalp
+    (dhcp:compute-servers-ip-for-address cnet-10.1 (numex:octets->num (vector 10 2 0 (random 255))))
+    '(10 2 0 1)))
   (fiasco:is
-   (dhcp:compute-servers-ip-for-address cnet-10.2 (numex:octets->num #(10 2 0 (random 255))))
-   #(10 3 0 1))
+   (equalp (dhcp:compute-servers-ip-for-address cnet-10.2 (numex:octets->num (vector 10 3 0 (random 255))))
+	   '(10 3 0 1)))
   )
 	
 
@@ -154,7 +173,7 @@
     (equalp
      (flexi-streams:with-output-to-sequence (out)
        (nibbles:write-ub32/be obj out))
-     (numex:num->octets obj :endian :big)))
+     (numex:num->octets obj :octets-endian :big)))
    ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -189,13 +208,17 @@
 		(receive/as-pdu (*ss* pdu)
 		  (format t "recieved dhcpdiscover on server socket: ~a~%~%" *step*)
 		  (step! 2)
+		  (format t "step 2~%")
 		  ;; Test that we got the same size as we sent
 		  (fiasco:is (eq nb (length pdu)) "~a==~a snd/rcv" nb (length pdu))
+		  (format t "passed~%")
 		  (let ((their-message (pdu-seq->udhcp pdu)))
+		    (format t "their-msg:~a~%" their-message)
 		    ;; handle-dhcpd-message handles [:offer :ack :nack :info] messages
 		    (let* ((server-rmesg (handle-dhcpd-message their-message))
 			   (oobj (options-obj server-rmesg))
 			   (buff (obj->pdu server-rmesg)))
+		      (format t "wtf??~%")
 		      (setf *our-response*  server-rmesg) ;; for interactive debugging
 		      ;; send the message to the client
 		      (format t "sending dhcp offer from server socket~%")
@@ -243,7 +266,7 @@
 			(format t "ack:~a~%" ack-reply)
 			(fiasco:is (eq (msg-type ack-reply) :request))
 			(done)
-			(let ((ip (numex:num->octets (yiaddr server-offer) :endian :net)))
+			(let ((ip (numex:num->octets (yiaddr server-offer) :octets-endian :net)))
 			  ;;(format t "~a ~a~%" dhcpObj dhcpOptionsObj)
 			  (fiasco:is (equalp ip
 					     #(10 0 1 2)))
