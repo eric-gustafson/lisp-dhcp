@@ -63,5 +63,7 @@
    :cidr-subnet
    :mask
    :broadcast
+   :mac
+   :ipnum
    )
   )
