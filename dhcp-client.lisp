@@ -7,7 +7,9 @@
 (defun client-socket (&key
 			(host nil) 
 			(port +dhcp-client-port+))
-  "Returns a server socket for the given port. It's a singleton on the port number.  Asking for the same port gets you the same object.  If host is nil, then we broadcast the message"
+  "Returns a server socket for the given port. It's a singleton on the
+port number.  Asking for the same port gets you the same object.  If
+host is nil, then we broadcast the message"
   (alexandria:ensure-gethash
    port
    *client-socket-table*

@@ -8,6 +8,8 @@
   (:export
 
    :update-dhcps-iface-ip-addresses
+
+   :compute-servers-ip-for-address
    
    :server-socket
    :client-socket
@@ -34,6 +36,7 @@
    :alog
    :broadcast-address
    :ciaddr
+   :cidr-net
    :cidr-subnet
    :*dhcp-nets*
    ;;:configure-parent-router

@@ -76,16 +76,16 @@
   (coerce (numex:num->octets (first-ip *this-net*) :endian :net) 'list)
   )
 
-(defun compute-this-ip (client-addr)
+(defmethod compute-servers-ip-for-address ((net cidr-net) client-addr)
   "Get the router IP address for the subnet we share with the client address."
   (cond
     ((eq 'dhcp-address (type-of client-addr))
-     (compute-this-ip (ipnum client-addr)))
+     (compute-servers-ip-for-address net (ipnum client-addr)))
     ((numberp client-addr)
      (coerce (numex:num->octets (+ 1 (numex:cidr-net client-addr (cidr-subnet *this-net*)))
 				:endian :net) 'list))
     (t
-     (error "compute-this-ip -- unexpected parameter ~a" client-addr)))
+     (error "compute-servers-ip-for-address -- unexpected parameter ~a" client-addr)))
   )
 
 (defun ip-cidrn (bits)
@@ -292,7 +292,7 @@
 		    (cidr-subnet *this-net*)
 		    )
 		   )
-  "Each of these map to a VLAN off a real network card."
+  ""
   )
 
 (defun addr-count ()
@@ -338,7 +338,7 @@
     (setf *dhcp-allocated-table* (delete ip *dhcp-allocated-table* :key #'ipnum :test #'equalp)))
 
 
-(defmethod make-dhcp-offer ((reqMsg udhcp))
+(defmethod make-dhcp-offer ((net-obj cidr-net) (reqMsg udhcp))
   "return an DHCP 'offer' to be broadcast that provides an IP address"
   (let* ((new-addr (dhcp-allocate-ip reqMsg *this-net*))
 	 (replyMsg (make-instance 'udhcp
@@ -350,7 +350,7 @@
 				  :secs (secs reqMsg)
 				  :flags (flags reqMsg)
 				  :yiaddr (ipnum new-addr)
-				  :siaddr  (compute-this-ip new-addr)
+				  :siaddr  (compute-servers-ip-for-address net-obj new-addr)
 				  :giaddr (giaddr reqMsg)
 				  :chaddr (chaddr reqMsg)
 				  :ciaddr (ciaddr reqMsg)
@@ -362,9 +362,9 @@
 							      :restof
 							      `(
 								(:subnet 255 255 255 0)
-								(:routers ,(compute-this-ip new-addr))
+								(:routers ,(compute-servers-ip-for-address net-obj new-addr))
 								(:lease-time 1800)
-								(:dhcp-server ,@(compute-this-ip new-addr))
+								(:dhcp-server ,@(compute-servers-ip-for-address net-obj new-addr))
 								(:dns-servers (8 8 8 8) (4 4 4 4)))
 							      ))))
     (alog (format nil "make-dhcp-offer: ~a~%" (numex:num->octets (yiaddr replyMsg))))
@@ -389,7 +389,7 @@
   ;; send the ack, and don't
   )
   
-(defmethod get-ack ((reqMsg dhcp))
+(defmethod get-ack ((net-obj cidr-net) (reqMsg dhcp))
   "return an dhcp packet to be broadcast that provides an IP address"
   (alog (format nil "get-ack: yiaddr:~a,siaddr:~a,ciaddr:~a~%"
 		(numex:num->octets (yiaddr reqMsg))
@@ -409,7 +409,7 @@
 				 ;; They send 0.0.0.0 back ...
 				 ;;(yiaddr reqMsg) #+nil(numex:octets->num (numex:num->octets
 				 ;;(ipnum new-ip) :endian :net) :endian :net)
-				 :siaddr (numex:octets->num (compute-this-ip new-ip) :endian :net)
+				 :siaddr (numex:octets->num (compute-servers-ip-for-address net-obj new-ip) :endian :net)
 				 :giaddr (giaddr reqMsg)
 				 :chaddr (chaddr reqMsg)
 				 :ciaddr (ciaddr reqMsg)
@@ -421,9 +421,9 @@
 							     :restof
 							     `(
 							       (:subnet 255 255 255 0)
-							       (:routers ,(compute-this-ip new-ip))
+							       (:routers ,(compute-servers-ip-for-address net-obj new-ip))
 							       (:lease-time 1800)
-							       (:dhcp-server ,@(compute-this-ip new-ip))
+							       (:dhcp-server ,@(compute-servers-ip-for-address net-obj new-ip))
 							       (:dns-servers (8 8 8 8) (4 4 4 4)))
 							     ))))
     replyMsg))
@@ -437,17 +437,17 @@
   "Compute a list of network addresses to send the dhcp-response"
   )
 
-(defmethod handle-dhcpd-message ((client-msg-dhcp-obj udhcp))
+(defmethod handle-dhcpd-message ((net-obj cidr-net) (client-msg-dhcp-obj udhcp))
    ;;"handle dhcp server messages.  dished out an ip address, which is embedded in the return message"
   (let* ((dhcp-type (msg-type client-msg-dhcp-obj)))
     (alog (format nil "dhcpd msg type ~a" dhcp-type))
     (ecase
 	dhcp-type
       (:discover
-       (make-dhcp-offer client-msg-dhcp-obj))
+       (make-dhcp-offer net-obj client-msg-dhcp-obj))
       (:request
        (handle-dhcp-request client-msg-dhcp-obj)
-       (get-ack client-msg-dhcp-obj))
+       (get-ack net-obj client-msg-dhcp-obj))
       (:nack
        (alog "dhcp nack")
        )
@@ -459,12 +459,15 @@
   )
 
 (defvar *dhcp-iface-ip-addresses* '()
-  "We broadcast DHCP messages only to interfaces that have these IPs. These values are cidr-net objects from the numex package")
+  "We broadcast DHCP messages only to interfaces that have these
+  IPs. These values are cidr-net objects from the numex package")
 
-(defun update-dhcps-iface-ip-addresses (ip-list)
-  "The DHCP communicates via network broadcasts, since the clients to this service do not have IP addresses.  We only send/respond to interfaces that have an IP address and that have been 'marked'"
+(defun update-dhcps-iface-ip-addresses (cidr-net-list)
+  "The DHCP communicates via network broadcasts, since the clients to
+this service do not have IP addresses.  We only send/respond to
+interfaces that have an IP address and that have been 'marked'"
   (loop :for ip :in ip-list :do
-       (unless (equal (type-of ip) 'numex:cidr-net)
+       (unless (equal (type-of ip) 'cidr-net)
 	 (error "Illegal parameter type ~a" ip)))
   (serapeum:synchronized (*dhcp-iface-ip-addresses*)
     (setf *dhcp-iface-ip-addresses* ip-list))
@@ -475,15 +478,15 @@
   (alog "dhcp-server-pdu-handler")
   (setf *last* (copy-seq buff))
   (let* ((dhcpObj (pdu-seq->udhcp buff))
-	 (m (handle-dhcpd-message dhcpObj))
-	 (response-type (msg-type m))
-	 (buff (obj->pdu m))
-	 (destination-address '())
 	 )
     (when (null *dhcp-iface-ip-addresses*)
 	(alog "dhcp-handler - no interfaces marked for dhcps"))
     (loop :for destination-nets :in *dhcp-iface-ip-addresses* :do
-	 (let ((destination-address
+	 (let* (
+		(m (handle-dhcpd-message destination-nets dhcpObj))
+		(response-type (msg-type m))
+		(buff (obj->pdu m))
+		(destination-address
 		(coerce
 		 (numex:num->octets (cidr-bcast (yiaddr m)
 						(dhcp:cidr-subnet destination-nets)))

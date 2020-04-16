@@ -14,6 +14,32 @@
     )
   )
 
+(defparameter cnet-10.1 (make-instance 'dhcp:cidr-net
+				       :cidr 8
+				       :cidr-subnet 24
+				       :ipnum (numex:octets->num #(10 1 0 0))
+				       :mask (numex:octets->num #(255 255 0 0))))
+
+(defparameter cnet-10.2 (make-instance 'dhcp:cidr-net
+				       :cidr 8
+				       :cidr-subnet 24
+				       :ipnum (numex:octets->num #(10 2 0 0))
+				       :mask (numex:octets->num #(255 255 0 0))))
+
+
+(fiasco:deftest dhcp-allocate-test ()
+  (fiasco:is (eq 1 2))
+  )
+
+(fiasco:deftest compute-servers ()
+  (fiasco:is
+   (dhcp:compute-servers-ip-for-address cnet-10.1 (numex:octets->num #(10 2 0 (random 255))))
+   #(10 1 0 1))
+  (fiasco:is
+   (dhcp:compute-servers-ip-for-address cnet-10.2 (numex:octets->num #(10 2 0 (random 255))))
+   #(10 3 0 1))
+  )
+	
 
 (fiasco:deftest server-socket-test ()
     (fiasco:is
