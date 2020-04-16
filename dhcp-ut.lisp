@@ -35,6 +35,14 @@
 			    )
   )
 
+(defparameter dhcp-req-msg (dhcp:request-client-address :iface-name "wlo1"))
+
+;;
+
+(fiasco:deftest dhcp-allocate-ip-test ()
+  (fiasco:is (dhcp:dhcp-allocate-ip dhcp-req-msg cnet-10.2) )
+  (fiasco:is (handle-dhcpd-message cnet-10.2 dhcp-req-msg))
+  )
 
 (fiasco:deftest dhcp-allocate-test ()
   (clrhash dhcp::*dhcp-allocated-table*)

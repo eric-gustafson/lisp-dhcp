@@ -340,7 +340,7 @@ and it's always allocated untile the server is restarted."
   (alexandria:when-let* ((value (dhcp-search-allocated-by-mac (mac reqMsg))))
     (return-from dhcp-allocate-ip value))
   (or
-   (dhcp-generate-ip (mac reqMsg) net)
+   (dhcp-generate-ip (numex:octet-list->hexstr/colons (mac reqMsg)) net)
    (error "Out of ip addresses")
    )
   )
