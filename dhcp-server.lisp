@@ -281,7 +281,7 @@
     )
   )
 
-(defparameter *dhcp-nets*
+#+nil(defparameter *dhcp-nets*
   (numex:cidr-subnets
    (first-ip *this-net*)
    (cidr *this-net*)
@@ -296,7 +296,7 @@
     (read x)))
 
 
-(defun teardown-dhcp-network-interfaces (iface)
+#+nil(defun teardown-dhcp-network-interfaces (iface)
   (loop
      :for ipn in (cdr *dhcp-nets*)
      :do
@@ -351,7 +351,7 @@ and it's always allocated untile the server is restarted."
 
 (defmethod make-dhcp-offer ((net-obj cidr-net) (reqMsg udhcp))
   "return an DHCP 'offer' to be broadcast that provides an IP address"
-  (let* ((new-addr (dhcp-allocate-ip reqMsg *this-net*))
+  (let* ((new-addr (dhcp-allocate-ip reqMsg net-obj))
 	 (replyMsg (make-instance 'udhcp
 				  :op +MSG-TYPE-DHCPOFFER+
 				  :htype (htype reqMsg)				    
@@ -407,7 +407,7 @@ and it's always allocated untile the server is restarted."
 		(numex:num->octets (siaddr reqMsg))
 		(numex:num->octets (ciaddr reqMsg))
 		))
-  (let* ((new-ip (dhcp-allocate-ip reqMsg *this-net*))
+  (let* ((new-ip (dhcp-allocate-ip reqMsg net-obj))
 	 (replyMsg (make-instance 'udhcp
 				 :op 2
 				 :htype (htype reqMsg)				    
