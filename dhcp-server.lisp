@@ -506,7 +506,7 @@
 	 (destination-address '())
 	 )
     (when (null *dhcp-iface-ip-addresses*)
-      (alog "dhcp-handler - no interfaces marked for dhcps"))
+	(alog "dhcp-handler - no interfaces marked for dhcps"))
     (loop :for destination-nets :in *dhcp-iface-ip-addresses* :do
 	 (let ((destination-address
 		(coerce
