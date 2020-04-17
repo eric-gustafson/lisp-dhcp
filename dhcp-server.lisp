@@ -510,7 +510,9 @@ interfaces that have an IP address and that have been 'marked'"
 		(destination-address
 		(coerce
 		 (numex:num->octets (cidr-bcast (yiaddr m)
-						(dhcp:cidr-subnet destination-nets)))
+					;;(dhcp:cidr-subnet destination-nets)
+						(dhcp:cidr destination-nets)
+						))
 		 'vector)))
 	   (alog (format nil
 			 "sending pdu type:~a, to addr: ~a via ~a"
