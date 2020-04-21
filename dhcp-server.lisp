@@ -82,7 +82,7 @@
     ((eq 'dhcp-address (type-of client-addr))
      (compute-servers-ip-for-address net (ipnum client-addr)))
     ((numberp client-addr)
-     (coerce (numex:num->octets (+ 1 (numex:cidr-net client-addr (cidr-subnet cidr-net)))
+     (coerce (numex:num->octets (+ 1 (numex:cidr-net client-addr (cidr-subnet net)))
 				:octets-endian :net) 'list))
     (t
      (error "compute-servers-ip-for-address -- unexpected parameter ~a" client-addr)))
