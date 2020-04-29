@@ -30,7 +30,6 @@
    :handle-dhcpc-message
    :handle-dhcpd-message
    
-   :*this-net*
    :*hook-ip-allocated*
    :address-list
    :alog

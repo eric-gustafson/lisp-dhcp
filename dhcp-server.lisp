@@ -82,7 +82,7 @@
     ((eq 'dhcp-address (type-of client-addr))
      (compute-servers-ip-for-address net (ipnum client-addr)))
     ((numberp client-addr)
-     (coerce (numex:num->octets (+ 1 (numex:cidr-net client-addr (cidr-subnet net)))
+     (coerce (numex:num->octets (+ 1 (numex:cidr-net client-addr (cidr net)))
 				:octets-endian :net) 'list))
     (t
      (error "compute-servers-ip-for-address -- unexpected parameter ~a" client-addr)))
@@ -304,7 +304,6 @@
 (defvar *hook-ip-allocated* nil
   "Invoked when an IP address is allocated.  Has")
 
-
 (defmethod dhcp-generate-ip ((mac list) (net cidr-net))
   ;; TODO: Handle the case whe we run out of addresses
   "For prototyping, we allocate an IP address 1 time to a mac-address,
@@ -330,6 +329,11 @@ and it's always allocated untile the server is restarted."
 	   (return-from dhcp-generate-ip addrObj)))
        )
   nil)
+
+
+
+(defmethod dhcp-generate-ip ((mac string) (net cidr-net))
+  (dhcp-generate-ip (cl-ppcre:split ":" mac) net))
 
 
 ;;  "Search for an unallocated ip within the range defined in the cidr-net object."

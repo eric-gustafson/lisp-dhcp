@@ -14,6 +14,14 @@
     )
   )
 
+(defparameter *this-net*
+  (make-instance 'cidr-net
+		 :cidr 8
+		 :cidr-subnet 24
+		 :ipnum (numex:octets->num #(10 0 0 0))
+		 :mask (numex:octets->num #(255 255 0 0)))
+  )
+
 (defparameter cnet-10.1 (make-instance 'dhcp:cidr-net
 				       :cidr 24
 				       :cidr-subnet 8
@@ -53,7 +61,8 @@
 	      (dhcp:dhcp-allocate-ip dhcp-req-msg cnet-10.2)
 	      (dhcp:dhcp-allocate-ip dhcp-req-msg cnet-10.2)))
   )
-  
+
+
 (fiasco:deftest dhcp-allocate-test ()
   (clrhash dhcp::*dhcp-allocated-table*)
   (fiasco:is
