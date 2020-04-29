@@ -63,7 +63,7 @@
        (eq 5 (length obj)))
   )
 
-(defparameter *this-net*
+#+nil(defparameter *this-net*
   (make-instance 'cidr-net
 		 :cidr 8
 		 :cidr-subnet 24
@@ -72,7 +72,7 @@
   )
 
 
-(defun this-ip ()
+#+nil(defun this-ip ()
   (coerce (numex:num->octets (first-ip *this-net*) :octets-endian :net) 'list)
   )
 

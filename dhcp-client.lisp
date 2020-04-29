@@ -20,7 +20,7 @@ host is nil, then we broadcast the message"
 		    :element-type '(unsigned-byte 8) ;;char
 		    :local-host
 		    #+(or sbcl)nil
-		    #+(or ccl)(local-host-addr)
+		    #+(or ccl)"255.255.255.255"
 		    ;;:local-port port
 		    )))
      (setf (usocket:socket-option sock-obj :broadcast) t)
