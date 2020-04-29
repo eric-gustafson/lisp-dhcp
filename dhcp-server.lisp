@@ -545,7 +545,7 @@ port number.  Asking for the same port gets you the same object"
 					  :element-type '(unsigned-byte 8) ;;char
 					  :local-host
 					  #+(or sbcl)nil
-					  #+(or ccl)(local-host-addr)
+					  #+(or ccl)"255.255.255.255" ;;(local-host-addr)
 					  :local-port port)))
       (setf (usocket:socket-option sock-obj :broadcast) t)
       sock-obj))
