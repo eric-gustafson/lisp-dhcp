@@ -64,5 +64,11 @@
    :broadcast
    :mac
    :ipnum
+   :reservation
+
+   :add-cidr-net-reservation!
+   :search-cidr-net-reservations
+   :address-allocated
+   :ip-cidr-net-incompatible
    )
   )
