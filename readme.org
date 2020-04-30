@@ -35,10 +35,11 @@
 #+END_SRC
 
 #+RESULTS: orgfiles
+| [[file:./devdocs/dhcp-client.org]]        |
 | [[file:./devdocs/dhcp-options.org]]       |
 | [[file:./devdocs/dhcp-options-table.org]] |
 | [[file:./devdocs/dhcp.org]]               |
-| [[file:./devdocs/networks.org]]           |
+| [[file:./readme.org]]                     |
 | [[file:./work/work.org]]                  |
 
 

@@ -64,11 +64,12 @@
    :broadcast
    :mac
    :ipnum
-   :reservation
+   :reservations
 
    :add-cidr-net-reservation!
    :search-cidr-net-reservations
    :address-allocated
    :ip-cidr-net-incompatible
+   :dhcp-allocate-ip-via-mac
    )
   )

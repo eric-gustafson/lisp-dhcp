@@ -16,10 +16,11 @@
 
 (defparameter *this-net*
   (make-instance 'cidr-net
-		 :cidr 8
-		 :cidr-subnet 24
+		 :cidr 24
+		 :cidr-subnet 8
 		 :ipnum (numex:octets->num #(10 0 0 0))
-		 :mask (numex:octets->num #(255 255 0 0)))
+		 :mask (numex:octets->num #(255 255 255 0))
+		 )
   )
 
 (defparameter cnet-10.1 (make-instance 'dhcp:cidr-net
@@ -107,13 +108,47 @@
 		       (obj->pdu dhcpReply))))
   )
 
-#+nil(fiasco:deftest wtf-match ()
-  (fiasco:is
-   (trivia:match
-       (list 2 2 3)
-     ((list (= +MSG-TYPE-DHCPOFFER+)
-	    2 3 ) t)))
+(fiasco:deftest hex2octs ()
+  (fiasco:is (numex:hexstring->octets "1:1:1:1:1:2")
+      (list 1 1 1 1 1 2))
+  (fiasco:is (numex:hexstring->octets " 1:2:tt:0304:5:06:7:g8g:9:a ")
+      (list 1 2 3 4 5 6 7 8 9 10))
   )
+
+(fiasco:deftest dhcp-reservation ()
+  (clrhash dhcp::*dhcp-allocated-table*)
+  (dhcp:update-dhcps-iface-ip-addresses! (list *this-net*))
+  ;; TODO: dhcp allocation of subnets vs. IPs needs to be
+  ;; given more thought
+  #+nil(handler-case
+      (dhcp:add-cidr-net-reservation! *this-net* "1:1:1:1:1:1" "10.2.1.1")
+    (dhcp:ip-cidr-net-incompatible (c)
+      (fiasco:is t))
+    (t (c)
+      (fiasco:is nil)
+      (values nil c)
+      ))
+  (dhcp:add-cidr-net-reservation! *this-net* "1:1:1:1:1:2" "10.0.3.7")
+  (fiasco:is
+      (equalp
+       (mapcar #'dhcp:ipnum
+	       (loop :for i :from 0 :upto 8
+		     :collect
+		     (dhcp:dhcp-allocate-ip-via-mac (list 1 1 1 1 1 i) *this-net*)))
+       (loop :for i :in `("10.0.0.2"
+			  "10.0.1.2"
+			  "10.0.3.7"
+			  "10.0.2.2"  
+			  "10.0.3.2"
+			  "10.0.4.2"
+			  "10.0.5.2"
+			  "10.0.6.2"
+			  "10.0.7.2"
+			  ;"10.0.9.2"
+			  )
+	     :collect (numex:->num i))))
+  )
+
 
 ;; Objective:  To ensure that we receive a valid dhcp exchange
 ;;  between our server and our client.
@@ -208,110 +243,118 @@
 (fiasco:deftest
  send-and-receive-dhcp-pdu-simple ()
  ;; Can we send and recieve dhcp pdus.  This is not a hdcp functional test, this
- ;; is meant to simply test that we can send pud
- (unwind-protect
-      (let ((nb 0)) ;; used to compare that snd/receive use the same # of octets
-	(send-rec-up)
-	(labels ((done ()
-		   (mapcar #'as-close-out *as-shutdown-lst*))
-		 (step! (num)
-		   (fiasco:is (= (+ *step* 1) num) "Unexpected step ~a" num)
-		   (incf *step*))
-		 )
-	  (setf *step* 0)
-	  (setf *as-shutdown-lst* '())
-	  ;; we get memory faults when we fail an 'is'.  Catching the
-	  ;; error :catch-app-errors, doesn't make a difference
-	  (cl-async:with-event-loop (;;:catch-app-errors t
-				      ;; We MUST catch app-errors or we get memory violations
-				      )
-	    (let (
-		  (server2client-nb 0)
-		  )
-	      ;; If the test lasts longer than 2.5 seconds, it fails
-	      (with-as-nsec-countdown-timer 
-		  (5 "dhcp test took too long, step")
-		;; Server: recieve pdu handler 
-		(receive/as-pdu (*ss* pdu)
-		  (format t "recieved dhcpdiscover on server socket: ~a~%~%" *step*)
-		  (step! 2)
-		  (format t "step 2~%")
-		  ;; Test that we got the same size as we sent
-		  (fiasco:is (eq nb (length pdu)) "~a==~a snd/rcv" nb (length pdu))
-		  (format t "passed~%")
-		  (let ((their-message (pdu-seq->udhcp pdu)))
-		    (format t "their-msg:~a~%" their-message)
-		    ;; handle-dhcpd-message handles [:offer :ack :nack :info] messages
-		    (let* ((server-rmesg (handle-dhcpd-message their-message))
-			   (oobj (options-obj server-rmesg))
-			   (buff (obj->pdu server-rmesg)))
-		      (format t "wtf??~%")
-		      (setf *our-response*  server-rmesg) ;; for interactive debugging
-		      ;; send the message to the client
-		      (format t "sending dhcp offer from server socket~%")
-		      (setf server2client-nb
-			    (usocket:socket-send *ss* buff (length buff)
-						 :port *client-portn*
-						 :host "127.0.0.1"))
-		      (format t "server send client offer ~a~%" server2client-nb)
-		      (step! 3)
-		      (fiasco:is (> server2client-nb 0))
-		      ;; Ensure the signature of the reply, plus this helps with the
-		      ;; coding of the rest of the tests
-		      (fiasco:is (equalp
-				  (sort (map 'vector #'car  (restof oobj)) #'kwc) ;; assoc-keys
-				  (sort-new '(:SUBNET :ROUTERS :LEASE-TIME
-					      :DHCP-SERVER :DNS-SERVERS)
-					    #'kwc)
-				  ))
-		      (step! 4)
-		      ))
-		  )
-		;; Client: create and send dhcp request
-		(let* (
-		       (dhcpReq (request-client-address :iface-name "wlo1"))
-		       (pdu (obj->pdu dhcpReq))
-		       )
-		  (step! 1)
-		  (format t "~%sending dhcpdiscover using client socket~%")
-		  ;; We've created a DISCOVER 
-		  (setf nb (usocket:socket-send *cs*
-						pdu 
-						(length pdu)
-						:port *server-portn*
-						:host "127.0.0.1"
-						))
-		  (fiasco:is (> nb 0))
-		  ;; OFFER and then ACK
-		  (format t "waiting for pdu (client)~a~%" *cs*)
-		  (receive/as-pdu (*cs* pdu)
-		    (step! 5)
-		    (let ((server-offer (pdu-seq->udhcp pdu)))
-		      (setf *offer-received* server-offer)		      
-		      (fiasco:is (eq (msg-type server-offer) :offer))
-		      (let ((ack-reply  (handle-dhcpc-message server-offer)))
-			(format t "ack:~a~%" ack-reply)
-			(fiasco:is (eq (msg-type ack-reply) :request))
-			(done)
-			(let ((ip (numex:num->octets (yiaddr server-offer) :octets-endian :net)))
-			  ;;(format t "~a ~a~%" dhcpObj dhcpOptionsObj)
-			  (fiasco:is (equalp ip
-					     #(10 0 1 2)))
-			  (format t "calling done~%")
-			  (format t "~s~%" *as-shutdown-lst*)
-			  
-			  )
-			)
-		      )
+  ;; is meant to simply test that we can send pud
+  (let ((da-net
+	  (make-instance 'cidr-net
+			 :cidr 24
+			 :cidr-subnet 8
+			 :ipnum (numex:octets->num #(10 1 0 0))
+			 :mask (numex:octets->num #(255 255 255 0))
+			 )))
+    (unwind-protect
+	 (let ((nb 0)) ;; used to compare that snd/receive use the same # of octets
+	   (send-rec-up)
+	   (labels ((done ()
+		      (mapcar #'as-close-out *as-shutdown-lst*))
+		    (step! (num)
+		      (fiasco:is (= (+ *step* 1) num) "Unexpected step ~a" num)
+		      (incf *step*))
 		    )
-		  )
-		)
-	      )
-	    )
-	  )
-	)
-   (send-rec-down))
- )
+	     (setf *step* 0)
+	     (setf *as-shutdown-lst* '())
+	     ;; we get memory faults when we fail an 'is'.  Catching the
+	     ;; error :catch-app-errors, doesn't make a difference
+	     (cl-async:with-event-loop (;;:catch-app-errors t
+					;; We MUST catch app-errors or we get memory violations
+					)
+	       (let (
+		     (server2client-nb 0)
+		     )
+		 ;; If the test lasts longer than 2.5 seconds, it fails
+		 (with-as-nsec-countdown-timer 
+		     (5 "dhcp test took too long, step")
+		   ;; Server: recieve pdu handler 
+		   (receive/as-pdu (*ss* pdu)
+		     (format t "recieved dhcpdiscover on server socket: ~a~%~%" *step*)
+		     (step! 2)
+		     (format t "step 2~%")
+		     ;; Test that we got the same size as we sent
+		     (fiasco:is (eq nb (length pdu)) "~a==~a snd/rcv" nb (length pdu))
+		     (format t "passed~%")
+		     (let ((their-message (pdu-seq->udhcp pdu)))
+		       (format t "their-msg:~a~%" their-message)
+		       ;; handle-dhcpd-message handles [:offer :ack :nack :info] messages
+		       (let* ((server-rmesg (handle-dhcpd-message da-net their-message))
+			      (oobj (options-obj server-rmesg))
+			      (buff (obj->pdu server-rmesg)))
+			 (format t "wtf??~%")
+			 (setf *our-response*  server-rmesg) ;; for interactive debugging
+			 ;; send the message to the client
+			 (format t "sending dhcp offer from server socket~%")
+			 (setf server2client-nb
+			       (usocket:socket-send *ss* buff (length buff)
+						    :port *client-portn*
+						    :host "127.0.0.1"))
+			 (format t "server send client offer ~a~%" server2client-nb)
+			 (step! 3)
+			 (fiasco:is (> server2client-nb 0))
+			 ;; Ensure the signature of the reply, plus this helps with the
+			 ;; coding of the rest of the tests
+			 (fiasco:is (equalp
+				     (sort (map 'vector #'car  (restof oobj)) #'kwc) ;; assoc-keys
+				     (sort-new '(:SUBNET :ROUTERS :LEASE-TIME
+						 :DHCP-SERVER :DNS-SERVERS)
+					       #'kwc)
+				     ))
+			 (step! 4)
+			 ))
+		     )
+		   ;; Client: create and send dhcp request
+		   (let* (
+			  (dhcpReq (request-client-address :iface-name "wlo1"))
+			  (pdu (obj->pdu dhcpReq))
+			  )
+		     (step! 1)
+		     (format t "~%sending dhcpdiscover using client socket~%")
+		     ;; We've created a DISCOVER 
+		     (setf nb (usocket:socket-send *cs*
+						   pdu 
+						   (length pdu)
+						   :port *server-portn*
+						   :host "127.0.0.1"
+						   ))
+		     (fiasco:is (> nb 0))
+		     ;; OFFER and then ACK
+		     (format t "waiting for pdu (client)~a~%" *cs*)
+		     (receive/as-pdu (*cs* pdu)
+		       (step! 5)
+		       (let ((server-offer (pdu-seq->udhcp pdu)))
+			 (setf *offer-received* server-offer)		      
+			 (fiasco:is (eq (msg-type server-offer) :offer))
+			 (let ((ack-reply  (handle-dhcpc-message server-offer)))
+			   (format t "ack:~a~%" ack-reply)
+			   (fiasco:is (eq (msg-type ack-reply) :request))
+			   (done)
+			   (let ((ip (numex:num->octets (yiaddr server-offer) :octets-endian :net)))
+			     ;;(format t "~a ~a~%" dhcpObj dhcpOptionsObj)
+			     (fiasco:is (equalp ip
+						#(10 1 0 2)))
+			     (format t "calling done~%")
+			     (format t "~s~%" *as-shutdown-lst*)
+			  
+			     )
+			   )
+			 )
+		       )
+		     )
+		   )
+		 )
+	       )
+	     )
+	   )
+      (send-rec-down))
+    )
+  )
 
 (defparameter *pdu-seq* nil)
 

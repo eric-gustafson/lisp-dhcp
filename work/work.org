@@ -9,26 +9,8 @@
   I believe that the serialize and deserialize routines are wrong.
 
 
-
 [[/ssh:root@192.168.1.2:/]]
 
-
-
-#+begin_src lisp
-  (send-and-receive-dhcp-pdu-simple)
-#+end_src
-
-#+RESULTS:
-: 1
-
-
-  Remote slime
-#+BEGIN_SRC sh
-  /usr/bin/gnome-terminal  -e 'ssh -L 4010:localhost:4010 root@192.168.1.7' &
-#+END_SRC
-
-#+RESULTS:
-: # Failed to parse arguments: Unknown option -L
 
 
 
@@ -258,10 +240,3 @@
 
 
 
-** dhcp testing
-   #+begin_src lisp
-   (ip-allocated? *this-net*  (+ 1 (car *dhcp-nets*)))
-   #+end_src
-
-   #+RESULTS:
-   : #<DHCP-ADDRESS #(), 10.  0.  0.  1,4141,NIL>

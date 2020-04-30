@@ -305,13 +305,13 @@ address (machine integer representation) is the second key."
 	  (ip (numex:->num ip)))
       (when (dhcp-search-allocated-by-mac mac)
 	(error (make-condition 'address-allocated :ip ip)))
-      (unless (cidr-in? net-obj ip)
+      #+nil(unless (cidr-in? net-obj ip)
 	(error (make-condition 'ip-cidr-net-incompatible
 			       :ip ip
 			       :cidr-addr (ipnum net-obj)
 			       :cir (cidr net-obj))))
       (let ((addrObj (make-dhcp-address ip mac)))
-	(setf (gethash mac (reservation net-obj)) addrObj)
+	(setf (gethash mac (reservations net-obj)) addrObj)
 	)))
   )
 
@@ -406,20 +406,29 @@ and it's always allocated untile the server is restarted.")
     (dhcp-generate-ip (numex:hexstring->octets  mac) net))
   )
 
+;; TODO: Handle the case whe we run out of addresses
+(defgeneric dhcp-allocate-ip-via-mac (mac net)
+  (:documentation "A lower level function that doesn't have anything
+  to do with dhcp per say, so we can test schemes, unit test, and run
+  simulations and the like")
+  (:method ((mac list) (net cidr-net))
+    (alexandria:when-let* ((value (or (dhcp-search-allocated-by-mac mac)
+				      (search-cidr-net-reservations net mac)
+				      )))
+      (return-from dhcp-allocate-ip-via-mac value))
+    (or
+     (dhcp-generate-ip mac net)
+     (error "Out of ip addresses")
+     )
+    )
+  )
+
 ;;  "Search for an unallocated ip within the range defined in the cidr-net object."
 (defgeneric dhcp-allocate-ip (reqmsg net)
   (:documentation "For prototyping, we allocate an IP address 1 time to a mac-address,
 and it's always allocated untile the server is restarted.")
   (:method ((reqMsg dhcp) (net cidr-net))
-    ;; TODO: Handle the case whe we run out of addresses
-    (alexandria:when-let* ((value (or (dhcp-search-allocated-by-mac (mac reqMsg))
-				      (search-cidr-net-reservations net (mac reqMsg) )
-				      )))
-      (return-from dhcp-allocate-ip value))
-    (or
-     (dhcp-generate-ip (mac reqMsg) net)
-     (error "Out of ip addresses")
-     )
+    (dhcp-allocate-ip-via-mac (mac reqMsg) net)
     )
   )
 
@@ -563,9 +572,11 @@ interfaces that have an IP address and that have been 'marked'"
 	 (error "Illegal parameter type ~a" cidr)))
   (serapeum:synchronized (*dhcp-iface-ip-addresses*)
     (setf *dhcp-iface-ip-addresses* cidr-net-list)
-    (loop :for cdir :in cidr-net-list :do
+    (loop :for cdir :in cidr-net-list
+	  :for i :from 1
+	  :do
       (let ((ipnum (first-ip cdir)))
-	(make-dhcp-address ipnum (list 0 0 0 0 0 0))
+	(make-dhcp-address ipnum (list 0 0 0 0 0 i))
 	#+nil(setf (gethash ipnum *dhcp-allocated-table*)
 		 (make-instance 'dhcp-address
 				:ipnum ipnum
