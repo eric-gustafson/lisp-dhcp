@@ -117,7 +117,7 @@
 
 (fiasco:deftest dhcp-reservation ()
   (clrhash dhcp::*dhcp-allocated-table*)
-  (dhcp:update-dhcps-iface-ip-addresses! (list *this-net*))
+  (dhcp:update-dhcps-iface-ip-addresses! (list (cons *this-net* (numex:hexstring->octets "1:2:3:4:5:6"))))
   ;; TODO: dhcp allocation of subnets vs. IPs needs to be
   ;; given more thought
   #+nil(handler-case

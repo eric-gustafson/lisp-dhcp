@@ -568,15 +568,18 @@ and it's always allocated untile the server is restarted.")
 this service do not have IP addresses.  We only send/respond to
 interfaces that have an IP address and that have been 'marked'"
   (loop :for cidr :in cidr-net-list :do
-       (unless (equal (type-of cidr) 'cidr-net)
+       (unless (equal (type-of (car cidr)) 'cidr-net)
 	 (error "Illegal parameter type ~a" cidr)))
   (serapeum:synchronized (*dhcp-iface-ip-addresses*)
     (setf *dhcp-iface-ip-addresses* cidr-net-list)
-    (loop :for cdir :in cidr-net-list
+    (loop :for (cdir . if-mac) :in cidr-net-list
 	  :for i :from 1
 	  :do
       (let ((ipnum (first-ip cdir)))
-	(make-dhcp-address ipnum (list 0 0 0 0 0 i))
+	(make-dhcp-address ipnum
+			   (if if-mac
+			       if-mac
+			       (list 0 0 0 0 0 i)))
 	#+nil(setf (gethash ipnum *dhcp-allocated-table*)
 		 (make-instance 'dhcp-address
 				:ipnum ipnum

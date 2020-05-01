@@ -13,7 +13,7 @@ exec ros -Q -- $0 "$@"
 
 (defun main (&rest argv)
   (declare (ignorable argv))
-  (fiasco:run-package-tests)
+  (sb-ext:exit :code (if  (fiasco:run-package-tests) 0 1))
   )
 
 ;;; vim: set ft=lisp lisp:
