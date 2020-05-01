@@ -577,7 +577,7 @@ interfaces that have an IP address and that have been 'marked'"
        (unless (equal (type-of (car cidr)) 'numex:cidr-net)
 	 (error "Illegal parameter type ~a" (car cidr))))
   (serapeum:synchronized (*dhcp-iface-ip-addresses*)
-    (setf *dhcp-iface-ip-addresses* cidr-net-list)
+    (setf *dhcp-iface-ip-addresses* (mapcar #'car cidr-net-list))
     (loop :for (cdir . if-mac) :in cidr-net-list
 	  :for i :from 1
 	  :do
