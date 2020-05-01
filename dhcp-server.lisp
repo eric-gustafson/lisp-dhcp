@@ -256,12 +256,15 @@ address (machine integer representation) is the second key."
     (make-dhcp-address ip (numex:hexstring->octets mac)))
   )
 
+(defmethod ipnum-reservations ((net cidr-net))
+  (mapcar #'numex:dotted->num (alexandria:hash-table-values (reservations net))))
+
 (defgeneric ip-allocated? (net ip)
   (:documentation "Search the reservation system and then the
   allocated hash to determine if this ip has been allocated.  It
   returns the dhcp-addres object if found, nil otherwise.")
   (:method ((net cidr-net) (ip number))
-    (or (gethash ip (reservations net))
+    (or (find ip (ipnum-reservations net))
 	(gethash ip *dhcp-allocated-table*)
 	)
     )
@@ -319,6 +322,11 @@ address (machine integer representation) is the second key."
       (let ((addrObj (make-dhcp-address ip mac)))
 	(setf (gethash mac (reservations net-obj)) addrObj)
 	)))
+  )
+
+(defun get-all-reservations ()
+  "Returns all of the dhcp reservations for the engine"
+  (mapcar #'alexandria:hash-table-values (apply #'append (mapcar #'reservations *dhcp-iface-ip-addresses*)))
   )
 
 (defmethod subnets ((net-obj cidr-net) &key cidr)
@@ -400,7 +408,6 @@ and it's always allocated untile the server is restarted.")
       :do
 	 (incf ip 2)
 	 (unless (ip-allocated? net ip)
-	   
 	   (let ((addrObj (make-dhcp-address ip mac)))
 	     (serapeum:run-hook '*hook-ip-allocated*
 				(ipnum addrObj)
