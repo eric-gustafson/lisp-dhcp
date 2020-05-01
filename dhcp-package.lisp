@@ -57,14 +57,7 @@
    :dhcp-generate-ip
    
    :first-ip
-   :ipnum
-   :cidr
-   :cidr-subnet
-   :mask
-   :broadcast
-   :mac
-   :ipnum
-   :reservations
+
 
    :add-cidr-net-reservation!
    :search-cidr-net-reservations

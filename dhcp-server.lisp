@@ -22,6 +22,7 @@
 		 as a list of numbers" ) )
   )
 
+
 (defclass dhcp-address ()
   (
    (mac		:accessor mac :initarg :mac :initform #())
@@ -30,6 +31,9 @@
    (lease-time	:accessor lease-time :initarg :lease-time :initform  300)
    )
   )
+
+(export '(cidr ipnum cidr-subnet mask broadcast reservations mac ipnum tla lease-time))
+
 
 (defmethod print-object ((obj dhcp-address) stream)
   (let ((now (get-universal-time)))
@@ -248,6 +252,8 @@ address (machine integer representation) is the second key."
       (setf (gethash (ipnum addrObj) *dhcp-allocated-table*) addrObj)
       (setf (gethash (mac addrObj) *dhcp-allocated-table*) addrObj)
       addrObj))
+  (:method ((ip number) (mac string))
+    (make-dhcp-address ip (numex:hexstring->octets mac)))
   )
 
 (defgeneric ip-allocated? (net ip)
@@ -396,7 +402,7 @@ and it's always allocated untile the server is restarted.")
 	 (unless (ip-allocated? net ip)
 	   
 	   (let ((addrObj (make-dhcp-address ip mac)))
-	     (serapeum:run-hook 'dhcp:*hook-ip-allocated*
+	     (serapeum:run-hook '*hook-ip-allocated*
 				(ipnum addrObj)
 				(mac addrObj))
 	     (return-from dhcp-generate-ip addrObj)))
@@ -568,8 +574,8 @@ and it's always allocated untile the server is restarted.")
 this service do not have IP addresses.  We only send/respond to
 interfaces that have an IP address and that have been 'marked'"
   (loop :for cidr :in cidr-net-list :do
-       (unless (equal (type-of (car cidr)) 'cidr-net)
-	 (error "Illegal parameter type ~a" cidr)))
+       (unless (equal (type-of (car cidr)) 'numex:cidr-net)
+	 (error "Illegal parameter type ~a" (car cidr))))
   (serapeum:synchronized (*dhcp-iface-ip-addresses*)
     (setf *dhcp-iface-ip-addresses* cidr-net-list)
     (loop :for (cdir . if-mac) :in cidr-net-list
@@ -605,7 +611,7 @@ interfaces that have an IP address and that have been 'marked'"
 		 (coerce
 		  (numex:num->octets (cidr-bcast (yiaddr m)
 						 ;;(dhcp:cidr-subnet destination-nets)
-						 (dhcp:cidr destination-nets)
+						 (cidr destination-nets)
 						 ))
 		  'vector)))
 	   (alog (format nil
