@@ -257,7 +257,7 @@ address (machine integer representation) is the second key."
   )
 
 (defmethod ipnum-reservations ((net cidr-net))
-  (mapcar #'numex:dotted->num (alexandria:hash-table-values (reservations net))))
+  (alexandria:hash-table-values (reservations net)))
 
 (defgeneric ip-allocated? (net ip)
   (:documentation "Search the reservation system and then the
