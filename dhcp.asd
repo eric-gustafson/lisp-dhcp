@@ -11,7 +11,6 @@
 	       #:serapeum
 	       #:flexi-streams
 	       #:usocket
-	       #:swank
 	       #:closer-mop	       
 	       #:uiop
 	       #:lparallel   
