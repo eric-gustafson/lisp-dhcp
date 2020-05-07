@@ -821,7 +821,7 @@ port number.  Asking for the same port gets you the same object"
 	   *router-table*))
 
 
-(defmethod route-add-cmd ((rte router-if))
+#+nil(defmethod route-add-cmd ((rte router-if))
   (format nil "route add -net ~a gw ~a netmask ~a dev ~a"
 			       (numex:->dotted (dest rte))
 			       (numex:->dotted (gw rte))
