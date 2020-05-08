@@ -240,6 +240,8 @@ integers ala (180 213 189 19 125 186).  A numerical IP
 address (machine integer representation) is the second key."
   )
 
+(export '*dhcp-allocated-table*)
+
 (defgeneric make-dhcp-address (ip mac)
   (:documentation "Create a new dhcp-address object, and update the
   keys in the *dhcp-allocated-table*")
@@ -766,7 +768,7 @@ port number.  Asking for the same port gets you the same object"
     ((trivia:guard l (listp l))
      (1+ (apply #'max L)))))
 
-(eval-when (:COMPILE-TOPLEVEL :LOAD-TOPLEVEL :EXECUTE)
+#+nil(eval-when (:COMPILE-TOPLEVEL :LOAD-TOPLEVEL :EXECUTE)
   ;; Using eval-when to Publish for macro compile using trivia:match
   (defclass router-if ()
     (
@@ -792,7 +794,7 @@ port number.  Asking for the same port gets you the same object"
     )
   )
 
-(defclass remote-router-if (router-if)
+#+nil(defclass remote-router-if (router-if)
     (
      (ipaddr :accessor ipaddr :initform nil :initarg :ipaddr)
      (un :accessor un :initform nil :initarg :un)
@@ -800,7 +802,7 @@ port number.  Asking for the same port gets you the same object"
      )
     )
 
-(defmethod print-object ((obj router-if) out)
+#+nil(defmethod print-object ((obj router-if) out)
   ;; 12/17/17 -- removing this.  no more frame-slot
   (print-unreadable-object (obj out :type t)
     (format out "[~a :id ~a :dest ~a :gw ~a :mask ~a :tlm ~a]"
@@ -811,7 +813,7 @@ port number.  Asking for the same port gets you the same object"
   )
 
 
-(defun get-route (piface pdest pmask pgw)
+#+nil(defun get-route (piface pdest pmask pgw)
   (find-if (trivia:lambda-match
 	     ((router-if iface dest mask gw)
 	      (and (equal iface piface)
