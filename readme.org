@@ -11,6 +11,8 @@
     - profile management
     - qos
 
+  - To automate the commissioning of an IOT deployment of 50k motes.
+
 ** Network Security
    Have a network default to not allowing cross talk between nodes.
    The dhcp server automatically creates an interface at the router
@@ -18,12 +20,10 @@
    on, and a signature must be matched, say from an active nmap scan
    or from a passive traffic discovery.
 
-** Xen setups
 
 ** Mesh networking
    Programmatically route traffic to other nodes on network based on
    netmask.  
-
 
 
 * Key Files

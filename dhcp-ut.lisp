@@ -149,7 +149,6 @@
 	     :collect (numex:->num i))))
   )
 
-
 ;; Objective:  To ensure that we receive a valid dhcp exchange
 ;;  between our server and our client.
 (defparameter *our-response* nil)

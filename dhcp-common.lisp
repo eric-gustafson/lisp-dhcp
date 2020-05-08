@@ -193,6 +193,9 @@
    )
   )
 
+(export '(dhcp udhcp))
+
+
 (defmethod deserialize-into-dhcp-from-buff! ((dhcpObj dhcp) (buff sequence))
   (flexi-streams:with-input-from-sequence (inport buff)
     (stream-deserialize dhcpObj inport))

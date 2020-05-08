@@ -35,11 +35,9 @@
    :alog
    :broadcast-address
    :ciaddr
-   :cidr-net
    :cidr-subnet
    :*dhcp-nets*
    ;;:configure-parent-router
-   :dhcp
    :dhcp-options
    :run
    :dhcpd

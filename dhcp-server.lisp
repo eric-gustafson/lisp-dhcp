@@ -3,6 +3,10 @@
 
 (defconstant +dhcp-server-port+ 67)
 
+(defvar *dhcp-iface-ip-addresses* '()
+  "We broadcast DHCP messages only to interfaces that have these
+  IPs. These values are cidr-net objects from the numex package")
+
 (defmethod alog ((str string))
   (syslog:log "dhcp-server" :user :warning str))
 
@@ -32,7 +36,11 @@
    )
   )
 
-(export '(cidr ipnum cidr-subnet mask broadcast reservations mac ipnum tla lease-time))
+(export '(cidr-net
+	  cidr ipnum
+	  cidr-subnet mask broadcast reservations mac ipnum tla lease-time
+	  dhcp-address
+	  ))
 
 
 (defmethod print-object ((obj dhcp-address) stream)
@@ -332,20 +340,19 @@ address (machine integer representation) is the second key."
   )
 
 (defmethod subnets ((net-obj cidr-net) &key cidr)
-  (declare (integer subnet-num))
-    (let ((f (first-ip net-obj))
-	  (l (last-ip net-obj))
-	  (subnet-size (expt 2 (- 32 cidr) )))
-      ;; Subtrack 1 additional from the upto number, to account for
-      ;; the subnet broadcast
-      (loop :for ip :from f :upto  l :by subnet-size
-	 :collect
-	 (make-instance 'cidr-net
-			:ipnum ip
-			:cidr cidr
-			:broadcast (logior ip (- subnet-size 1))
-			:mask (numex:make-cidr-mask cidr))
-	 ))
+  (let ((f (first-ip net-obj))
+	(l (last-ip net-obj))
+	(subnet-size (expt 2 (- 32 cidr) )))
+    ;; Subtrack 1 additional from the upto number, to account for
+    ;; the subnet broadcast
+    (loop :for ip :from f :upto  l :by subnet-size
+	  :collect
+	  (make-instance 'cidr-net
+			 :ipnum ip
+			 :cidr cidr
+			 :broadcast (logior ip (- subnet-size 1))
+			 :mask (numex:make-cidr-mask cidr))
+	  ))
     )
 
 (defmethod addresses ((net-obj cidr-net))
@@ -574,9 +581,6 @@ and it's always allocated untile the server is restarted.")
     )
   )
 
-(defvar *dhcp-iface-ip-addresses* '()
-  "We broadcast DHCP messages only to interfaces that have these
-  IPs. These values are cidr-net objects from the numex package")
 
 (defun update-dhcps-iface-ip-addresses! (cidr-net-list)
   "The DHCP communicates via network broadcasts, since the clients to
@@ -755,9 +759,6 @@ port number.  Asking for the same port gets you the same object"
 (defmethod find-options ((seq list))
   (search *dhcp-magic-cookie* seq))
 
-(defmethod has-magic-cookie ((obj dhcp))
-  (eq (mcookie *a*) (numex:octets->num *dhcp-magic-cookie*))
-  )
 
 (defparameter *router-table* '())
 
@@ -768,98 +769,6 @@ port number.  Asking for the same port gets you the same object"
     ((trivia:guard l (listp l))
      (1+ (apply #'max L)))))
 
-#+nil(eval-when (:COMPILE-TOPLEVEL :LOAD-TOPLEVEL :EXECUTE)
-  ;; Using eval-when to Publish for macro compile using trivia:match
-  (defclass router-if ()
-    (
-     (id :accessor id :initform (make-router-if-id) :initarg :id :documentation "An id as an easy way to access")
-     (iface :accessor iface :initarg :iface  :documentation "Iface")
-     (dest :accessor dest :initarg :dest  :documentation "Destination")
-     (gw :accessor gw :initarg :gw  :documentation "Gateway")
-     (flags :accessor flags :initarg :flags  :documentation "Flags")
-     (refcnt :accessor refcnt :initarg :refcnt  :documentation "RefCnt")
-     (use :accessor use :initarg :use  :documentation "Use")
-     (metric :accessor metric :initarg :metric  :documentation "Metric")
-     (mask :accessor mask :initarg :mask  :documentation "Mask")
-     (mtu :accessor mtu :initarg :mtu  :documentation "MTU")
-     (window :accessor window :initarg :window  :documentation "Window")
-     (irtt :accessor irtt :initarg :irtt  :documentation "IRTT")
-     (tlm :accessor tlm :initarg :tlm :initform (get-universal-time))
-     (host-id :accessor host-id :initarg :host-id :initform nil
-	      :documentation "Every host we manage will be marked with
-     a uuid.  We will tie mac addresses and interfaces together using
-     this host id)"
-	      )
-     )
-    )
-  )
-
-#+nil(defclass remote-router-if (router-if)
-    (
-     (ipaddr :accessor ipaddr :initform nil :initarg :ipaddr)
-     (un :accessor un :initform nil :initarg :un)
-     (pw :accessor pw :initform nil :initarg :pw)
-     )
-    )
-
-#+nil(defmethod print-object ((obj router-if) out)
-  ;; 12/17/17 -- removing this.  no more frame-slot
-  (print-unreadable-object (obj out :type t)
-    (format out "[~a :id ~a :dest ~a :gw ~a :mask ~a :tlm ~a]"
-	    (iface obj) (id obj) (dest obj) (gw obj) (mask obj)
-	    (- (get-universal-time) (tlm obj))
-	    )
-    )
-  )
-
-
-#+nil(defun get-route (piface pdest pmask pgw)
-  (find-if (trivia:lambda-match
-	     ((router-if iface dest mask gw)
-	      (and (equal iface piface)
-		   (equalp mask pmask)
-		   (equalp dest pdest)
-		   (equalp gw pgw))))
-	   *router-table*))
-
-
-#+nil(defmethod route-add-cmd ((rte router-if))
-  (format nil "route add -net ~a gw ~a netmask ~a dev ~a"
-			       (numex:->dotted (dest rte))
-			       (numex:->dotted (gw rte))
-			       (numex:->dotted (mask rte))
-			       (iface rte))
-  )
-
-(defun network-watchdog ()
-  (let ((channel (lparallel:make-channel)))
-    ;;(submit-task channel '+ 3 4)
-    (future
-     (loop
-	(lparallel:try-receive-result channel :timeout (* 1 600))
-	)))
-  )
-
-(defun not-local-host-ip-addr-objs ()
-  (serapeum:filter
-   #'(lambda(obj)
-       (trivia:match
-	   obj
-	 ((lsa:ip-addr :addr addr)
-	  (not (ip=? addr #(127 0 0 1))))))
-   (lsa::ip-addr-objs))
-  )
-  
-(defun get-ip-of-this-hosts-lan-card ()
-  (trivia:match
-      (not-local-host-ip-addr-objs)
-    ((cons first rest)
-     first)
-    )
-  )
-
-(defun connected-ip ()
-  (get-ip-of-this-hosts-lan-card))
 
 (progn
   (defvar *machine-class* nil)

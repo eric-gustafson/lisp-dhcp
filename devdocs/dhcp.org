@@ -152,7 +152,7 @@
   slot access issue.
 
   A user wants to deal with vectors and string when it comes to something like a mac address.  That needs to turn
-  into a sequence htat is hlen long.  How do we do this in a generic fashion?
+  into a sequence that is hlen long.  How do we do this in a generic fashion?
 
   This is a slot level obj->seq seq->obj method?   The table above defines the order.  We need to bridge.  
   What if we make the ordering of this a first class object?   We should be able to see it, interact with it.
