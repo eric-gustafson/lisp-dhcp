@@ -418,9 +418,13 @@ and it's always allocated untile the server is restarted.")
 	 (incf ip 2)
 	 (unless (ip-allocated? net ip)
 	   (let ((addrObj (make-dhcp-address ip mac)))
-	     (serapeum:run-hook '*hook-ip-allocated*
-				(ipnum addrObj)
-				(mac addrObj))
+	     (handler-case
+		 (serapeum:run-hook '*hook-ip-allocated*
+				    (ipnum addrObj)
+				    (mac addrObj))
+	       (t (c)
+		 (alog "Error in dhcp-ip-allocated chain ~a" c)
+		 (values nil c)))
 	     (return-from dhcp-generate-ip addrObj)))
       )
     nil)
