@@ -189,7 +189,8 @@
 			   (_encode-options (cdr options-doc)))))))
        (append
 	(list 53 1 (mtype obj))
-	(_encode-options (restof obj)))
+	(_encode-options (restof obj))
+	(list 255))
        )
      ))
 

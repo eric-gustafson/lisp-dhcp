@@ -492,7 +492,7 @@ and it's always allocated untile the server is restarted.")
 								(:routers ,(compute-servers-ip-for-address net-obj new-addr))
 								(:lease-time 1800)
 								(:dhcp-server ,@(compute-servers-ip-for-address net-obj new-addr))
-								(:dns-servers (8 8 8 8) (4 4 4 4)))
+								(:dns-servers (8 8 8 8)))
 							      ))))
     (alog (format nil "make-dhcp-offer: ~a~%" (numex:num->octets (yiaddr replyMsg))))
     replyMsg))
@@ -551,7 +551,7 @@ and it's always allocated untile the server is restarted.")
 							       (:routers ,(compute-servers-ip-for-address net-obj new-ip))
 							       (:lease-time 1800)
 							       (:dhcp-server ,@(compute-servers-ip-for-address net-obj new-ip))
-							       (:dns-servers (8 8 8 8) (4 4 4 4)))
+							       (:dns-servers (8 8 8 8)))
 							     ))))
     replyMsg))
 
@@ -625,12 +625,13 @@ interfaces that have an IP address and that have been 'marked'"
 		(response-type (msg-type m))
 		(buff (obj->pdu m))
 		(destination-address
-		 (coerce
-		  (numex:num->octets (cidr-bcast (yiaddr m)
-						 ;;(dhcp:cidr-subnet destination-nets)
-						 (cidr destination-nets)
-						 ))
-		  'vector)))
+		  (coerce
+		   (numex:num->octets (cidr-bcast (yiaddr m)
+						  ;;(dhcp:cidr-subnet destination-nets)
+						  (cidr destination-nets)
+						  ))
+		   'vector)
+		  ))
 	   (alog (format nil
 			 "sending pdu type:~a, to addr: ~a via ~a"
 			 response-type
