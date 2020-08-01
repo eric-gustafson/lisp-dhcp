@@ -613,10 +613,10 @@ interfaces that have an IP address and that have been 'marked'"
 	 (error "Illegal parameter type ~a" (car cidr))))
   (serapeum:synchronized (*dhcp-iface-ip-addresses*)
     (setf *dhcp-iface-ip-addresses* (mapcar #'car cidr-net-list))
-    (loop :for (cdir . if-mac) :in cidr-net-list
+    (loop :for (cidr . if-mac) :in cidr-net-list
 	  :for i :from 1
 	  :do
-      (let ((ipnum (first-ip cdir)))
+      (let ((ipnum (first-ip cidr)))
 	(make-dhcp-address cidr
 			   ipnum
 			   (if if-mac
