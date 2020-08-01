@@ -31,13 +31,14 @@
     (vector 'vector)
     ))
 
+(export 'load-packet-from-file)
 (defun load-packet-from-file (path)
   "Returns a pdu in a vector from a file"
   (let* ((rpath (probe-file path)))
     (with-open-file (bin-port rpath :element-type '(unsigned-byte 8))
       (let* ((n (file-length bin-port))
-	     (buff (make-array n :element-type '(unsigned-byte 8)))
-	     (pdu (read-sequence buff bin-port :end n)))
+	     (buff (make-array n :element-type '(unsigned-byte 8))))
+	(read-sequence buff bin-port :end n)
 	(pdu-seq->udhcp buff)
 	)))
   )
@@ -224,7 +225,8 @@
     )
   )
 
-(defmethod dhcp-msg-sig ((obj udhcp))
+(export 'msg-sig)
+(defmethod msg-sig ((obj udhcp))
   "Reurns a list which the key parts needed to determine what kind of message the pdu is."
   (list (op obj)
 	(mtype (options-obj obj)))
@@ -233,11 +235,12 @@
 ;; 
 (defmethod msg-type ((dhcp-msg-obj udhcp))
   ;"returns a symbol [:release :ack :request :offer  :discover] designating what kind of dhcp pdu"
-  (let ((sig (dhcp-msg-sig dhcp-msg-obj)))
+  (let ((sig (msg-sig dhcp-msg-obj)))
     (cond
       ((equalp sig (list +MSG-TYPE-DHCPDISCOVER+  +MSG-TYPE-DHCPDISCOVER+)) :discover) ;; 1 1
       ((equalp sig (list +MSG-TYPE-DHCPOFFER+  +MSG-TYPE-DHCPOFFER+)) :offer)
       ((equalp sig (list +MSG-TYPE-DHCPDISCOVER+  +MSG-TYPE-DHCPREQUEST+)) :request)
+      ((equalp sig (list +MSG-TYPE-DHCPDISCOVER+  +MSG-TYPE-DHCPDECLINE+)) :discover-decline)
       ((equalp sig (list +MSG-TYPE-DHCPOFFER+   +MSG-TYPE-DHCPACK+)) :ack)
       )
     )
@@ -253,6 +256,8 @@
        (setf (op dhcp-msg-obj) +MSG-TYPE-DHCPOFFER+ (mtype options)  +MSG-TYPE-DHCPOFFER+))
       (:request
        (setf (op dhcp-msg-obj) +MSG-TYPE-DHCPDISCOVER+ (mtype options)  +MSG-TYPE-DHCPREQUEST+))
+      (:discover-decline
+       (setf (op dhcp-msg-obj) +MSG-TYPE-DHCPDISCOVER+ (mtype options)  +MSG-TYPE-DHCPDECLINE+))
       (:ack
        (setf (op dhcp-msg-obj) +MSG-TYPE-DHCPOFFER+ (mtype options)  +MSG-TYPE-DHCPACK+))
       )

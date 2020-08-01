@@ -458,6 +458,7 @@ and it's always allocated untile the server is restarted.")
     )
   )
 
+
 (defun deallocate-ip (net ip)
   (let ((obj (gethash ip *dhcp-allocated-table*)))
     (remhash (mac obj) *dhcp-allocated-table*)
@@ -575,6 +576,14 @@ and it's always allocated untile the server is restarted.")
       (:request
        (handle-dhcp-request client-msg-dhcp-obj)
        (get-ack net-obj client-msg-dhcp-obj))
+      (:discover-decline
+       (alog (format nil "client has declined our offer ~a ~a"
+		     (ciaddr client-msg-dhcp-obj)
+		     (yiaddr client-msg-dhcp-obj)
+		     ))
+					;(deallocate-ip net-obj (ciaddr client-msg-dhcp-obj))
+       nil
+       )
       (:nack
        (alog "dhcp nack")
        )
@@ -620,33 +629,35 @@ interfaces that have an IP address and that have been 'marked'"
     (when (null *dhcp-iface-ip-addresses*)
 	(alog "dhcp-handler - no interfaces marked for dhcps"))
     (loop :for destination-nets :in *dhcp-iface-ip-addresses* :do
-	 (let* (
-		(m (handle-dhcpd-message destination-nets dhcpObj))
-		(response-type (msg-type m))
-		(buff (obj->pdu m))
-		(destination-address
-		  (coerce
-		   (numex:num->octets (cidr-bcast (yiaddr m)
-						  ;;(dhcp:cidr-subnet destination-nets)
-						  (cidr destination-nets)
-						  ))
-		   'vector)
-		  ))
-	   (alog (format nil
-			 "sending pdu type:~a, to addr: ~a via ~a"
-			 response-type
-			 (numex:num->octets (yiaddr m))
-			 destination-address))
-	   (setf (usocket:socket-option rsocket :broadcast) t)
-	   (let ((nbw (usocket:socket-send
-		       rsocket buff (length buff)
-		       :port +dhcp-client-port+
-		       :host destination-address
-		       )))
-	     (alog (format nil "number of bytes sent:~a~%" nbw))
-	     )
-	   )
-	 )
+      (let ((m (handle-dhcpd-message destination-nets dhcpObj)))
+	(when m
+	  (let* ((response-type (msg-type m))
+		 (buff (obj->pdu m))
+		 (destination-address
+		   (coerce
+		    (numex:num->octets (cidr-bcast (yiaddr m)
+						   ;;(dhcp:cidr-subnet destination-nets)
+						   (cidr destination-nets)
+						   ))
+		    'vector)
+		   ))
+	    (alog (format nil
+			  "sending pdu type:~a, to addr: ~a via ~a"
+			  response-type
+			  (numex:num->octets (yiaddr m))
+			  destination-address))
+	    (setf (usocket:socket-option rsocket :broadcast) t)
+	    (let ((nbw (usocket:socket-send
+			rsocket buff (length buff)
+			:port +dhcp-client-port+
+			:host destination-address
+			)))
+	      (alog (format nil "number of bytes sent:~a~%" nbw))
+	      )
+	    )
+	  )
+	)
+	  )
     )
   )
 

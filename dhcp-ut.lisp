@@ -358,18 +358,23 @@
 (defparameter *pdu-seq* nil)
 
 (fiasco:deftest
- captured1 ()
- (loop :for file :in (uiop:directory-files "/home/egustafs/qw/lisp-dhcp/devdocs/dhcp-captures/")
-    :collect
-      (with-open-file (ip file  :element-type '(unsigned-byte 8))
-	(let ((buff (make-array 1024 :element-type '(unsigned-byte 8))))
-	  (let ((nb (read-sequence buff ip :start 0 :end 1024)))
-	    (setf *pdu-seq* (subseq buff 0 nb))
-	    (let ((pduObj (pdu-seq->udhcp *pdu-seq*)))
-	      (cons file (dhcp:options-obj pduObj)))
+    captured1 ()
+  (let ((data-dir "/home/egustafs/secapp/lisp-dhcp/devdocs/dhcp-captures/"))
+    (fiasco:is (uiop:directory-exists-p data-dir))
+    (loop :for file :in (uiop:directory-files data-dir)
+	:collect
+	(with-open-file (ip file  :element-type '(unsigned-byte 8))
+	  (let ((buff (make-array 1024 :element-type '(unsigned-byte 8))))
+	    (let ((nb (read-sequence buff ip :start 0 :end 1024)))
+	      (setf *pdu-seq* (subseq buff 0 nb))
+	      (let ((pduObj (pdu-seq->udhcp *pdu-seq*)))
+		(cons file (dhcp:options-obj pduObj)))
+	      )
 	    )
 	  )
+	:do
+	   (format t "~a~%" file)
 	)
-      )
- )
+    )
+  )
  
