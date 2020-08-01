@@ -36,11 +36,8 @@
    )
   )
 
-(export '(cidr-net
-	  cidr ipnum
-	  cidr-subnet mask broadcast reservations mac ipnum tla lease-time
-	  dhcp-address
-	  ))
+(export '(cidr-net cidr ipnum cidr-subnet mask broadcast reservations
+	  mac ipnum tla lease-time dhcp-address ))
 
 
 (defmethod print-object ((obj dhcp-address) stream)
@@ -240,30 +237,39 @@
 (defmethod total-ips ((obj cidr-net))
   (1+ (- (last-ip obj) (first-ip obj))))
 
-(defparameter *dhcp-allocated-table* (make-hash-table :test #'equalp)
-  "A hashtable of the IP addresses we have sent out.  There values are
+(defparameter *net-allocation-table* (make-hash-table :test #'equalp)
+  
+  )
+
+(defgeneric get-net-allocation-table (netobj)
+  (:documentation "Returns a hashtable of the IP addresses we have
+sent out on the interface represented by 'netobj'.  There values are
 all dhcp-address objects, and for each object there will be two keys
 in the table pointing to an instance.  A 'mac' key is a list of
 integers ala (180 213 189 19 125 186).  A numerical IP
-address (machine integer representation) is the second key."
+address (machine integer representation) is the second key.")
+  (:method ((net cidr-net))
+    (serapeum:ensure (gethash net *net-allocation-table*) (make-hash-table :test #'equalp))
+    )
   )
 
-(export '*dhcp-allocated-table*)
+;;(export '*dhcp-allocated-table*)
+(export '(get-net-allocation-table *net-allocation-table*))
 
-(defgeneric make-dhcp-address (ip mac)
+(defgeneric make-dhcp-address (net ip mac)
   (:documentation "Create a new dhcp-address object, and update the
-  keys in the *dhcp-allocated-table*")
-  (:method ((ip number) (mac list))
+  keys in the *net-allocation-table*")
+  (:method ((net cidr-net) (ip number) (mac list))
     (let ((addrObj (make-instance 'dhcp-address
 				  :ipnum ip
 				  :tla (get-universal-time)
 				  :mac mac
 				  )))
-      (setf (gethash (ipnum addrObj) *dhcp-allocated-table*) addrObj)
-      (setf (gethash (mac addrObj) *dhcp-allocated-table*) addrObj)
+      (setf (gethash (ipnum addrObj) (get-net-allocation-table net)) addrObj)
+      (setf (gethash (mac addrObj) (get-net-allocation-table net)) addrObj)
       addrObj))
-  (:method ((ip number) (mac string))
-    (make-dhcp-address ip (numex:hexstring->octets mac)))
+  (:method ((net cidr-net) (ip number) (mac string))
+    (make-dhcp-address net ip (numex:hexstring->octets mac)))
   )
 
 (defmethod ipnum-reservations ((net cidr-net))
@@ -275,16 +281,20 @@ address (machine integer representation) is the second key."
   returns the dhcp-addres object if found, nil otherwise.")
   (:method ((net cidr-net) (ip number))
     (or (find ip (ipnum-reservations net))
-	(gethash ip *dhcp-allocated-table*)
+	(gethash ip (get-net-allocation-table net))
 	)
     )
   )
-						     
-(defun dhcp-search-allocated-by-mac (mac)
-  (let ((x (gethash mac *dhcp-allocated-table*)))
-    (when x
-      (setf (tla x) (get-universal-time))
-      x)
+
+(defgeneric dhcp-search-allocated-by-mac (net mac)
+  (:documentation "Search an interface represented by the 'net'
+  parameter for an IP address that has been assigned to the 'mac'")
+  (:method ((net cidr-net) (mac sequence))
+    (let ((x (gethash mac (get-net-allocation-table net))))
+      (when x
+	(setf (tla x) (get-universal-time))
+	x)
+      )
     )
   )
 
@@ -322,14 +332,14 @@ address (machine integer representation) is the second key."
   (:method ((net-obj cidr-net) (mac string) (ip string))
     (let ((mac (numex:hexstring->octets mac))
 	  (ip (numex:->num ip)))
-      (when (dhcp-search-allocated-by-mac mac)
+      (when (dhcp-search-allocated-by-mac net-obj mac)
 	(error (make-condition 'address-allocated :ip ip)))
       #+nil(unless (cidr-in? net-obj ip)
 	(error (make-condition 'ip-cidr-net-incompatible
 			       :ip ip
 			       :cidr-addr (ipnum net-obj)
 			       :cir (cidr net-obj))))
-      (let ((addrObj (make-dhcp-address ip mac)))
+      (let ((addrObj (make-dhcp-address net-obj ip mac)))
 	(setf (gethash mac (reservations net-obj)) addrObj)
 	)))
   )
@@ -403,11 +413,11 @@ address (machine integer representation) is the second key."
   "Invoked when an IP address is allocated.  Has")
 
 
-(defgeneric dhcp-generate-ip (mac net)
+(defgeneric dhcp-generate-ip (net mac)
   (:documentation
    "For prototyping, we allocate an IP address 1 time to a mac-address,
 and it's always allocated untile the server is restarted.")
-  (:method ((mac list) (net cidr-net))
+  (:method ((net cidr-net) (mac list) )
     ;; TODO: Handle the case whe we run out of addresses
     (loop
       :for ip in (numex:cidr-subnets
@@ -417,7 +427,7 @@ and it's always allocated untile the server is restarted.")
       :do
 	 (incf ip 2)
 	 (unless (ip-allocated? net ip)
-	   (let ((addrObj (make-dhcp-address ip mac)))
+	   (let ((addrObj (make-dhcp-address net ip mac)))
 	     (handler-case
 		 (serapeum:run-hook '*hook-ip-allocated*
 				    (ipnum addrObj)
@@ -429,21 +439,21 @@ and it's always allocated untile the server is restarted.")
       )
     nil)
   (:method ((mac string) (net cidr-net))
-    (dhcp-generate-ip (numex:hexstring->octets  mac) net))
+    (dhcp-generate-ip net (numex:hexstring->octets  mac) ))
   )
 
 ;; TODO: Handle the case whe we run out of addresses
-(defgeneric dhcp-allocate-ip-via-mac (mac net)
+(defgeneric dhcp-allocate-ip-via-mac (net mac)
   (:documentation "A lower level function that doesn't have anything
   to do with dhcp per say, so we can test schemes, unit test, and run
   simulations and the like")
-  (:method ((mac list) (net cidr-net))
-    (alexandria:when-let* ((value (or (dhcp-search-allocated-by-mac mac)
+  (:method ((net cidr-net) (mac list) )
+    (alexandria:when-let* ((value (or (dhcp-search-allocated-by-mac net mac)
 				      (search-cidr-net-reservations net mac)
 				      )))
       (return-from dhcp-allocate-ip-via-mac value))
     (or
-     (dhcp-generate-ip mac net)
+     (dhcp-generate-ip net mac )
      (error "Out of ip addresses")
      )
     )
@@ -454,16 +464,15 @@ and it's always allocated untile the server is restarted.")
   (:documentation "For prototyping, we allocate an IP address 1 time to a mac-address,
 and it's always allocated untile the server is restarted.")
   (:method ((reqMsg dhcp) (net cidr-net))
-    (dhcp-allocate-ip-via-mac (mac reqMsg) net)
+    (dhcp-allocate-ip-via-mac net (mac reqMsg))
     )
   )
 
 
 (defun deallocate-ip (net ip)
-  (let ((obj (gethash ip *dhcp-allocated-table*)))
-    (remhash (mac obj) *dhcp-allocated-table*)
-    (remhash (ipnum obj) *dhcp-allocated-table*)
-    ;;(setf *dhcp-allocated-table* (delete ip *dhcp-allocated-table* :key #'ipnum :test #'equalp))
+  (let ((obj (gethash ip (get-net-allocation-table net))))
+    (remhash (mac obj) (get-net-allocation-table net))
+    (remhash (ipnum obj) (get-net-allocation-table net))
     ))
 
 (defmethod make-dhcp-offer ((net-obj cidr-net) (reqMsg udhcp))
@@ -581,7 +590,7 @@ and it's always allocated untile the server is restarted.")
 		     (ciaddr client-msg-dhcp-obj)
 		     (yiaddr client-msg-dhcp-obj)
 		     ))
-					;(deallocate-ip net-obj (ciaddr client-msg-dhcp-obj))
+       ;;(deallocate-ip net-obj (ciaddr client-msg-dhcp-obj))
        nil
        )
       (:nack
@@ -608,14 +617,11 @@ interfaces that have an IP address and that have been 'marked'"
 	  :for i :from 1
 	  :do
       (let ((ipnum (first-ip cdir)))
-	(make-dhcp-address ipnum
+	(make-dhcp-address cidr
+			   ipnum
 			   (if if-mac
 			       if-mac
 			       (list 0 0 0 0 0 i)))
-	#+nil(setf (gethash ipnum *dhcp-allocated-table*)
-		 (make-instance 'dhcp-address
-				:ipnum ipnum
-				:lease-time nil))
 	))
     )
   )

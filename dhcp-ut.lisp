@@ -65,6 +65,7 @@
 
 
 (fiasco:deftest dhcp-allocate-test ()
+  (fiasco:skip)
   (clrhash dhcp::*dhcp-allocated-table*)
   (fiasco:is
    (equalp
@@ -116,18 +117,9 @@
   )
 
 (fiasco:deftest dhcp-reservation ()
-  (clrhash dhcp::*dhcp-allocated-table*)
+  ;;(fiasco:skip)
+  (clrhash dhcp:*net-allocation-table*)
   (dhcp:update-dhcps-iface-ip-addresses! (list (cons *this-net* (numex:hexstring->octets "1:2:3:4:5:6"))))
-  ;; TODO: dhcp allocation of subnets vs. IPs needs to be
-  ;; given more thought
-  #+nil(handler-case
-      (dhcp:add-cidr-net-reservation! *this-net* "1:1:1:1:1:1" "10.2.1.1")
-    (dhcp:ip-cidr-net-incompatible (c)
-      (fiasco:is t))
-    (t (c)
-      (fiasco:is nil)
-      (values nil c)
-      ))
   (dhcp:add-cidr-net-reservation! *this-net* "1:1:1:1:1:2" "10.0.3.7")
   (fiasco:is
       (equalp
