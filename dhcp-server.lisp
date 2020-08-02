@@ -241,6 +241,12 @@
   
   )
 
+(export 'get-all-dhcp-networks)
+(defun get-all-dhcp-networks ()
+  "return all of the dhcp networks from all of the interfaces"
+  (apply #'append (mapcar #'alexandria:hash-table-values (alexandria:hash-table-values dhcp::*net-allocation-table*)))
+  )
+
 (defgeneric get-net-allocation-table (netobj)
   (:documentation "Returns a hashtable of the IP addresses we have
 sent out on the interface represented by 'netobj'.  There values are
