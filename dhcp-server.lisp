@@ -629,15 +629,26 @@ interfaces that have an IP address and that have been 'marked'"
 ;; TODO: (GUS 2020-09-24) extract the gaddr address and use that as
 ;; the destination if this was sent by a dhcp gateway
 (defmethod dest-addr ((m udhcp) (destination-net cidr-net))
-  (let ((giaddr (giaddr m)))
-    (coerce
-     (numex:num->octets (cidr-bcast (yiaddr m)
-				    ;;(dhcp:cidr-subnet destination-nets)
-				    (cidr destination-nets)
-				  ))
-     'vector)
-    )
-  )
+  "Returns who we should send the response back to.  This handles dhcp
+gateways that forward dhcp packets from subnets and the like, by
+increasing the HOP count and setting the giaddr field.  If this
+message was a result of a local broadcast message, then it uses the
+destination-net when formulating the broadcast response."
+  (let* ((giaddr (giaddr m))
+	 (hops (hops m))
+	 (ip-num
+	   (cond
+	     ((and (> hops 0) (> giaddr 0))
+	      (numex:num->octets giaddr)
+	      )
+	     (t
+	      (cidr-bcast (yiaddr m)
+			  ;;(dhcp:cidr-subnet destination-nets)
+			  (cidr destination-net)
+			  )))))
+    (coerce ip-num 'vector)))
+(export 'dest-addr)
+
 		   
 (defun dhcp-handler (rsocket buff size client receive-port)
   "A dhcp message was received"

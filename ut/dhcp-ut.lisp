@@ -349,6 +349,28 @@
 
 (defparameter *pdu-seq* nil)
 
+(defun get-captures-as-hash ()
+  "Return a hash table of the captures so we can run quick tests on things.  The filename is the key, and the value is a udhcp object"
+  (let ((data-dir "/home/egustafs/secapp/lisp-dhcp/devdocs/dhcp-captures/")
+	(htable (serapeum:dict)))
+    (fiasco:is (uiop:directory-exists-p data-dir))
+    (loop :for file :in (uiop:directory-files data-dir)
+	  :do
+	     (with-open-file (ip file  :element-type '(unsigned-byte 8))
+	       (let ((buff (make-array 1024 :element-type '(unsigned-byte 8))))
+		 (let ((nb (read-sequence buff ip :start 0 :end 1024)))
+		   (setf *pdu-seq* (subseq buff 0 nb))
+		   (let ((pduObj (pdu-seq->udhcp *pdu-seq*)))
+		     (setf (gethash file htable) pduObj)
+		     )
+		   )
+		 )
+	       ))
+    htable))
+
+(defvar *data* (get-captures-as-hash))
+
+
 (fiasco:deftest
     captured1 ()
   (let ((data-dir "/home/egustafs/secapp/lisp-dhcp/devdocs/dhcp-captures/"))
