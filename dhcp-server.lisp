@@ -671,7 +671,7 @@ destination-net when formulating the broadcast response."
 			:port +dhcp-client-port+
 			:host destination-address
 			)))
-	      (alog (format nil "number of bytes sent:~a~%" nbw))
+	      (alog "number of bytes sent:~a~%" nbw)
 	      )
 	    )
 	  )
