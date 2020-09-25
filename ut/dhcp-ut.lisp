@@ -126,7 +126,7 @@
        (mapcar #'dhcp:ipnum
 	       (loop :for i :from 0 :upto 8
 		     :collect
-		     (dhcp:dhcp-allocate-ip-via-mac (list 1 1 1 1 1 i) *this-net*)))
+		     (dhcp:dhcp-allocate-ip-via-mac *this-net* (list 1 1 1 1 1 i) )))
        (loop :for i :in `("10.0.0.2"
 			  "10.0.1.2"
 			  "10.0.3.7"

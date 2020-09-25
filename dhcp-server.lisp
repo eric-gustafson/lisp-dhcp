@@ -7,8 +7,8 @@
   "We broadcast DHCP messages only to interfaces that have these
   IPs. These values are cidr-net objects from the numex package")
 
-(defmethod alog ((str string))
-  (syslog:log "dhcp-server" :user :warning str))
+(defmethod alog ((str string) &rest args)
+  (syslog:log "dhcp-server" :user :warning (apply #'format (cons nil (cons str args)))))
 
 (defclass cidr-net ()
   ;; A network defined using cidr notation
@@ -376,7 +376,6 @@ address (machine integer representation) is the second key.")
   (loop :for ip :from (first-ip net-obj) :upto (last-ip net-obj) :collect ip)
   )
 
-
 (defmethod subnet-info ((net-obj cidr-net) subnet-num)
   "f=ma like stuff"
   (list :num-nets (floor (/ (- (last-ip net-obj) (first-ip net-obj)) subnet-num))
@@ -407,7 +406,6 @@ address (machine integer representation) is the second key.")
   (with-input-from-string (x (inferior-shell:run/s "ip addr | grep inet  | wc"))
     (read x)))
 
-
 #+nil(defun teardown-dhcp-network-interfaces (iface)
   (loop
      :for ipn in (cdr *dhcp-nets*)
@@ -417,7 +415,6 @@ address (machine integer representation) is the second key.")
 
 (defvar *hook-ip-allocated* nil
   "Invoked when an IP address is allocated.  Has")
-
 
 (defgeneric dhcp-generate-ip (net mac)
   (:documentation
@@ -473,7 +470,6 @@ and it's always allocated untile the server is restarted.")
     (dhcp-allocate-ip-via-mac net (mac reqMsg))
     )
   )
-
 
 (defun deallocate-ip (net ip)
   (let ((obj (gethash ip (get-net-allocation-table net))))
@@ -575,7 +571,6 @@ and it's always allocated untile the server is restarted.")
   #+(or ccl) (return-from local-host-addr "255.255.255.255")
   (numex:->dotted (this-ip)))
 
-
 (defmethod compute-destination-net-addresses-for-dhcp-response ((m dhcp))
   "Compute a list of network addresses to send the dhcp-response"
   )
@@ -609,7 +604,6 @@ and it's always allocated untile the server is restarted.")
     )
   )
 
-
 (defun update-dhcps-iface-ip-addresses! (cidr-net-list)
   "The DHCP communicates via network broadcasts, since the clients to
 this service do not have IP addresses.  We only send/respond to
@@ -631,6 +625,19 @@ interfaces that have an IP address and that have been 'marked'"
 	))
     )
   )
+
+;; TODO: (GUS 2020-09-24) extract the gaddr address and use that as
+;; the destination if this was sent by a dhcp gateway
+(defmethod dest-addr ((m udhcp) (destination-net cidr-net))
+  (let ((giaddr (giaddr m)))
+    (coerce
+     (numex:num->octets (cidr-bcast (yiaddr m)
+				    ;;(dhcp:cidr-subnet destination-nets)
+				    (cidr destination-nets)
+				  ))
+     'vector)
+    )
+  )
 		   
 (defun dhcp-handler (rsocket buff size client receive-port)
   "A dhcp message was received"
@@ -645,19 +652,8 @@ interfaces that have an IP address and that have been 'marked'"
 	(when m
 	  (let* ((response-type (msg-type m))
 		 (buff (obj->pdu m))
-		 (destination-address
-		   (coerce
-		    (numex:num->octets (cidr-bcast (yiaddr m)
-						   ;;(dhcp:cidr-subnet destination-nets)
-						   (cidr destination-nets)
-						   ))
-		    'vector)
-		   ))
-	    (alog (format nil
-			  "sending pdu type:~a, to addr: ~a via ~a"
-			  response-type
-			  (numex:num->octets (yiaddr m))
-			  destination-address))
+		 (destination-address (dest-addr m destination-net)))
+	    (alog "snd type=~a, to addr: ~a via ~a" response-type (numex:num->octets (yiaddr m)) destination-address)
 	    (setf (usocket:socket-option rsocket :broadcast) t)
 	    (let ((nbw (usocket:socket-send
 			rsocket buff (length buff)
@@ -691,7 +687,6 @@ port number.  Asking for the same port gets you the same object"
       (setf (usocket:socket-option sock-obj :broadcast) t)
       sock-obj))
   )
-
 
 (defvar *buff* (make-array 1024 :element-type '(unsigned-byte 8)))
 (defun poll/async-inbound-dhcp-pdu (rsocket obj-thunk)
@@ -761,7 +756,6 @@ port number.  Asking for the same port gets you the same object"
 	  (alog (format nil "~a~&" c))
 	  nil))))
 
-
 (defun run ()
   (alog "starting dhcp background thread")
   (bt:make-thread (catch-and-log #'dhcpd) :name "dhcp thread")
@@ -787,7 +781,6 @@ port number.  Asking for the same port gets you the same object"
 (defmethod find-options ((seq list))
   (search *dhcp-magic-cookie* seq))
 
-
 (defparameter *router-table* '())
 
 (defun make-router-if-id ()
@@ -796,7 +789,6 @@ port number.  Asking for the same port gets you the same object"
     (() 1)
     ((trivia:guard l (listp l))
      (1+ (apply #'max L)))))
-
 
 (progn
   (defvar *machine-class* nil)
@@ -825,10 +817,7 @@ port number.  Asking for the same port gets you the same object"
     (cond
       ((ppcre:scan "yocto" uname-string)
        "wlan0"))
-    
     ))
-
-
 
 (defun apply-configuration (iface)
   ;; macchager --mac oldmac+1

@@ -1,14 +1,14 @@
+SUBPROJS=ut
 
 LISP_FILES=$(wildcard *.lisp)
 
-test: ut
-	./ut && echo "good!" 
+UT_LISP_FILES=$(wildcard ut/*.lisp)
 
-ut: ut.ros $(LISP_FILES)
+dhcp: dhcp.ros ut/ut
 	ros -Q build $<
 
-dhcp: dhcp.ros
-	ros -Q build $^
+ut/ut: $(UT_LISP_FILES)
+	make -C ut
 
 clean:
 	- rm dhcp
