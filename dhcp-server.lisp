@@ -663,7 +663,7 @@ destination-net when formulating the broadcast response."
 	(when m
 	  (let* ((response-type (msg-type m))
 		 (buff (obj->pdu m))
-		 (destination-address (dest-addr m destination-net)))
+		 (destination-address (dest-addr m destination-nets)))
 	    (alog "snd type=~a, to addr: ~a via ~a" response-type (numex:num->octets (yiaddr m)) destination-address)
 	    (setf (usocket:socket-option rsocket :broadcast) t)
 	    (let ((nbw (usocket:socket-send
