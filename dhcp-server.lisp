@@ -639,14 +639,14 @@ destination-net when formulating the broadcast response."
 	 (ip-num
 	   (cond
 	     ((and (> hops 0) (> giaddr 0))
-	      (numex:num->octets giaddr)
+	      giaddr
 	      )
 	     (t
 	      (cidr-bcast (yiaddr m)
 			  ;;(dhcp:cidr-subnet destination-nets)
 			  (cidr destination-net)
 			  )))))
-    (coerce ip-num 'vector)))
+    (coerce (numex:num->octets ip-num) 'vector)))
 (export 'dest-addr)
 
 		   
