@@ -646,16 +646,28 @@ destination-net when formulating the broadcast response."
 			  ;;(dhcp:cidr-subnet destination-nets)
 			  (cidr destination-net)
 			  )))))
+    (alog "giaddr: ~a, hops=~a" giaddr hops)
     (coerce (numex:num->octets ip-num) 'vector)))
 (export 'dest-addr)
 
+(progn
+  (defparameter *cap* nil)
+  (defparameter *bc* nil)
+  )
 		   
 (defun dhcp-handler (rsocket buff size client receive-port)
   "A dhcp message was received"
   (alog "dhcp-server-pdu-handler")
   (setf *last* (copy-seq buff))
-  (let* ((dhcpObj (pdu-seq->udhcp buff))
-	 )
+  (let* ((dhcpObj (pdu-seq->udhcp buff)))
+    (alog "dhcp-handler: giaddr=~a, buff[48]=~s,~s,~s,~s" (giaddr dhcpObj)
+	  (elt buff 48) (elt buff 49)
+	  (elt buff 50) (elt buff 51)
+	  )
+    (unless (and (null *cap*) (> (elt buff 48) 0))
+      (setf *cap* dhcpObj)
+      (setf *bc* buff)
+      )
     (when (null *dhcp-iface-ip-addresses*)
 	(alog "dhcp-handler - no interfaces marked for dhcps"))
     (loop :for destination-nets :in *dhcp-iface-ip-addresses* :do
