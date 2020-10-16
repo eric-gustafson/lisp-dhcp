@@ -153,9 +153,6 @@ host is nil, then we broadcast the message"
     )
   )
 
-(defmethod clog ((str string))
-  (syslog:log "dhcp-client" :user :warning str))
-
 (defun call-with-dhcp-address (thunk &key (iface-name "wlan0"))
   "Traditional socket, with waits.  You probably want to call this one
 on a thread"
@@ -166,9 +163,9 @@ on a thread"
 	 )
     (dhcp-client-socket-up!)
     (setf (usocket:socket-option *cs* :broadcast) t)
-    (clog "sending dhcp request")
+    (log4cl:log-info "sending dhcp request")
     (client-snd-pdu *cs* dhcpReq)
-    (clog "waiting for dhcp offers")
+    (log4cl:log-info "waiting for dhcp offers")
     (handler-case
 	(multiple-value-bind (buff n remote-addr remote-port)
 	    (usocket:socket-receive *cs* buff 1024)
@@ -178,11 +175,11 @@ on a thread"
 	    (optima:match
 		request
 	      ((equal :done) ;;We got an ack right away
-	       (clog (format nil "~a" server-offer))
+	       (log4cl:log-info "~a" server-offer)
 	       )
 	      ((type dhcp)
-	       (clog (format nil "~a" (msg-type server-offer)))
-	       (clog (format nil "sending dhcp-ip request - we've picked a winner ~a" (type-of request)))
+	       (log4cl:log-info  "~a" (msg-type server-offer))
+	       (log4cl:log-info  "sending dhcp-ip request - we've picked a winner ~a" (type-of request))
 	       (client-snd-pdu *cs* request)
 	       (multiple-value-bind (buff n remote-addr remote-port)
 		   (usocket:socket-receive *cs* buff 1024)
@@ -198,12 +195,12 @@ on a thread"
 	    )
 	  )
       (t (c)
-	(clog (format nil "!!~a ~&" c))
+	(log4cl:log-error  "!!~a ~&" c)
 	(let ((path (uiop/stream:with-temporary-file
 			(:stream bout :pathname x :keep t :element-type '(unsigned-byte 8))
 		      (write-sequence buff bout)
 		      x)))
-	  (clog (format nil "saving dhcp message ~s" path))
+	  (log4cl:log-error  "saving dhcp message ~s" path)
 	  nil))
       )
     )

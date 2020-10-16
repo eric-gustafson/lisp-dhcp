@@ -23,7 +23,6 @@
 	       #:nibbles
 	       #:numex
 	       #:lsa
-	       #:cl-syslog
                #:cl-ppcre
 	       #:cl-async
 	       #:swap-bytes

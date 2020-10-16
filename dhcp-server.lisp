@@ -7,9 +7,6 @@
   "We broadcast DHCP messages only to interfaces that have these
   IPs. These values are cidr-net objects from the numex package")
 
-(defmethod alog ((str string) &rest args)
-  (syslog:log "dhcp-server" :user :warning (apply #'format (cons nil (cons str args)))))
-
 (defclass cidr-net ()
   ;; A network defined using cidr notation
   ;;
@@ -436,7 +433,7 @@ and it's always allocated untile the server is restarted.")
 				    (ipnum addrObj)
 				    (mac addrObj))
 	       (t (c)
-		 (alog "Error in dhcp-ip-allocated chain ~a" c)
+		 (log4cl:log-error "Error in dhcp-ip-allocated chain ~a" c)
 		 (values nil c)))
 	     (return-from dhcp-generate-ip addrObj)))
       )
@@ -506,7 +503,7 @@ and it's always allocated untile the server is restarted.")
 								(:dhcp-server ,@(compute-servers-ip-for-address net-obj new-addr))
 								(:dns-servers (8 8 8 8)))
 							      ))))
-    (alog (format nil "make-dhcp-offer: ~a~%" (numex:num->octets (yiaddr replyMsg))))
+    (log4cl:log-info "make-dhcp-offer: ~a~%" (numex:num->octets (yiaddr replyMsg)))
     replyMsg))
 
 (defmethod handle-dhcp-request ((reqMsg udhcp))
@@ -530,11 +527,11 @@ and it's always allocated untile the server is restarted.")
   
 (defmethod get-ack ((net-obj cidr-net) (reqMsg dhcp))
   "return an dhcp packet to be broadcast that provides an IP address"
-  (alog (format nil "get-ack: yiaddr:~a,siaddr:~a,ciaddr:~a~%"
-		(numex:num->octets (yiaddr reqMsg))
-		(numex:num->octets (siaddr reqMsg))
-		(numex:num->octets (ciaddr reqMsg))
-		))
+  (log4cl:log-info "get-ack: yiaddr:~a,siaddr:~a,ciaddr:~a~%"
+		   (numex:num->octets (yiaddr reqMsg))
+		   (numex:num->octets (siaddr reqMsg))
+		   (numex:num->octets (ciaddr reqMsg))
+		   )
   (let* ((new-ip (dhcp-allocate-ip reqMsg net-obj))
 	 (replyMsg (make-instance 'udhcp
 				 :op 2
@@ -578,7 +575,7 @@ and it's always allocated untile the server is restarted.")
 (defmethod handle-dhcpd-message ((net-obj cidr-net) (client-msg-dhcp-obj udhcp))
    ;;"handle dhcp server messages.  dished out an ip address, which is embedded in the return message"
   (let* ((dhcp-type (msg-type client-msg-dhcp-obj)))
-    (alog (format nil "dhcpd msg type ~a" dhcp-type))
+    (log4cl:log-info  "dhcpd msg type ~a" dhcp-type)
     (ecase
 	dhcp-type
       (:discover
@@ -587,18 +584,15 @@ and it's always allocated untile the server is restarted.")
        (handle-dhcp-request client-msg-dhcp-obj)
        (get-ack net-obj client-msg-dhcp-obj))
       (:discover-decline
-       (alog (format nil "client has declined our offer ~a ~a"
-		     (ciaddr client-msg-dhcp-obj)
-		     (yiaddr client-msg-dhcp-obj)
-		     ))
+       (log4cl:log-info "client has declined our offer ~a ~a" (ciaddr client-msg-dhcp-obj) (yiaddr client-msg-dhcp-obj) )
        ;;(deallocate-ip net-obj (ciaddr client-msg-dhcp-obj))
        nil
        )
       (:nack
-       (alog "dhcp nack")
+       (log4cl:log-info "dhcp nack")
        )
       (:info
-       (alog "dhcp info")
+       (log4cl:log-info "dhcp info")
        )
       )
     )
@@ -646,7 +640,7 @@ destination-net when formulating the broadcast response."
 			  ;;(dhcp:cidr-subnet destination-nets)
 			  (cidr destination-net)
 			  )))))
-    (alog "giaddr: ~a, hops=~a" giaddr hops)
+    (log4cl:log-info "giaddr: ~a, hops=~a" giaddr hops)
     (coerce (numex:num->octets ip-num) 'vector)))
 (export 'dest-addr)
 
@@ -657,33 +651,33 @@ destination-net when formulating the broadcast response."
 		   
 (defun dhcp-handler (rsocket buff size client receive-port)
   "A dhcp message was received"
-  (alog "dhcp-server-pdu-handler")
+  (log4cl:log-info "dhcp-server-pdu-handler")
   (setf *last* (copy-seq buff))
   (let* ((dhcpObj (pdu-seq->udhcp buff)))
-    (alog "dhcp-handler: giaddr=~a, buff[48]=~s,~s,~s,~s" (giaddr dhcpObj)
-	  (elt buff 48) (elt buff 49)
-	  (elt buff 50) (elt buff 51)
-	  )
+    (log4cl:log-info "dhcp-handler: giaddr=~a, buff[48]=~s,~s,~s,~s" (giaddr dhcpObj)
+		     (elt buff 48) (elt buff 49)
+		     (elt buff 50) (elt buff 51)
+		     )
     (unless (and (null *cap*) (> (elt buff 48) 0))
       (setf *cap* dhcpObj)
       (setf *bc* buff)
       )
     (when (null *dhcp-iface-ip-addresses*)
-	(alog "dhcp-handler - no interfaces marked for dhcps"))
+	(log4cl:log-info "dhcp-handler - no interfaces marked for dhcps"))
     (loop :for destination-nets :in *dhcp-iface-ip-addresses* :do
       (let ((m (handle-dhcpd-message destination-nets dhcpObj)))
 	(when m
 	  (let* ((response-type (msg-type m))
 		 (buff (obj->pdu m))
 		 (destination-address (dest-addr m destination-nets)))
-	    (alog "snd type=~a, to addr: ~a via ~a" response-type (numex:num->octets (yiaddr m)) destination-address)
+	    (log4cl:log-info "snd type=~a, to addr: ~a via ~a" response-type (numex:num->octets (yiaddr m)) destination-address)
 	    (setf (usocket:socket-option rsocket :broadcast) t)
 	    (let ((nbw (usocket:socket-send
 			rsocket buff (length buff)
 			:port +dhcp-client-port+
 			:host destination-address
 			)))
-	      (alog "number of bytes sent:~a~%" nbw)
+	      (log4cl:log-info "number of bytes sent:~a~%" nbw)
 	      )
 	    )
 	  )
@@ -741,7 +735,7 @@ port number.  Asking for the same port gets you the same object"
 	 (buff (make-array 1024 :element-type '(unsigned-byte 8)))
 	 (rsocket (server-socket :port port)))
     (let ((bcast (usocket:socket-option rsocket :broadcast)))
-      (alog (format nil "socket: ~a created, bcast=~a" rsocket bcast))
+      (log4cl:log-info  "socket: ~a created, bcast=~a" rsocket bcast)
       ;; GUS: 2020-02-23: Testing on a real network, turning  broadcast back on
       (setf bcast (usocket:socket-option rsocket :broadcast))
       #+nil(alog (format nil  "broadcast enabled :~a" bcast))
@@ -751,16 +745,16 @@ port number.  Asking for the same port gets you the same object"
 		(handler-case
 		    (multiple-value-bind (buff size client receive-port)
 			(usocket:socket-receive rsocket buff 1024)
-		      (alog (format nil "dhcp pdu received from ~a:~a" client receive-port))
+		      (log4cl:log-info  "dhcp pdu received from ~a:~a" client receive-port)
 		      (dhcp-handler rsocket  buff size client receive-port)
 		      )
 		  (t (c)
-		    (alog (format nil "Error processing dhcp request ~a ~&" c))
+		    (log4cl:log-info  "Error processing dhcp request ~a ~&" c)
 		    (let ((path (uiop/stream:with-temporary-file
 				    (:stream bout :pathname x :keep t :element-type '(unsigned-byte 8))
 				  (write-sequence buff bout)
 				  x)))
-		      (alog (format nil "saving dhcp message ~s" path))
+		      (log4cl:log-info  "saving dhcp message ~s" path)
 		      nil))
 		  ))
 	(progn
@@ -776,11 +770,11 @@ port number.  Asking for the same port gets you the same object"
       (handler-case
 	  (funcall thunk)
 	(t (c)
-	  (alog (format nil "~a~&" c))
+	  (log4cl:log-error "~a~&" c)
 	  nil))))
 
 (defun run ()
-  (alog "starting dhcp background thread")
+  (log4cl:log-info "starting dhcp background thread")
   (bt:make-thread (catch-and-log #'dhcpd) :name "dhcp thread")
   )
 

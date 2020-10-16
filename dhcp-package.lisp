@@ -3,7 +3,6 @@
 (defpackage #:dhcp
   (:use #:cl
 	#:numex
-	;;#:cl-syslog
 	)
   (:export
 
@@ -32,7 +31,6 @@
    
    :*hook-ip-allocated*
    :address-list
-   :alog
    :broadcast-address
    :ciaddr
    :cidr-subnet

@@ -23,9 +23,9 @@
 	       #:numex
 	       #:lsa
 	       ;;#:trivial-ssh
-	       #:cl-syslog
                #:cl-ppcre
 	       #:cl-async
+	       #:autils
 	       )
   :components ((:file "dhcp-package")
 	       (:file "parse-dhcp-options")
@@ -34,4 +34,5 @@
 	       (:file "dhcp-common")
 	       (:file "dhcp-client")
                (:file "dhcp-server")
+	       (:file "cnets")
 	       ))

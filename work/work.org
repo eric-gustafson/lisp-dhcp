@@ -1,23 +1,160 @@
 #+title: work
 #+startup: overview
 
-
 * Problem Statement
-  It's not going well, with regard to having tools to *greatly* speed
-  up protocol development.  
 
-  I believe that the serialize and deserialize routines are wrong.
-
-
-[[/ssh:root@192.168.1.2:/]]
+  A dhcp server that works with simplistic dhcp gateways running in a
+  IOT mesh network to provide the capability to run 100k nodes in
+  a single network.
 
 
+* Today <2020-10-03 Sat>
+
+  Document how I think this system will work
+
+  We will have 2 primary use-cases that are the extremes of any
+  network topography we will want this scheme to handle.
+
+  1. The target network is a perfect fractel circle (or sphere), where
+     every node has exactly 8 connection in equal; bi-directional
+     transmission distance, maximum radial distance from the APSTA as AP client
+     connections.
+
+  2. The target network is a linked-list like deployment.  Imaging we
+     get the contract to do all of the highway lighting for route 70
+     running from Maryland on the US east-coast to California on the
+     West Coast.  In this scenario, imagine also that we do the on/off
+     ramps into the nearest small city right off the highway, thus we
+     will have little geographical =subnets= that will need a 
+
+  Basically, the best system I've been able to come up with is a
+  simple 0-8 tree (like a 2-3 tree or a b-tree) that the dhcp will model and the mesh 
+  will implement.  With this MESH, we throw away netmask routing, and use simplier
+  numerical predicate logic.
+
+  The COORDINATOR is always 10.0.0.0, and every MESH node has an IP
+  address > then it.  This idea can easily be refined later, where
+  COORDINATORS could have a different IP address, where we use
+  regurlar netmask routing, but for the rest of this document we will
+  assume the COORDINATOR gets the entire Class-A private address space, and it 
+  starts at 10.0.0.0. 
+
+  Every mote has an IP > COORDINATOR.
+
+** motes use int conditional logic to route, not netmasks
+   
+   Each node has 1 IP address, even though they have 2 interfaces.  Does the AP interface
+   really need an IP address?
+
+*** dest < IP
+    if the destination IP address is < the node's IP address, send it to the STA's gateway
+
+*** dest == IP:
+     right here baby
+
+*** dest > IP
+    Go through the children, and send it to the node that is max least IP.  
+
+    AP clients, 0 - 8 nodes
+
+ through the list, and find the entry
+     where dest is > then the entry but less than entry->next.
 
 
-* Today
+
+
+
+** inc-net operation
+   How do we manage the IP distribution over the APSTA STA clients?
+
+   Given a parent in the MESH is out of IP addresses to give to it's
+   new child, then we can issue an inc-net broadcast with the parent's
+   IP address and then give the child that address + 1.  The inc-net
+   operation will go throu and update all of the routing tables and all of the
+   mote's IP addresses and everything will work.
+
+*** Example 1 
+    Assume a network layout shaped like the Washington monument, nodes
+    going all the way up the monement, with serveral also spread just
+    outside the monement at the base, say the shrubs and two small
+    buildings (at the base).
+
+    We want a large allocation of IP addresses to go up the middle, so how will
+    this linear list of 
+
+#+BEGIN_SRC ditaa
+
+		    +-----------+
+		    | x x x x x |
+		    | x  x   x  |
+		    |   x  x  x |
+		    |x x x x x  |
+		    |  x  x   x |
+		    |	x . x x |
+		    | x    x    |
+		    |  x xx x   |
+		    | x   x  x  |
+		    |  x x    x |
+		    | x    x x  |
+	 +---------+|  x x x  x | +-----------+
+	 |x5    x6 ||x x x   xx | | x x  x    |
+	 |   x4    ||   x b x x | |     x    x|
+	 |x3  x2   |+-----------+ |  x    x   |
+	 |         |		  |     x   x |
+	 | x1    a |		  | d  x20 x21 |
+	 +---------+		  +-----------+
+
+                         C
+#+END_SRC
+   Assume C has 3 chidlren, a b and d.  We will want the station's routing table to look something like
+
+   | a |  10.0.0.1 |  7 |
+   | d |  10.0.0.8 | 12 |
+   | b | 10.0.0.20 |  n |
+
+   The basic idea, is to let a segment run until it fails.  When we get a failure, then we must 
+   adjust (increment) all of the IP addresses in the other regions by 1.
+
+
+   | Step | action         |          |                   |
+   |------+----------------+----------+-------------------|
+   |    0 | initial        |          |                   |
+   |    1 | a joins        |          |                   |
+   |      | a              | 10.0.0.1 |                   |
+   |      | d joins        |          |                   |
+   |      | d              | 10.0.0.2 |                   |
+   |      | x1 joins       |          |                   |
+   |      | x1             |     FAIL |                   |
+   |------+----------------+----------+-------------------|
+   |      | (inc-net a.ip) |        d | broadcast         |
+   |------+----------------+----------+-------------------|
+   |      | d              | 10.0.0.3 |                   |
+   |      | x21 joins      | 10.0.0.4 |                   |
+   |      | x2 joins       | 10.0.0.2 |                   |
+   |      | x1 joins       |     FAIL | out-of-addressess |
+   |      | (inc-net a.ip) |          | a.ip = 10.0.0.1   |
+   |      | d              | 10.0.0.4 |                   |
+   |      | x21            | 10.0.0.5 |                   |
+   |      | x2             | 10.0.0.3 |                   |
+
+
+   inc-net: In the above scenario, we failed to add X1 through a.  A
+   needs more addresses.  We send a simple broadcast message with the
+   address of a, then every node who recieves the message simply
+   increments thier IP address if they already had an IP > a.
+  
+   
+
+** Risks
+*** Pretty sure I can gateway route like this in FreeRTOS
+*** Do I need IP's for each FreeRTOS interface?
+    Can I use the same IP?
+
+
+
+* Key Files
   [[file:../devdocs/]]
   [[file:../dhcp-server.lisp]]
-
 
 
 255.255.255.252 64 nets      N.N.N.0     N.N.N.1-2        N.N.N.3
@@ -27,11 +164,7 @@
                              N.N.N.248   N.N.N.249-250    N.N.N.251
                              N.N.N.252   N.N.N.253-254    N.N.N.255
 
-
 #<CIDR-NET #(10 0 12 0)/24>
-
-
-
 #+begin_src lisp
   (length (dhcp::subnets *this-net* 2))
 #+end_src
@@ -81,6 +214,7 @@
     #+RESULTS:
     : lo   ,UNKNOWN   ,00:00:00:00:00:00
     : wlo1 ,UP        ,48:45:20:ef:5b:e6
+
 
 *** List addresses
     #+begin_src lisp :results output
@@ -238,5 +372,116 @@
    | (10 0 12 251) | /30        | (255 255 255 252) | FFFFFFFC    |
 
 
+* DHCP Allocation Stategies
+  :LOGBOOK:
+  CLOCK: [2020-10-02 Fri 21:11]
+  :END:
+  
+** TODO allocation based on 3 bits
+
+   Using this allocation scheme, we are going to get something like 8
+   hops of radial distance from the coordinator.
+
+#+BEGIN_SRC lisp
+(ldb (byte 8 8) (numex:octets->num #(10 9 8 7) ))
+#+END_SRC
+
+#+RESULTS:
+: 8
+
+*** TODO Max Hops - Radial distance                                   :dhcps:
+    Document this, publish in this readme
+
+    32 bits
+    10.0.0.0 - 10.255.255.255
+    24 bits of network address
+#+name: cnet-netmask-max-hops
+#+BEGIN_SRC lisp
+   (/ 24 3)
+#+END_SRC    
+
+#+RESULTS: cnet-netmask-max-hops
+: 8
+
+#+BEGIN_SRC lisp :results table
+   (alexandria:iota 24)
+#+END_SRC
+
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----+----+----+----+----+----+----+----+----|
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 |
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----+----+----+----+----+----+----+----+----|
+| 1 | 1 | 1 | 2 | 2 | 2 | 3 | 3 | 3 | 4 |  4 |  4 |  5 |  5 |  5 |  6 |  6 |  6 |  7 |  7 |  7 |  8 |  8 |  8 |
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----+----+----+----+----+----+----+----+----|
+| 7 | 7 | 7 |   |   |   |   |   |   |   |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
 
 
+*** TODO Only split the hops address space if we have to
+
+    Write a function that splits the address space for hops.  We allocate
+
+    Why not have a tree of allocated networks
+
+#+BEGIN_SRC lisp 
+  
+
+(defun split-net (net-tree)
+  
+  )
+#+END_SRC
+
+*** TODO how dow we remember alloctions and allow freeing           :p:dhcps:
+    - parameters: 
+       (byte 8 8) - This is what defines the network we are on.
+
+** TODO function that takes parent integer and returns 8 children
+
+
+** Netmask Allocation
+   Calculate the netmasks and routing tables that will be allocated
+   for a perfect 2d fractle circle, depth of 3 with 8 networks per node.
+
+#+name: hop-allocation-calcs
+#+BEGIN_SRC lisp :results table
+(defparameter *nchildren* 8)
+
+(defparameter *childnet-netmask* (byte 3 8) )
+
+(defun make-cnet (hops)
+  (unless (and (> hops 0) 
+	       (<= hops 10))
+    (error "Hops must be a positive integer between 1 and 10"))
+  
+  )
+
+(defun ipa-child (ipaddr child-n)
+  (unless (< child-n *nchildren*)
+    (error "child-n too big ~a" child-n))
+  (numex:num->octets ipaddr :length 4)
+  )
+
+(defun ipa-children(ipaddr)
+  (cons
+   (list "Node" "" "#b child-nets")
+   (loop :for i :from 0 :below  *nchildren*
+	 :for j :from 0
+	 :collect
+	 (list j 10 (list (format nil "~4d" (ash i 5)) (format nil "~8b" (ash i 5)))   0 0)
+	 )
+   ))
+
+(ipa-children (numex:octets->num #(10 0 0 0) ))
+#+END_SRC
+
+#+RESULTS: hop-allocation-calcs
+| Node |    | #b child-nets   |   |   |
+|    0 | 10 | (   0        0) | 0 | 0 |
+|    1 | 10 | (  32   100000) | 0 | 0 |
+|    2 | 10 | (  64  1000000) | 0 | 0 |
+|    3 | 10 | (  96  1100000) | 0 | 0 |
+|    4 | 10 | ( 128 10000000) | 0 | 0 |
+|    5 | 10 | ( 160 10100000) | 0 | 0 |
+|    6 | 10 | ( 192 11000000) | 0 | 0 |
+|    7 | 10 | ( 224 11100000) | 0 | 0 |
+
+
+** Hash
