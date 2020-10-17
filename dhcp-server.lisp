@@ -527,7 +527,7 @@ and it's always allocated untile the server is restarted.")
   
 (defmethod get-ack ((net-obj cidr-net) (reqMsg dhcp))
   "return an dhcp packet to be broadcast that provides an IP address"
-  (log4cl:log-info "get-ack: yiaddr:~a,siaddr:~a,ciaddr:~a~%"
+  (log4cl:log-info "yiaddr:~a,siaddr:~a,ciaddr:~a~%"
 		   (numex:num->octets (yiaddr reqMsg))
 		   (numex:num->octets (siaddr reqMsg))
 		   (numex:num->octets (ciaddr reqMsg))
