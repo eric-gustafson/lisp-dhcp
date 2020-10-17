@@ -654,7 +654,7 @@ destination-net when formulating the broadcast response."
   (log4cl:log-info "dhcp-server-pdu-handler")
   (setf *last* (copy-seq buff))
   (let* ((dhcpObj (pdu-seq->udhcp buff)))
-    (log4cl:log-info "dhcp-handler: giaddr=~a, buff[48]=~s,~s,~s,~s" (giaddr dhcpObj)
+    (log4cl:log-info "giaddr=~a, buff[48]=~s,~s,~s,~s" (giaddr dhcpObj)
 		     (elt buff 48) (elt buff 49)
 		     (elt buff 50) (elt buff 51)
 		     )
