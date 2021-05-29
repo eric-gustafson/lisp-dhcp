@@ -521,7 +521,7 @@ and it's always allocated untile the server is restarted.")
     )
   )
 
-(defvar *dns-server-cache* nil)
+(defparameter *dns-server-cache* nil)
 (defun get-dns-server ()
   "This is a function so that we can later expand upon other possibilities."
   (or *dns-server-cache*
