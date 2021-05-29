@@ -474,6 +474,62 @@ and it's always allocated untile the server is restarted.")
     (remhash (ipnum obj) (get-net-allocation-table net))
     ))
 
+(defparameter *nameserver-re*
+  (ppcre:create-scanner
+   `(:SEQUENCE
+     "nameserver"
+     (:GREEDY-REPETITION 1 NIL :whitespace-CHAR-CLASS)
+     (:REGISTER
+      (:SEQUENCE
+       (:GREEDY-REPETITION 1 3 :DIGIT-CLASS)
+       #\.
+       (:GREEDY-REPETITION 1 3 :DIGIT-CLASS)
+       #\.
+       (:GREEDY-REPETITION 1 3 :DIGIT-CLASS)
+       #\.
+       (:GREEDY-REPETITION 1 3 :DIGIT-CLASS)       
+       )
+      )
+     )
+   )
+  )
+
+(defun get-dns-server-from-file ()
+  (let ((path (probe-file "/etc/resolv.conf")))
+    (when path
+      (with-open-file (input path)
+	(loop :for s = (read-line input nil nil)
+	      :while s
+	      :do
+		 ;;(format t "~a~%" s)
+		 (multiple-value-bind (start end gsa gea)
+		     (ppcre:scan *nameserver-re* s)
+		   (declare (ignore end))
+		   (when start
+		     (let ((value
+			     (map 'list
+				  #'parse-integer
+				  (ppcre:split #\.  (subseq s (elt gsa 0) (elt gea 0))))))
+		       ;;(format t "~a~%" value)
+		       (return value)
+		       )
+		     )
+		   )
+		 )
+	)
+      )
+    )
+  )
+
+(defvar *dns-server-cache* nil)
+(defun get-dns-server ()
+  "This is a function so that we can later expand upon other possibilities."
+  (or *dns-server-cache*
+      (setf *dns-server-cache* (get-dns-server-from-file))
+      `(8 8 8 8)
+      )
+  )
+      
 (defmethod make-dhcp-offer ((net-obj cidr-net) (reqMsg udhcp))
   "return an DHCP 'offer' to be broadcast that provides an IP address"
   (let* ((new-addr (dhcp-allocate-ip reqMsg net-obj))
@@ -501,7 +557,7 @@ and it's always allocated untile the server is restarted.")
 								(:routers ,(compute-servers-ip-for-address net-obj new-addr))
 								(:lease-time 1800)
 								(:dhcp-server ,@(compute-servers-ip-for-address net-obj new-addr))
-								(:dns-servers (8 8 8 8)))
+								(:dns-servers ,(get-dns-server)))
 							      ))))
     (log4cl:log-info "make-dhcp-offer: ~a~%" (numex:num->octets (yiaddr replyMsg)))
     replyMsg))
@@ -560,7 +616,7 @@ and it's always allocated untile the server is restarted.")
 							       (:routers ,(compute-servers-ip-for-address net-obj new-ip))
 							       (:lease-time 1800)
 							       (:dhcp-server ,@(compute-servers-ip-for-address net-obj new-ip))
-							       (:dns-servers (8 8 8 8)))
+							       (:dns-servers ,(get-dns-server)))
 							     ))))
     replyMsg))
 
