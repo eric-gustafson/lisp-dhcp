@@ -14,6 +14,7 @@
 	       #:closer-mop	       
 	       #:uiop
 	       #:lparallel   
+	       #:log4cl
 	       #:cl-ppcre
 	       #:trivia
 	       #:trivia.ppcre
