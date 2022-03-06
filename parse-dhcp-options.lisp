@@ -207,6 +207,8 @@
 		    ((list* 0 rest)
 		     ;; This is the Pad option
 		     (decode-options rest))
+		    ((list* 80 rest) ;; Rapid commit rfc4039
+		     (decode-options rest))
 		    ((list* 255 _)
 		     '())
 		    ((list* 12 n rest) ;; hostname option
