@@ -796,7 +796,7 @@ port number.  Asking for the same port gets you the same object"
       (setf bcast (usocket:socket-option rsocket :broadcast))
       #+nil(alog (format nil  "broadcast enabled :~a" bcast))
       (unwind-protect
-	   (loop :while (serve)
+	   (loop :while (funcall 'serve)
 	      :do
 		(handler-case
 		    (multiple-value-bind (buff size client receive-port)
