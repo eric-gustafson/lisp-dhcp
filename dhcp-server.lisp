@@ -814,6 +814,7 @@ port number.  Asking for the same port gets you the same object"
 		  ))
 	(progn
 	  (log4cl:log-info "closing dhcp socket:~a" rsocket)
+	  (usocket:socket-shutdown rsocket :io)	  
 	  (usocket:socket-close rsocket)
 	  )
 	)
