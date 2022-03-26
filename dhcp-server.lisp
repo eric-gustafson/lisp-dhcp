@@ -54,8 +54,8 @@
   )
 
 
-(defun serve ()
-  t)
+(defvar *serve* t)
+
 
 (defvar *last* nil)
 
@@ -792,11 +792,10 @@ port number.  Asking for the same port gets you the same object"
 	 (rsocket (server-socket :port port)))
     (let ((bcast (usocket:socket-option rsocket :broadcast)))
       (log4cl:log-info  "socket: ~a created, bcast=~a" rsocket bcast)
-      ;; GUS: 2020-02-23: Testing on a real network, turning  broadcast back on
       (setf bcast (usocket:socket-option rsocket :broadcast))
       #+nil(alog (format nil  "broadcast enabled :~a" bcast))
       (unwind-protect
-	   (loop :while (funcall 'serve)
+	   (loop :while *serve*
 	      :do
 		(handler-case
 		    (multiple-value-bind (buff size client receive-port)
@@ -814,6 +813,7 @@ port number.  Asking for the same port gets you the same object"
 		      nil))
 		  ))
 	(progn
+	  (log4cl:log-info "closing dhcp socket:~a" rsocket)
 	  (usocket:socket-close rsocket)
 	  )
 	)
@@ -831,6 +831,7 @@ port number.  Asking for the same port gets you the same object"
 
 (defun run ()
   (log4cl:log-info "starting dhcp background thread")
+  (autils:with-olock (*serve*) (setf *serve* t))
   (bt:make-thread (catch-and-log #'dhcpd) :name "dhcp thread")
   )
 
