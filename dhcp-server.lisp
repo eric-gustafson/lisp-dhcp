@@ -814,8 +814,8 @@ port number.  Asking for the same port gets you the same object"
 		  ))
 	(progn
 	  (log4cl:log-info "closing dhcp socket:~a" rsocket)
-	  (usocket:socket-shutdown rsocket :io)	  
-	  (usocket:socket-close rsocket)
+	  (c&l (usocket:socket-close rsocket))
+	  (autils:remhash/lock port *server-socket-table*)
 	  )
 	)
       )
@@ -829,6 +829,10 @@ port number.  Asking for the same port gets you the same object"
 	(t (c)
 	  (log4cl:log-error "~a~&" c)
 	  nil))))
+
+(defmacro c&l (&rest prog)
+  `(catch-and-log #'(lambda()
+		      ,@prog)))
 
 (defun run ()
   (log4cl:log-info "starting dhcp background thread")
