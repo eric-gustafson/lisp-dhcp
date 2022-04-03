@@ -660,9 +660,9 @@ and it's always allocated untile the server is restarted.")
   ip-addresses it has dished out.  The function dishes out the first
   one to the iface (usually the .1)"
 		  )
-  (:method ((nobj cidr-net) &optional if-mac)
-    (let ((ipnum (first-ip cidr)))
-      (make-dhcp-address cidr
+  (:method ((cidr-nobj cidr-net) &optional if-mac)
+    (let ((ipnum (first-ip cidr-nobj)))
+      (make-dhcp-address cidr-nobj
 			 ipnum
 			 (if if-mac
 			     if-mac

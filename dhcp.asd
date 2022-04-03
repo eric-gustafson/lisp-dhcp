@@ -16,6 +16,7 @@
 	       #:lparallel   
 	       #:log4cl
 	       #:cl-ppcre
+	       #:nibbles
 	       #:trivia
 	       #:trivia.ppcre
 	       #:cl-interpol
