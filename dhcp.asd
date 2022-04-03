@@ -3,8 +3,9 @@
 (asdf:defsystem #:dhcp
   :description "DHCP client and server code"
   :author "gus"
-  :license  "Specify license here"
-  :version "0.0.2"
+  :license  "GPL3v3"
+  :homepage "file:///home/egustafs/secapp/lisp-dhcp/mf/docs/dhcp/index.html"
+  :version "0.0.3"
   :serial t
   :depends-on (
 	       #:alexandria
@@ -18,6 +19,7 @@
 	       #:cl-ppcre
 	       #:nibbles
 	       #:trivia
+;;	       #:trivia.extra
 	       #:trivia.ppcre
 	       #:cl-interpol
 	       #:daemon	       	       

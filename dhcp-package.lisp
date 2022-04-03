@@ -4,6 +4,18 @@
   (:use #:cl
 	#:numex
 	)
+
+  (:local-nicknames 
+   (:al  :alexandria)
+   (:a :alexandria)
+   (:pm :trivia)
+   ;(:pme :trivia.extra)
+   (:re :ppcre)
+   (:pm.re :trivia.ppcre)
+   (:s :serapeum)
+   (:r :rutils)
+   )  
+  
   (:export
 
    :update-dhcps-iface-ip-addresses!
