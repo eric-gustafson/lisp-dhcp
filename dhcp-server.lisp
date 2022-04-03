@@ -18,7 +18,7 @@
    (broadcast :accessor broadcast :initarg :broadcast)
    ;;  A mac=>dhcp-address hash
    (reservations :accessor reservations :initarg :reservations :initform (make-hash-table :test #'equalp)
-		 :documentation "A map of mac addresses to
+		 :documentation "A map of client-mac-addresses to
 		 dhcp-address objects.  The mac adress is represented
 		 as a list of numbers" ) )
   )
@@ -246,7 +246,7 @@
 
 (defgeneric get-net-allocation-table (netobj)
   (:documentation "Returns a hashtable of the IP addresses we have
-sent out on the interface represented by 'netobj'.  There values are
+sent out on the interface represented by 'netobj'.  The values are
 all dhcp-address objects, and for each object there will be two keys
 in the table pointing to an instance.  A 'mac' key is a list of
 integers ala (180 213 189 19 125 186).  A numerical IP
@@ -351,6 +351,7 @@ address (machine integer representation) is the second key.")
   "Returns all of the dhcp reservations for the engine"
   (mapcar #'alexandria:hash-table-values (apply #'append (mapcar #'reservations *dhcp-iface-ip-addresses*)))
   )
+(export 'get-all-reservations)
 
 (defmethod subnets ((net-obj cidr-net) &key cidr)
   (let ((f (first-ip net-obj))
@@ -654,6 +655,23 @@ and it's always allocated untile the server is restarted.")
     )
   )
 
+(defgeneric initialize-cidr-net! (nobj  &optional if-mac) 
+  (:documentation "The dhcp cidr-net object keeps track of the
+  ip-addresses it has dished out.  The function dishes out the first
+  one to the iface (usually the .1)"
+		  )
+  (:method ((nobj cidr-net) &optional if-mac)
+    (let ((ipnum (first-ip cidr)))
+      (make-dhcp-address cidr
+			 ipnum
+			 (if if-mac
+			     if-mac
+			     (list 0 0 0 0 0 i)))
+      )
+    )
+  )
+(export 'initialize-cidr-net!)
+
 (defun update-dhcps-iface-ip-addresses! (cidr-net-list)
   "The DHCP communicates via network broadcasts, since the clients to
 this service do not have IP addresses.  We only send/respond to
@@ -666,13 +684,8 @@ interfaces that have an IP address and that have been 'marked'"
     (loop :for (cidr . if-mac) :in cidr-net-list
 	  :for i :from 1
 	  :do
-      (let ((ipnum (first-ip cidr)))
-	(make-dhcp-address cidr
-			   ipnum
-			   (if if-mac
-			       if-mac
-			       (list 0 0 0 0 0 i)))
-	))
+	     (initialize-cidr-net! cidr if-mac)
+	  )
     )
   )
 
