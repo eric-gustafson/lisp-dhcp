@@ -417,7 +417,7 @@ address (machine integer representation) is the second key.")
 (defgeneric dhcp-generate-ip (net mac)
   (:documentation
    "For prototyping, we allocate an IP address 1 time to a mac-address,
-and it's always allocated untile the server is restarted.")
+and it's always allocated until the server is restarted.")
   (:method ((net cidr-net) (mac list) )
     ;; TODO: Handle the case whe we run out of addresses
     (loop
