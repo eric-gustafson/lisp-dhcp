@@ -87,7 +87,7 @@ host is nil, then we broadcast the message"
 
 (defvar *cs* nil)
 
-(defun dhcp-client-socket-up! ()
+(defun ensure-dhcp-client-socket-up! ()
   (serapeum:synchronized(*cs*)
     (unless *cs*
       (setf *cs*   (server-socket :port +dhcp-client-port+)))
@@ -118,7 +118,7 @@ host is nil, then we broadcast the message"
 	 (dhcpReq (request-client-address :iface-name iface-name))
 	 (pdu (obj->pdu dhcpReq))
 	 )
-    (dhcp-client-socket-up!)
+    (ensure-dhcp-client-socket-up!)
     (setf (usocket:socket-option *cs* :broadcast) t)
     (client-snd-pdu *cs* dhcpReq)
     ;; Wait for an offer
@@ -161,7 +161,7 @@ on a thread"
 	 (pdu (obj->pdu dhcpReq))
 	 (buff (make-array 1024 :element-type '(unsigned-byte 8)))
 	 )
-    (dhcp-client-socket-up!)
+    (ensure-dhcp-client-socket-up!)
     (setf (usocket:socket-option *cs* :broadcast) t)
     (log4cl:log-info "sending dhcp request")
     (client-snd-pdu *cs* dhcpReq)
