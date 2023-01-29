@@ -45,7 +45,7 @@
 	    (mac ipnum tla lease-time mac)
 	  obj
 	(format stream "~a,~a,~a,~a"
-		(numex:octet-list->hexstr mac)
+		(numex:octseq->hexstr mac)
 		(when (numberp ipnum)
 		  (numex:num->dotted ipnum))
 		(- now tla) lease-time))
